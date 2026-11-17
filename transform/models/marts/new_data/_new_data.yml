@@ -1,0 +1,56 @@
+version: 2
+
+# TX-24, TX-25, TX-27: new measured marts. Scratch-only: not in scripts/export_app_data.py,
+# no page or card reads them (AP-09 / AX-28 are separate, gated items).
+models:
+  - name: fct_track_limits
+    description: TX-24. One row per deleted lap (race and qualifying) with the raw DeletedReason and the parsed turn.
+    columns:
+      - name: deleted_lap_id
+        tests: [unique, not_null]
+      - name: deleted_reason
+        description: Bronze DeletedReason, unchanged.
+      - name: turn_number
+        description: Turn parsed from 'TURN N' in the reason; NULL when the text names no turn.
+  - name: fct_track_limits_driver_session
+    description: >
+      TX-24. Deleted-lap counts per driver, race and session with n_laps_run (the denominator).
+      Seasons with no deletion data in Bronze (2018) are NULL with
+      deleted_unavailable_reason = SOURCE_HAS_NO_DELETION_DATA, not 0.
+    columns:
+      - name: driver_session_id
+        tests: [unique, not_null]
+      - name: n_laps_run
+        tests: [not_null]
+      - name: deleted_unavailable_reason
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['SOURCE_HAS_NO_DELETION_DATA']
+  - name: fct_speed_traps
+    description: TX-25. Speed-trap max / median / n per driver, race and session over valid laps; missing readings counted, never 0.
+    columns:
+      - name: driver_session_id
+        tests: [unique, not_null]
+      - name: n_valid_laps
+        tests: [not_null]
+      - name: n_st_missing_all_laps
+        tests: [not_null]
+  - name: fct_speed_traps_season
+    description: TX-25. Season roll-up of SpeedST per driver and per team, per session type, with n.
+    columns:
+      - name: season_entity_id
+        tests: [unique, not_null]
+  - name: fct_pit_stop_crosscheck
+    description: >
+      TX-27. Jolpica pit stops beside FastF1 stg_pits per driver-race (two measured sources,
+      neither overwrites the other), with crosscheck_status.
+    columns:
+      - name: crosscheck_id
+        tests: [unique, not_null]
+      - name: crosscheck_status
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['AGREE', 'COUNT_DIFFERS', 'LAPS_DIFFER', 'JOLPICA_RACE_MISSING', 'FASTF1_RACE_MISSING']

@@ -49,6 +49,14 @@
 -- induce mild correlation in the residual terms) honest enough for calibration,
 -- documented here rather than hidden.
 --
+-- TX-18: no SE is filled with 0. An SE input with no estimate is NULL in
+-- fct_ghost_car_pace; the per-scenario averages below skip NULL laps, so a
+-- scenario with no estimate on any lap carries NULL through var_self /
+-- predicted_mean_lap_se_s, sd_diff, p_i_beats_j, p_beats_next and
+-- finish_pos_se (NULL = unavailable, not certain). A single-lap scenario has
+-- no lap_pace_sd (was 0.0), so it is NULL too. finish_pos_se_unavailable_reason
+-- says why finish_pos_se is NULL.
+--
 -- avg_recombination_confidence is a coverage-weighted confidence heuristic,
 -- read directly by app features alongside the SE-propagation columns below.
 --
@@ -183,8 +191,9 @@ race_totals AS (
         AVG(host_cliff_active)                  AS frac_host_active,
         AVG(ego_cliff_active)                   AS frac_ego_active,
         -- finite-sample SE of the mean: sd of per-lap predictions / sqrt(laps).
-        -- COALESCE handles single-lap scenarios (STDDEV_SAMP is NULL at n=1).
-        COALESCE(STDDEV_SAMP(predicted_lap_time_s), 0.0) AS lap_pace_sd
+        -- TX-18: NULL for a single-lap scenario (STDDEV_SAMP is NULL at n=1);
+        -- was COALESCE(..., 0.0), which claimed certainty.
+        STDDEV_SAMP(predicted_lap_time_s)        AS lap_pace_sd
     FROM ghost_laps
     GROUP BY race_year, race_id, ego_driver_id, host_constructor_id
 ),
@@ -252,11 +261,19 @@ pairwise AS (
         i.predicted_mean_residual_pace_s        AS mu_i,
         j.predicted_mean_residual_pace_s        AS mu_j,
         -- sd of (mu_i - mu_j); floored to avoid 0/0 when both are deterministic.
-        GREATEST(SQRT(
-            i.var_self + j.var_self
-            + POWER(i.host_slope_term - j.host_slope_term, 2)
-            + POWER(i.host_cliff_term - j.host_cliff_term, 2)
-        ), 1e-6)                                AS sd_diff
+        -- TX-18: NULL stays NULL (DuckDB GREATEST skips a NULL argument and
+        -- would return the 1e-6 floor, i.e. near-certainty).
+        CASE
+            WHEN i.var_self IS NULL OR j.var_self IS NULL
+                OR i.host_slope_term IS NULL OR j.host_slope_term IS NULL
+                OR i.host_cliff_term IS NULL OR j.host_cliff_term IS NULL
+                THEN NULL
+            ELSE GREATEST(SQRT(
+                i.var_self + j.var_self
+                + POWER(i.host_slope_term - j.host_slope_term, 2)
+                + POWER(i.host_cliff_term - j.host_cliff_term, 2)
+            ), 1e-6)
+        END                                     AS sd_diff
     FROM driver_stats i
     JOIN driver_stats j
         ON  i.race_year          = j.race_year
@@ -286,7 +303,11 @@ pairwise_agg AS (
         ego_driver_id,
         -- finish-position sd: Poisson-binomial sd of the count of drivers ahead.
         -- p(1-p) is symmetric in p, so summing over "i beats j" events is valid.
-        SQRT(SUM(p_i_beats_j * (1.0 - p_i_beats_j))) AS finish_pos_se,
+        -- TX-18: NULL if any pairwise probability is unavailable.
+        CASE
+            WHEN COUNT(p_i_beats_j) < COUNT(*) THEN NULL
+            ELSE SQRT(SUM(p_i_beats_j * (1.0 - p_i_beats_j)))
+        END                                     AS finish_pos_se,
         -- probability of beating the driver ranked immediately below.
         MAX(CASE WHEN rank_j = rank_i + 1 THEN p_i_beats_j END) AS p_beats_next
     FROM pairwise_prob
@@ -331,7 +352,13 @@ SELECT
     -- Honest-confidence columns
     r.predicted_mean_lap_se_s,
     pa.p_beats_next,
-    COALESCE(pa.finish_pos_se, 0.0)             AS finish_pos_se
+    -- TX-18: NULL, not 0, when there is no estimate (was COALESCE(..., 0.0)).
+    pa.finish_pos_se,
+    CASE
+        WHEN pa.finish_pos_se IS NOT NULL THEN NULL
+        WHEN pa.ego_driver_id IS NULL THEN 'SINGLE_DRIVER_SCENARIO'
+        ELSE 'NO_SE_ESTIMATE'
+    END                                         AS finish_pos_se_unavailable_reason
 FROM driver_stats r
 LEFT JOIN actual_finish af
     ON r.race_year     = af.race_year

@@ -1,0 +1,485 @@
+[
+ {
+  "id": "N1.r1",
+  "group": "navigate",
+  "q": "Take me to the tyre degradation page.",
+  "tools": [
+   "navigate:error"
+  ],
+  "called_nav": true,
+  "shipped_ok": false,
+  "route_correct": false,
+  "link": [],
+  "status": "answered"
+ },
+ {
+  "id": "N2.r1",
+  "group": "navigate",
+  "q": "Show me the ghost standings.",
+  "tools": [
+   "get_fact_cards:error"
+  ],
+  "called_nav": false,
+  "shipped_ok": false,
+  "route_correct": false,
+  "link": [],
+  "status": "answered"
+ },
+ {
+  "id": "N3.r1",
+  "group": "navigate",
+  "q": "Where can I see constructor circuit interaction?",
+  "tools": [
+   "navigate:error",
+   "navigate:error",
+   "navigate:ok"
+  ],
+  "called_nav": true,
+  "shipped_ok": true,
+  "route_correct": true,
+  "link": [
+   "/constructors/circuits"
+  ],
+  "status": "answered"
+ },
+ {
+  "id": "N4.r1",
+  "group": "navigate",
+  "q": "Open the page that shows how driver ratings changed across eras.",
+  "tools": [
+   "navigate:error",
+   "navigate:error",
+   "navigate:error",
+   "navigate:ok"
+  ],
+  "called_nav": true,
+  "shipped_ok": true,
+  "route_correct": false,
+  "link": [
+   "/drivers/era-translator"
+  ],
+  "status": "answered"
+ },
+ {
+  "id": "E1.r1",
+  "group": "explain",
+  "q": "What does the cliff survival profile show?",
+  "tools": [
+   "explain_page:error",
+   "explain_page:ok"
+  ],
+  "called_explain": true,
+  "right_page": true,
+  "nums_in_answer": [],
+  "status": "answered"
+ },
+ {
+  "id": "E2.r1",
+  "group": "explain",
+  "q": "What is the constructor structural pace page about?",
+  "tools": [
+   "explain_page:error"
+  ],
+  "called_explain": false,
+  "right_page": false,
+  "nums_in_answer": [],
+  "status": "answered"
+ },
+ {
+  "id": "E3.r1",
+  "group": "explain",
+  "q": "What is the blind test scoreboard page for?",
+  "tools": [
+   "explain_page:ok"
+  ],
+  "called_explain": true,
+  "right_page": true,
+  "nums_in_answer": [
+   "1",
+   "50",
+   "2",
+   "3"
+  ],
+  "status": "answered"
+ },
+ {
+  "id": "C1.r1",
+  "group": "combine",
+  "q": "For Alexander Albon in 2020, how did his gap to his teammate compare with his season results?",
+  "tools": [],
+  "checker_ok": true,
+  "ungrounded_final": [
+   "0.28",
+   "22",
+   "0"
+  ],
+  "repaired": true,
+  "first_draft_ungrounded": [
+   "0.28",
+   "22",
+   "0"
+  ],
+  "cards_cited": [],
+  "called_cards": false,
+  "status": "answered"
+ },
+ {
+  "id": "C2.r1",
+  "group": "combine",
+  "q": "For Max Verstappen in 2024, how did his gap to his teammate compare with his season results?",
+  "tools": [
+   "get_fact_cards:error",
+   "get_fact_cards:error"
+  ],
+  "checker_ok": true,
+  "ungrounded_final": [],
+  "repaired": false,
+  "first_draft_ungrounded": [],
+  "cards_cited": [],
+  "called_cards": false,
+  "status": "answered"
+ },
+ {
+  "id": "C3.r1",
+  "group": "combine",
+  "q": "In 2018, how many cautions were there in round 1, and what was the pooled safety car rate for the season?",
+  "tools": [
+   "get_fact_cards:error",
+   "get_fact_cards:error"
+  ],
+  "checker_ok": true,
+  "ungrounded_final": [],
+  "repaired": false,
+  "first_draft_ungrounded": [],
+  "cards_cited": [],
+  "called_cards": false,
+  "status": "answered"
+ },
+ {
+  "id": "N1.r2",
+  "group": "navigate",
+  "q": "Take me to the tyre degradation page.",
+  "tools": [
+   "navigate:error",
+   "navigate:ok"
+  ],
+  "called_nav": true,
+  "shipped_ok": true,
+  "route_correct": true,
+  "link": [
+   "/tyre-strategy/degradation"
+  ],
+  "status": "answered"
+ },
+ {
+  "id": "N2.r2",
+  "group": "navigate",
+  "q": "Show me the ghost standings.",
+  "tools": [
+   "navigate:error",
+   "get_fact_cards:error",
+   "navigate:error",
+   "navigate:error"
+  ],
+  "called_nav": true,
+  "shipped_ok": false,
+  "route_correct": false,
+  "link": [],
+  "status": "answered"
+ },
+ {
+  "id": "N3.r2",
+  "group": "navigate",
+  "q": "Where can I see constructor circuit interaction?",
+  "tools": [
+   "explain_page:error",
+   "explain_page:ok"
+  ],
+  "called_nav": false,
+  "shipped_ok": false,
+  "route_correct": false,
+  "link": [],
+  "status": "answered"
+ },
+ {
+  "id": "N4.r2",
+  "group": "navigate",
+  "q": "Open the page that shows how driver ratings changed across eras.",
+  "tools": [
+   "navigate:error",
+   "navigate:error",
+   "navigate:error",
+   "navigate:ok"
+  ],
+  "called_nav": true,
+  "shipped_ok": true,
+  "route_correct": false,
+  "link": [
+   "/drivers/era-translator"
+  ],
+  "status": "answered"
+ },
+ {
+  "id": "E1.r2",
+  "group": "explain",
+  "q": "What does the cliff survival profile show?",
+  "tools": [
+   "get_fact_cards:error",
+   "get_fact_cards:ok"
+  ],
+  "called_explain": false,
+  "right_page": false,
+  "nums_in_answer": [],
+  "status": "answered"
+ },
+ {
+  "id": "E2.r2",
+  "group": "explain",
+  "q": "What is the constructor structural pace page about?",
+  "tools": [
+   "explain_page:ok"
+  ],
+  "called_explain": true,
+  "right_page": true,
+  "nums_in_answer": [],
+  "status": "answered"
+ },
+ {
+  "id": "E3.r2",
+  "group": "explain",
+  "q": "What is the blind test scoreboard page for?",
+  "tools": [
+   "explain_page:error",
+   "explain_page:ok"
+  ],
+  "called_explain": true,
+  "right_page": true,
+  "nums_in_answer": [
+   "1",
+   "45",
+   "2",
+   "80",
+   "3",
+   "2026"
+  ],
+  "status": "answered"
+ },
+ {
+  "id": "C1.r2",
+  "group": "combine",
+  "q": "For Alexander Albon in 2020, how did his gap to his teammate compare with his season results?",
+  "tools": [
+   "get_fact_cards:error",
+   "get_fact_cards:error",
+   "get_fact_cards:error",
+   "get_fact_cards:error",
+   "get_fact_cards:error"
+  ],
+  "checker_ok": true,
+  "ungrounded_final": [],
+  "repaired": false,
+  "first_draft_ungrounded": [],
+  "cards_cited": [],
+  "called_cards": false,
+  "status": "no_answer"
+ },
+ {
+  "id": "C2.r2",
+  "group": "combine",
+  "q": "For Max Verstappen in 2024, how did his gap to his teammate compare with his season results?",
+  "tools": [],
+  "checker_ok": true,
+  "ungrounded_final": [
+   "12",
+   "1",
+   "612"
+  ],
+  "repaired": true,
+  "first_draft_ungrounded": [
+   "1",
+   "19",
+   "10",
+   "25",
+   "16",
+   "1",
+   "612",
+   "25"
+  ],
+  "cards_cited": [],
+  "called_cards": false,
+  "status": "answered"
+ },
+ {
+  "id": "C3.r2",
+  "group": "combine",
+  "q": "In 2018, how many cautions were there in round 1, and what was the pooled safety car rate for the season?",
+  "tools": [
+   "get_fact_cards:error",
+   "get_fact_cards:error"
+  ],
+  "checker_ok": true,
+  "ungrounded_final": [],
+  "repaired": false,
+  "first_draft_ungrounded": [],
+  "cards_cited": [],
+  "called_cards": false,
+  "status": "answered"
+ },
+ {
+  "id": "N1.r3",
+  "group": "navigate",
+  "q": "Take me to the tyre degradation page.",
+  "tools": [
+   "navigate:error",
+   "navigate:ok"
+  ],
+  "called_nav": true,
+  "shipped_ok": true,
+  "route_correct": true,
+  "link": [
+   "/tyre-strategy/degradation"
+  ],
+  "status": "answered"
+ },
+ {
+  "id": "N2.r3",
+  "group": "navigate",
+  "q": "Show me the ghost standings.",
+  "tools": [
+   "navigate:error",
+   "navigate:error",
+   "navigate:error",
+   "navigate:ok"
+  ],
+  "called_nav": true,
+  "shipped_ok": true,
+  "route_correct": true,
+  "link": [
+   "/ghost-car/standings"
+  ],
+  "status": "answered"
+ },
+ {
+  "id": "N3.r3",
+  "group": "navigate",
+  "q": "Where can I see constructor circuit interaction?",
+  "tools": [
+   "navigate:error"
+  ],
+  "called_nav": true,
+  "shipped_ok": false,
+  "route_correct": false,
+  "link": [],
+  "status": "answered"
+ },
+ {
+  "id": "N4.r3",
+  "group": "navigate",
+  "q": "Open the page that shows how driver ratings changed across eras.",
+  "tools": [
+   "navigate:error",
+   "navigate:error",
+   "navigate:ok"
+  ],
+  "called_nav": true,
+  "shipped_ok": true,
+  "route_correct": false,
+  "link": [
+   "/drivers/era-translator"
+  ],
+  "status": "answered"
+ },
+ {
+  "id": "E1.r3",
+  "group": "explain",
+  "q": "What does the cliff survival profile show?",
+  "tools": [
+   "get_fact_cards:error"
+  ],
+  "called_explain": false,
+  "right_page": false,
+  "nums_in_answer": [],
+  "status": "answered"
+ },
+ {
+  "id": "E2.r3",
+  "group": "explain",
+  "q": "What is the constructor structural pace page about?",
+  "tools": [
+   "explain_page:error"
+  ],
+  "called_explain": false,
+  "right_page": false,
+  "nums_in_answer": [],
+  "status": "answered"
+ },
+ {
+  "id": "E3.r3",
+  "group": "explain",
+  "q": "What is the blind test scoreboard page for?",
+  "tools": [
+   "explain_page:error",
+   "explain_page:ok"
+  ],
+  "called_explain": true,
+  "right_page": true,
+  "nums_in_answer": [
+   "2018",
+   "2025",
+   "2026"
+  ],
+  "status": "answered"
+ },
+ {
+  "id": "C1.r3",
+  "group": "combine",
+  "q": "For Alexander Albon in 2020, how did his gap to his teammate compare with his season results?",
+  "tools": [
+   "get_fact_cards:error",
+   "get_fact_cards:error"
+  ],
+  "checker_ok": true,
+  "ungrounded_final": [],
+  "repaired": true,
+  "first_draft_ungrounded": [
+   "20,"
+  ],
+  "cards_cited": [],
+  "called_cards": false,
+  "status": "answered"
+ },
+ {
+  "id": "C2.r3",
+  "group": "combine",
+  "q": "For Max Verstappen in 2024, how did his gap to his teammate compare with his season results?",
+  "tools": [
+   "get_fact_cards:error",
+   "get_fact_cards:error"
+  ],
+  "checker_ok": true,
+  "ungrounded_final": [],
+  "repaired": false,
+  "first_draft_ungrounded": [],
+  "cards_cited": [],
+  "called_cards": false,
+  "status": "answered"
+ },
+ {
+  "id": "C3.r3",
+  "group": "combine",
+  "q": "In 2018, how many cautions were there in round 1, and what was the pooled safety car rate for the season?",
+  "tools": [
+   "get_fact_cards:error",
+   "get_fact_cards:error",
+   "??:error",
+   "get_fact_cards:error"
+  ],
+  "checker_ok": true,
+  "ungrounded_final": [],
+  "repaired": false,
+  "first_draft_ungrounded": [],
+  "cards_cited": [],
+  "called_cards": false,
+  "status": "answered"
+ }
+]

@@ -44,3 +44,27 @@ export const queryQualityAudit = registerQuery<Params, QualityAuditRow[]>(
     `, [season])
   }
 )
+
+/** TX-16: races the source could not deliver (mart_race_coverage SOURCE_UNAVAILABLE). They
+ *  have no lap rows, so the season query above cannot list them; the page shows them as
+ *  unavailable with the reason, never as a row of zeros. */
+export interface UnavailableRaceRow {
+  race_id: string
+  coverage_reason: string
+}
+
+export const queryUnavailableRaces = registerQuery<Params, UnavailableRaceRow[]>(
+  'data-quality-audit.unavailable',
+  async ({ season }) => {
+    const manifest = await loadManifest()
+    const path = getTablePath(manifest, 'mart_race_coverage')
+    await registerParquet('mart_race_coverage', path)
+
+    return rawQuery<UnavailableRaceRow>(`
+      SELECT race_id, coverage_reason
+      FROM mart_race_coverage
+      WHERE race_year = ? AND coverage_reason = 'SOURCE_UNAVAILABLE'
+      ORDER BY race_id ASC
+    `, [season])
+  }
+)

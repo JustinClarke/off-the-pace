@@ -41,7 +41,7 @@ The instrument is 10d's, imported rather than re-implemented, so the two items' 
 are produced by the same code. Reads the warehouse read-only. Writes nothing to
 `ml/models/`, nothing to the warehouse, nothing to `ml/artefacts/evaluation_metrics.json`.
 
-Usage:  PYTHONPATH=. python3 scripts/arms_10e_honest_retune.py \
+Usage:  PYTHONPATH=. python3.14 scripts/arms_10e_honest_retune.py \
             --s1-params <scratch>/S1_best_params.json \
             --s2-params <scratch>/S2_best_params.json \
             --studies-dir <scratch>/studies

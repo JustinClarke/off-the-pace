@@ -340,7 +340,7 @@ models:
     description: >
       High-frequency car telemetry (~10 Hz) from FastF1, one row per sample. Renames Bronze
       channels to snake_case and projects the powertrain channels (rpm, n_gear, drs_active)
-      consumed by int_lap_telemetry_aggregates. Samples are filtered to 0 < distance_m < 6500.
+      consumed by int_lap_telemetry_aggregates. Samples are filtered to 0 < distance_m < a per-circuit bound (6500 m, or circuit length x 1.10 for the four circuits longer than 5.9 km: Spa 7704 m); see the SQL header. Runaway-distance laps stay out.
       DRS decode: FastF1 codes 10/12/14 = active → drs_active = TRUE.
     meta:
       family: staging
@@ -376,7 +376,7 @@ models:
         data_type: integer
         tests: [not_null]
       - name: distance_m
-        description: Distance along the lap from start/finish (m); samples filtered to 0–6500 m.
+        description: Distance along the lap from start/finish (m); samples filtered to 0 to the per-circuit bound (6500 m default; Spa 7704 m).
         data_type: double
         tests: [not_null]
       - name: session_time_s

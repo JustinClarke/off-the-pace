@@ -48,7 +48,7 @@ HTTP="$(curl -fsS -o /tmp/_smoke_manifest.json -w '%{http_code}' "$MANIFEST_URL"
   echo "❌  manifest fetch failed (HTTP ${HTTP:-000})"; exit 1; }
 echo "  ✓ manifest 200"
 
-read -r VERSION NTABLES SAMPLE < <(python3 - "$BASE" <<'PY'
+read -r VERSION NTABLES SAMPLE < <(${PYTHON:-python3.14} - "$BASE" <<'PY'
 import json, sys
 base = sys.argv[1]
 m = json.load(open("/tmp/_smoke_manifest.json"))
@@ -71,7 +71,7 @@ echo "  ✓ version=$VERSION  tables=$NTABLES"
 # Seasonal data legitimately ages, so this never fails the check it surfaces a breach to
 # review rather than paging. The age is always printed when a threshold is given.
 if [[ -n "$MAX_AGE_HOURS" ]]; then
-  AGE_H="$(python3 -c '
+  AGE_H="$(${PYTHON:-python3.14} -c '
 import json, sys
 from datetime import datetime, timezone
 m = json.load(open("/tmp/_smoke_manifest.json"))

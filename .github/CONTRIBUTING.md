@@ -8,7 +8,7 @@ Follow it to go from zero to running models in under 30 minutes.
 
 ## Prerequisites
 
-- **Python 3.11+**
+- **Python 3.14**
 - **Node.js (v18+)** and **pnpm** (needed if you are developing the React app or docs site)
 - **Git**
 - **Make** (standard on macOS/Linux)

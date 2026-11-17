@@ -32,6 +32,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v7
 
+      - name: Set up Python 3.14
+        uses: actions/setup-python@v7
+        with:
+          python-version: '3.14'
+
       - name: Authenticate to GCP (WIF, keyless)
         uses: google-github-actions/auth@v3
         with:
@@ -65,7 +70,7 @@ jobs:
                   --expires 7d \
                   --json)
           echo "$out"
-          url=$(echo "$out" | python3 -c 'import sys,json; d=json.load(sys.stdin); print(next(iter(d["result"].values()))["url"])')
+          url=$(echo "$out" | python3.14 -c 'import sys,json; d=json.load(sys.stdin); print(next(iter(d["result"].values()))["url"])')
           echo "url=$url" >> "$GITHUB_OUTPUT"
 
       - name: Comment preview URL

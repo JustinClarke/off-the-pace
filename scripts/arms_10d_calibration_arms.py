@@ -42,8 +42,8 @@ Reads the warehouse read-only. Writes nothing to `ml/models/`, nothing to the wa
 nothing to `ml/artefacts/evaluation_metrics.json`: `evaluate.run()` is never called. The
 only outputs are the JSON and log named below.
 
-Usage:  PYTHONPATH=. python3 scripts/arms_10d_calibration_arms.py
-        PYTHONPATH=. python3 scripts/arms_10d_calibration_arms.py --boot-draws 20
+Usage:  PYTHONPATH=. python3.14 scripts/arms_10d_calibration_arms.py
+        PYTHONPATH=. python3.14 scripts/arms_10d_calibration_arms.py --boot-draws 20
 """
 from __future__ import annotations
 

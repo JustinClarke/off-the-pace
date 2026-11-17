@@ -36,8 +36,8 @@ before either is used.
 Reads the warehouse read-only. Writes nothing to `ml/models/`, nothing to the warehouse,
 nothing to `ml/artefacts/evaluation_metrics.json`. `evaluate.run()` is never called.
 
-Usage:  PYTHONPATH=. python3 scripts/eval_10c_cause_specific_framework.py
-        PYTHONPATH=. python3 scripts/eval_10c_cause_specific_framework.py --boot-draws 20
+Usage:  PYTHONPATH=. python3.14 scripts/eval_10c_cause_specific_framework.py
+        PYTHONPATH=. python3.14 scripts/eval_10c_cause_specific_framework.py --boot-draws 20
 """
 from __future__ import annotations
 

@@ -27,4 +27,5 @@ def _isolate_bronze_and_network(request, tmp_path, monkeypatch):
         monkeypatch.setattr(ingest, name, path)
     monkeypatch.setattr(ingest.fastf1, "get_event_schedule", _network_disabled)
     monkeypatch.setattr(ingest.fastf1, "get_session", _network_disabled)
+    monkeypatch.setattr(ingest, "_rate_limit_waits", 0)   # per-run wait budget
     yield

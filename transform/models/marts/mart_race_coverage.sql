@@ -14,6 +14,11 @@
 --   accepted 2022_7 and 2022_11 as exceptions (KNOWN_THIN, 2026-10-22).
 --
 -- coverage_reason, first match wins:
+--   SOURCE_UNAVAILABLE    no stg_laps rows at all: Bronze holds no race laps
+--                         because the source could not deliver the session
+--                         (ingestion/known_gaps.txt; HD15 option B, TX-16:
+--                         2018_14 Italian GP). Shown as unavailable with this
+--                         reason, never as zero laps.
 --   NO_RACING_LAPS        no fct_lap_residuals rows. 2021_12 (Spa): of its 60
 --                         stg_laps rows only lap 1 has a lap time, and
 --                         stg_laps.is_valid_lap excludes lap 1, so
@@ -35,6 +40,16 @@ WITH races AS (
         track_id AS circuit_key,
         CAST(SPLIT_PART(race_id, '_', 1) AS INTEGER) AS race_year
     FROM {{ ref('race_to_track') }}
+),
+
+-- TX-16: laps Bronze delivered for the race, before any filter. 0 means the
+-- source delivered nothing (SOURCE_UNAVAILABLE), not that filters removed it.
+bronze_laps AS (
+    SELECT
+        race_id,
+        COUNT(*) AS n_bronze_lap_rows
+    FROM {{ ref('stg_laps') }}
+    GROUP BY race_id
 ),
 
 laps AS (
@@ -91,6 +106,7 @@ joined AS (
         r.race_id,
         r.race_year,
         dc.circuit_id,
+        COALESCE(bl.n_bronze_lap_rows, 0) AS n_bronze_lap_rows,
         COALESCE(l.n_lap_rows, 0) AS n_lap_rows,
         COALESCE(l.n_ml_eligible_laps, 0) AS n_ml_eligible_laps,
         l.base_measured_share,
@@ -108,6 +124,7 @@ joined AS (
         COALESCE(rt.n_rated_drivers, 0) AS n_rated_drivers,
         rt.race_id IS NOT NULL AS has_rating
     FROM races AS r
+    LEFT JOIN bronze_laps AS bl ON r.race_id = bl.race_id
     LEFT JOIN laps AS l ON r.race_id = l.race_id
     LEFT JOIN air AS a ON r.race_id = a.race_id
     LEFT JOIN tyre AS t ON r.race_id = t.race_id
@@ -119,6 +136,7 @@ joined AS (
 SELECT
     *,
     CASE
+        WHEN n_bronze_lap_rows = 0 THEN 'SOURCE_UNAVAILABLE'
         WHEN n_lap_rows = 0 THEN 'NO_RACING_LAPS'
         WHEN NOT has_rating AND rain_lap_share > 0.5
             THEN 'ALL_WET_NO_DRY_PAIRS'

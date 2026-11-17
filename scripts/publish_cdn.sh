@@ -123,7 +123,7 @@ if [[ -z "$DRY_RUN" ]]; then
     "$DATA_DIR/_manifest.json" "$DATA_DEST/_manifest.json" \
     --cache-control="$MANIFEST_CACHE_CONTROL" --quiet
   VERSION="$(gcloud storage cat "$DATA_DEST/_manifest.json" \
-    | python3 -c 'import sys,json; print(json.load(sys.stdin)["version"])')"
+    | ${PYTHON:-python3.14} -c 'import sys,json; print(json.load(sys.stdin)["version"])')"
   echo
   echo "  ✅  Published to $ENV. Live manifest version: $VERSION"
   if [[ "$ENV" == "staging" ]]; then

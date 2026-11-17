@@ -51,14 +51,14 @@ if [[ -z "$SKIP_SMOKE" ]]; then
 fi
 
 STAGING_VERSION="$(gcloud storage cat "$STAGING_DATA/_manifest.json" \
-  | python3 -c 'import sys,json; print(json.load(sys.stdin)["version"])')"
+  | ${PYTHON:-python3.14} -c 'import sys,json; print(json.load(sys.stdin)["version"])')"
 echo "  promoting staging version: $STAGING_VERSION"
 
 # 2. Archive the current prod manifest (if any)
 if gcloud storage ls "$PROD_DATA/_manifest.json" >/dev/null 2>&1; then
   STAMP="$(date -u +%Y%m%dT%H%M%SZ)"
   PREV_VERSION="$(gcloud storage cat "$PROD_DATA/_manifest.json" \
-    | python3 -c 'import sys,json; print(json.load(sys.stdin)["version"])' 2>/dev/null || echo unknown)"
+    | ${PYTHON:-python3.14} -c 'import sys,json; print(json.load(sys.stdin)["version"])' 2>/dev/null || echo unknown)"
   ARCHIVE="$PROD_DATA/manifest-archive/_manifest.${STAMP}.${PREV_VERSION}.json"
   echo "── archiving current prod manifest ($PREV_VERSION) → $ARCHIVE ──"
   [[ -z "$DRY_RUN" ]] && gcloud storage cp "$PROD_DATA/_manifest.json" "$ARCHIVE" --quiet \

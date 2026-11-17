@@ -42,8 +42,8 @@ Reads the warehouse read-only. Writes nothing to `ml/models/`, nothing to
 `ml/artefacts/evaluation_metrics.json`, nothing to the warehouse and nothing to git:
 `evaluate.run()` is never called. The only outputs are the JSON and log named below.
 
-Usage:  PYTHONPATH=. python3 scripts/arms_08i_min_observations_floor.py
-        PYTHONPATH=. python3 scripts/arms_08i_min_observations_floor.py --families cliff_classifier
+Usage:  PYTHONPATH=. python3.14 scripts/arms_08i_min_observations_floor.py
+        PYTHONPATH=. python3.14 scripts/arms_08i_min_observations_floor.py --families cliff_classifier
 """
 from __future__ import annotations
 

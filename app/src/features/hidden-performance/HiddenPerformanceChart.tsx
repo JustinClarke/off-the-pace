@@ -4,7 +4,8 @@ import type { HiddenPerformanceEntry, SeasonEntry } from './transform'
 const fmtDelta = (d: number) => (d > 0 ? `+${d.toFixed(1)}` : d.toFixed(1))
 const fmtAdj = (d: number | null) => d == null ? ' ' : (d > 0 ? `+${d.toFixed(1)}` : d.toFixed(1))
 const fmtConf = (c: number) => `${(c * 100).toFixed(0)}%`
-const fmtSe = (se: number) => `±${se.toFixed(1)}`
+// TX-18: a missing SE is NULL (unavailable), never 0.
+const fmtSe = (se: number | null) => se == null ? 'n/a' : `±${se.toFixed(1)}`
 const fmtRating = (r: number | null) => r == null ? ' ' : r.toFixed(3)
 const fmtAffinity = (s: number | null, conf: number | null) => {
   if (s == null) return ' '
@@ -41,7 +42,7 @@ export function RaceChart({ data }: { data: HiddenPerformanceEntry[] }) {
           key: 'finishPosSe',
           header: '±SE',
           align: 'right',
-          render: v => <span className="text-muted">{fmtSe(v as number)}</span>,
+          render: v => <span className="text-muted">{fmtSe(v as number | null)}</span>,
         },
         {
           key: 'delta',

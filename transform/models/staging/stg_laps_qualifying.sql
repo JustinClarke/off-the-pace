@@ -95,6 +95,9 @@ renamed AS (
         COALESCE(pitouttime IS NOT NULL OR pitintime IS NOT NULL, FALSE)
             AS is_pit_lap,
         CAST(deleted AS BOOLEAN) AS is_deleted,
+        -- TX-24: the reason text Bronze gives for a deleted lap (e.g. 'TRACK
+        -- LIMITS AT TURN 4'), kept for fct_track_limits. NULL when not deleted.
+        CAST(deletedreason AS VARCHAR) AS deleted_reason,
         CAST(isaccurate AS BOOLEAN) AS is_accurate,
         CAST(fastf1generated AS BOOLEAN) AS is_fastf1_generated,
 
@@ -134,6 +137,7 @@ flagged AS (
         sector1_session_time_s, sector2_session_time_s, sector3_session_time_s,
         speed_i1_kph, speed_i2_kph, speed_fl_kph, speed_st_kph, track_status,
         is_pit_lap, is_deleted, is_accurate, is_fastf1_generated, compound,
+        deleted_reason,
 
         -- FastF1 codes, ground-truthed against the bronze Message column:
         -- 4=SCDeployed, 5=Red, 6=VSCDeployed, 7=VSCEnding. Same decode as

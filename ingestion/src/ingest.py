@@ -6,11 +6,14 @@ Writes partitioned Bronze-layer Parquet files:
   Race laps:    laps/season=YYYY/race=<slug>/YYYY_<slug>_laps.parquet
   Quali laps:   laps/season=YYYY/race=<slug>/session=Q/YYYY_<slug>_quali_laps.parquet
   Weather:      weather/season=YYYY/race=<slug>/[session=Q/]weather.parquet
-  Race control: race_control/season=YYYY/race=<slug>/race_control.parquet
+  Race control: race_control/season=YYYY/race=<slug>/[session=Q/]race_control.parquet
   Track status: track_status/season=YYYY/race=<slug>/[session=Q/]track_status.parquet
   Sess. status: session_status/season=YYYY/race=<slug>/[session=Q/]session_status.parquet
   Results:      results/season=YYYY/race=<slug>/[session=Q/]results.parquet
-  Telemetry:    telemetry/season=YYYY/race=<slug>/telemetry.parquet
+  Telemetry:    telemetry/season=YYYY/race=<slug>/[session=Q/]telemetry.parquet
+  Circuit info: circuit_info/season=YYYY/race=<slug>/[session=Q/]circuit_info.parquet (corners)
+  Markers:      circuit_markers/season=YYYY/race=<slug>/[session=Q/]circuit_markers.parquet
+  Session info: session_info/season=YYYY/race=<slug>/[session=Q/]session_info.parquet
 
 Usage examples:
   python ingest.py --start-season 2018 --end-season 2024 --session both
@@ -19,8 +22,8 @@ Usage examples:
   python ingest.py -s 2026 --dry-run                     # what would be pulled / skipped / not run yet
 
 Per session: rounds that have not finished are skipped without loading; a load
-that comes back incomplete ("thin") is retried once and, if still thin, not
-written; per-race telemetry coverage, circuit-info failures and slug/venue
+that comes back incomplete ("thin") is not written; a FastF1 rate-limit error
+(500 calls/h) waits for the hourly window to reset and retries; per-race telemetry coverage, circuit-info failures and slug/venue
 changes are recorded in the run manifest (manifests/run_<id>.parquet).
 """
 
@@ -57,6 +60,8 @@ RESULTS_DIR        = BRONZE_DIR / "results"
 TRACK_STATUS_DIR   = BRONZE_DIR / "track_status"
 SESSION_STATUS_DIR = BRONZE_DIR / "session_status"
 CIRCUIT_INFO_DIR   = BRONZE_DIR / "circuit_info"
+CIRCUIT_MARKERS_DIR = BRONZE_DIR / "circuit_markers"
+SESSION_INFO_DIR   = BRONZE_DIR / "session_info"
 SCHEDULE_DIR       = BRONZE_DIR / "schedule"
 MANIFESTS_DIR      = BRONZE_DIR / "manifests"
 CACHE_DIR          = PROJECT_ROOT / "data" / "cache"
@@ -77,6 +82,8 @@ def _bronze_paths(root: Path) -> dict[str, Path]:
         "TRACK_STATUS_DIR":   root / "track_status",
         "SESSION_STATUS_DIR": root / "session_status",
         "CIRCUIT_INFO_DIR":   root / "circuit_info",
+        "CIRCUIT_MARKERS_DIR": root / "circuit_markers",
+        "SESSION_INFO_DIR":   root / "session_info",
         "SCHEDULE_DIR":       root / "schedule",
         "MANIFESTS_DIR":      root / "manifests",
     }
@@ -92,11 +99,17 @@ def set_bronze_root(root: Path) -> None:
 
 
 # A "thin" load is one FastF1 returned without error but with key columns
-# missing (bronze_checks.assess_session). It is retried once, after this pause,
-# with the FastF1 cache bypassed so a cached failure cannot be served again. If
-# it is still thin, nothing is written (unless --accept-thin): the laps file
-# stays absent, so the next run re-pulls it instead of skipping it as done.
-THIN_RETRY_DELAY_S = 30.0
+# missing (bronze_checks.assess_session). It is not retried: nothing is written
+# (unless --accept-thin), so the laps file stays absent and the next run re-pulls
+# it instead of skipping it as done.
+#
+# FastF1 allows 500 API calls per hour. A rate-limit error cannot clear in seconds,
+# so it is never retried with short backoff: wait RATE_LIMIT_WAIT_S for the window
+# to reset, then retry the same call. After MAX_RATE_LIMIT_WAITS waits in one run the
+# run stops and reports; the remaining sessions are re-run later.
+RATE_LIMIT_WAIT_S = 3600.0
+MAX_RATE_LIMIT_WAITS = 24   # ~24 h of waits: an overnight full run survives; a stopped run resumes (finished sessions are skipped)
+_rate_limit_waits = 0   # waits used so far in this run (reset by main)
 
 # Bronze written per race weekend with default flags (race + qualifying, race
 # telemetry): 2025 on disk averages ~47 MB. Only used for the --dry-run estimate.
@@ -135,8 +148,16 @@ MANIFEST_EXTRA_DEFAULTS: dict = {
     "telemetry_car_drivers":    None,  # drivers with car-data (speed/throttle) samples
     "telemetry_pos_drivers":    None,  # drivers with position (X/Y/Z) samples
     "telemetry_note":           "",    # top per-lap errors, 'low coverage', 'known gap', ...
-    "circuit_info_status":      "",    # 'ok: N corners' | 'none' | 'failed: ...' (race only)
+    "telemetry_full_status":    "",    # --telemetry-full only: ok | empty | error ('' = not requested)
+    "telemetry_full_note":      "",    # why, plus drivers written per channel
+    "circuit_info_status":      "",    # 'ok: N corners' | 'none' | 'failed: ...' (R and Q)
+    "session_info_status":      "",    # 'ok' | 'none' | 'failed: ...' ('' = not attempted)
+    "fill_note":                "",    # --fill-missing on a session already on disk: what was filled
     "venue_note":               "",    # slug now names a different venue than before, etc.
+    "reason":                   "",    # why not ok: rate_limited | source_empty | error ('' = ok/skip)
+    "attempts":                 0,     # loader calls made for this session
+    "rate_limit_waits":         0,     # rate-limit waits spent on this session
+    "rate_limit_wait_s":        0.0,   # seconds spent in those waits
 }
 
 
@@ -184,28 +205,56 @@ def _write_manifest(rows: list[dict], run_id: str) -> None:
 
 
 # ---------------------------------------------------------------------------
-# Retry decorator   pure-Python exponential backoff, no external dependencies
+# Load retry: rate limits wait, transient errors back off
 # ---------------------------------------------------------------------------
 
-def _with_retry(fn, max_attempts: int = 4, base_delay: float = 1.0):
+class RateLimitCapReached(Exception):
+    """FastF1 is still rate limiting after MAX_RATE_LIMIT_WAITS waits in this run."""
+
+
+def _is_rate_limit(exc: Exception) -> bool:
+    return isinstance(exc, fastf1.exceptions.RateLimitExceededError) or "calls/h" in str(exc)
+
+
+def _new_stats() -> dict:
+    """Per-session load counters; the keys are manifest columns."""
+    return {"attempts": 0, "rate_limit_waits": 0, "rate_limit_wait_s": 0.0}
+
+
+def _with_retry(fn, max_attempts: int = 4, base_delay: float = 1.0, stats: Optional[dict] = None):
     """
-    Call fn(), retrying up to max_attempts times with exponential backoff.
-    Delays: 1s, 2s, 4s, 8s (base_delay * 2^attempt).
-    Raises the last exception if all attempts fail.
+    Call fn(). A rate-limit error waits RATE_LIMIT_WAIT_S and retries (not counted
+    against max_attempts; raises RateLimitCapReached once the run's wait budget is
+    spent). Any other error is retried up to max_attempts with backoff of
+    base_delay * 2^attempt (1s, 2s, 4s), then re-raised. Never touches the FastF1 cache.
     """
-    last_exc = None
-    for attempt in range(max_attempts):
+    global _rate_limit_waits
+    stats = _new_stats() if stats is None else stats
+    failures = 0
+    while True:
+        stats["attempts"] += 1
         try:
             return fn()
         except Exception as exc:
-            last_exc = exc
-            if attempt < max_attempts-1:
-                delay = base_delay * (2 ** attempt)
+            if _is_rate_limit(exc):
+                if _rate_limit_waits >= MAX_RATE_LIMIT_WAITS:
+                    raise RateLimitCapReached(
+                        f"still rate limited after {MAX_RATE_LIMIT_WAITS} waits of "
+                        f"{RATE_LIMIT_WAIT_S:.0f}s: {exc}") from exc
+                _rate_limit_waits += 1
+                stats["rate_limit_waits"] += 1
+                stats["rate_limit_wait_s"] += RATE_LIMIT_WAIT_S
                 logger.warning(
-                    f"Attempt {attempt + 1}/{max_attempts} failed: {exc}   retrying in {delay:.0f}s"
-                )
-                time.sleep(delay)
-    raise last_exc
+                    f"  [RATE LIMIT] {exc}   waiting {RATE_LIMIT_WAIT_S:.0f}s for the hourly window to "
+                    f"reset (wait {_rate_limit_waits}/{MAX_RATE_LIMIT_WAITS} this run)")
+                time.sleep(RATE_LIMIT_WAIT_S)
+                continue
+            failures += 1
+            if failures >= max_attempts:
+                raise
+            delay = base_delay * (2 ** (failures - 1))
+            logger.warning(f"Attempt {failures}/{max_attempts} failed: {exc}   retrying in {delay:.0f}s")
+            time.sleep(delay)
 
 
 # ---------------------------------------------------------------------------
@@ -268,13 +317,21 @@ def _write_weather(session, year: int, round_num: int, slug: str, session_type: 
         logger.warning(f"  Weather failed for {slug}: {exc}")
 
 
-def _write_race_control(session, year: int, round_num: int, slug: str) -> None:
+def _write_race_control(session, year: int, round_num: int, slug: str,
+                        session_type: str = "R") -> None:
+    """Race-control messages (flags, SC, penalties, deleted laps).
+
+    Q: .../race=<slug>/session=Q/race_control.parquet, with a session_type column,
+    so the race file and the race glob (race_control/*/*/*.parquet) are untouched.
+    """
     if not (hasattr(session, "race_control_messages") and session.race_control_messages is not None):
         return
     try:
         rc = pd.DataFrame(session.race_control_messages).reset_index()
         rc["race_id"] = f"{year}_{round_num}"
         rc["season"]  = year
+        if session_type == "Q":
+            rc["session_type"] = "Q"
         if "Time" in rc.columns:
             # Handles both timedelta64 and datetime-with-timezone correctly
             raw = rc["Time"]
@@ -299,6 +356,8 @@ def _write_race_control(session, year: int, round_num: int, slug: str) -> None:
                 rc["session_time_s"] = pd.to_timedelta(raw, errors="coerce").dt.total_seconds()
         rc = rc.rename(columns={"Category": "category", "Message": "message"})
         rc_dir = RC_DIR / f"season={year}" / f"race={slug}"
+        if session_type == "Q":
+            rc_dir = rc_dir / "session=Q"
         os.makedirs(rc_dir, exist_ok=True)
         rc.to_parquet(rc_dir / "race_control.parquet", index=False, compression="snappy")
     except Exception as exc:
@@ -331,8 +390,9 @@ def _short_exc(exc: Exception) -> str:
     return f"{type(exc).__name__}: {msg}" if msg else type(exc).__name__
 
 
-def _write_telemetry(session, year: int, round_num: int, slug: str) -> dict:
-    """Per-lap merged telemetry -> telemetry/season=YYYY/race=<slug>/telemetry.parquet.
+def _write_telemetry(session, year: int, round_num: int, slug: str, session_type: str = "R") -> dict:
+    """Per-lap merged telemetry -> telemetry/season=YYYY/race=<slug>/telemetry.parquet
+    (Q: .../race=<slug>/session=Q/telemetry.parquet, so it never overwrites the race file).
 
     Returns a coverage record for the manifest (laps attempted vs merged, which
     channels the session had, the commonest per-lap errors). What is written is
@@ -387,19 +447,24 @@ def _write_telemetry(session, year: int, round_num: int, slug: str) -> dict:
         "Distance": "distance_m",
     })
     out = TELEMETRY_DIR / f"season={year}" / f"race={slug}"
+    if session_type == "Q":
+        out = out / "session=Q"
+        df["session_type"] = "Q"
     os.makedirs(out, exist_ok=True)
     df.to_parquet(out / "telemetry.parquet", index=False, compression="snappy")
     logger.info(f"  Telemetry: {len(df):,} samples ({merged}/{attempted} laps)")
     return coverage
 
 
-def _judge_telemetry(coverage: dict, year: int, round_num: int, slug: str) -> dict:
+def _judge_telemetry(coverage: dict, year: int, round_num: int, slug: str,
+                     session_type: str = "R") -> dict:
     """Log and annotate a coverage record: known gap, low coverage, or fine."""
     note = coverage.get("telemetry_note", "")
     attempted = coverage.get("telemetry_laps_attempted") or 0
     merged = coverage.get("telemetry_laps_merged") or 0
     share = coverage.get("telemetry_coverage")
-    known = bronze_checks.known_telemetry_gap(year, round_num)
+    # KNOWN_TELEMETRY_GAPS describe the race session; they do not apply to Q.
+    known = bronze_checks.known_telemetry_gap(year, round_num) if session_type == "R" else None
     channels = (f"car data for {coverage.get('telemetry_car_drivers')} drivers, "
                 f"position data for {coverage.get('telemetry_pos_drivers')}")
     if known:
@@ -419,56 +484,87 @@ def _judge_telemetry(coverage: dict, year: int, round_num: int, slug: str) -> di
     return coverage
 
 
-def _write_telemetry_full(session, year: int, round_num: int, slug: str) -> None:
+def _write_channel_per_driver(
+    session, attr: str, label: str, out_root: Path, fname: str,
+    year: int, round_num: int, slug: str, session_type: str = "R",
+) -> tuple[str, str]:
+    """Write session.<attr> (FastF1 3.x: {driver_number: Telemetry}) one parquet per driver.
+
+    Returns (status, note): status ok | empty | error. Never raises, and never
+    stays silent: empty and error are logged at ERROR and returned so the
+    caller can put them in the run manifest.
+    """
+    try:
+        data = getattr(session, attr)
+    except Exception as exc:
+        logger.error(f"  {label} unavailable for {slug}: {exc}")
+        return "error", f"{attr}: {_short_exc(exc)}"
+    if data is None:
+        logger.error(f"  No {attr} for {slug}")
+        return "empty", f"{attr}: missing"
+    if not isinstance(data, dict):
+        logger.error(f"  {label} for {slug} is {type(data).__name__}, expected dict of driver -> Telemetry")
+        return "error", f"{attr}: unexpected type {type(data).__name__}"
+
+    written, failed = 0, []
+    for driver, frame in data.items():
+        if frame is None or len(frame) == 0:
+            continue
+        try:
+            df = pd.DataFrame(frame).reset_index(drop=True)
+            df["driver_id"] = str(driver)
+            df["race_id"] = f"{year}_{round_num}"
+            df["season"] = year
+            out = out_root / f"season={year}" / f"race={slug}"
+            if session_type == "Q":
+                out = out / "session=Q"
+            out = out / f"driver={driver}"
+            os.makedirs(out, exist_ok=True)
+            df.to_parquet(out / fname, index=False, compression="zstd")
+            written += 1
+        except Exception as e:
+            failed.append(str(driver))
+            logger.warning(f"  {label} failed for {slug} driver {driver}: {e}")
+
+    if failed:
+        logger.error(f"  {label} for {slug}: {len(failed)} driver(s) failed ({', '.join(failed)}), "
+                     f"{written} written")
+        return "error", f"{attr}: {len(failed)} driver(s) failed ({', '.join(failed)}), {written} written"
+    if written == 0:
+        logger.error(f"  {label} for {slug}: no samples for any driver, nothing written")
+        return "empty", f"{attr}: no samples"
+    logger.info(f"  {label}: {written} drivers")
+    return "ok", f"{attr}: {written} drivers"
+
+
+def _write_telemetry_full(session, year: int, round_num: int, slug: str,
+                          session_type: str = "R") -> tuple[str, str]:
     """Full-channel car_data (Speed, Throttle, Brake, nGear, RPM, DRS) per driver."""
-    try:
-        car_data = session.car_data
-        if car_data is None or car_data.empty:
-            logger.warning(f"  No car_data for {slug}")
-            return
-
-        for driver in car_data.index.get_level_values(0).unique():
-            try:
-                driver_data = car_data.loc[driver].reset_index()
-                driver_data["driver_id"] = driver
-                driver_data["race_id"] = f"{year}_{round_num}"
-                driver_data["season"] = year
-
-                out = TELEMETRY_FULL_DIR / f"season={year}" / f"race={slug}" / f"driver={driver}"
-                os.makedirs(out, exist_ok=True)
-                driver_data.to_parquet(out / "car_data.parquet", index=False, compression="zstd")
-            except Exception as e:
-                logger.warning(f"  Car data failed for {slug} driver {driver}: {e}")
-
-        logger.info(f"  Car data: {len(car_data.index.get_level_values(0).unique())} drivers")
-    except Exception as exc:
-        logger.warning(f"  Car data failed for {slug}: {exc}")
+    return _write_channel_per_driver(session, "car_data", "Car data", TELEMETRY_FULL_DIR,
+                                     "car_data.parquet", year, round_num, slug, session_type)
 
 
-def _write_pos_data(session, year: int, round_num: int, slug: str) -> None:
+def _write_pos_data(session, year: int, round_num: int, slug: str,
+                    session_type: str = "R") -> tuple[str, str]:
     """Full position data (X, Y, Z) per driver at full rate."""
-    try:
-        pos_data = session.pos_data
-        if pos_data is None or pos_data.empty:
-            logger.warning(f"  No pos_data for {slug}")
-            return
+    return _write_channel_per_driver(session, "pos_data", "Pos data", POS_DATA_DIR,
+                                     "pos_data.parquet", year, round_num, slug, session_type)
 
-        for driver in pos_data.index.get_level_values(0).unique():
-            try:
-                driver_pos = pos_data.loc[driver].reset_index()
-                driver_pos["driver_id"] = driver
-                driver_pos["race_id"] = f"{year}_{round_num}"
-                driver_pos["season"] = year
 
-                out = POS_DATA_DIR / f"season={year}" / f"race={slug}" / f"driver={driver}"
-                os.makedirs(out, exist_ok=True)
-                driver_pos.to_parquet(out / "pos_data.parquet", index=False, compression="zstd")
-            except Exception as e:
-                logger.warning(f"  Pos data failed for {slug} driver {driver}: {e}")
-
-        logger.info(f"  Pos data: {len(pos_data.index.get_level_values(0).unique())} drivers")
-    except Exception as exc:
-        logger.warning(f"  Pos data failed for {slug}: {exc}")
+def _full_channel_fields(session, year: int, round_num: int, slug: str,
+                         session_type: str = "R") -> dict:
+    """Run both full-channel writers; return the manifest fields (worst status wins)."""
+    results = []
+    for writer in (_write_telemetry_full, _write_pos_data):
+        try:
+            results.append(writer(session, year, round_num, slug, session_type))
+        except Exception as exc:
+            logger.error(f"  Full-channel writer {writer.__name__} crashed for {slug}: {exc}")
+            results.append(("error", f"{writer.__name__}: {_short_exc(exc)}"))
+    rank = {"ok": 0, "empty": 1, "error": 2}
+    status = max((r[0] for r in results), key=rank.__getitem__)
+    return {"telemetry_full_status": status,
+            "telemetry_full_note": "; ".join(r[1] for r in results)}
 
 
 def _write_results(
@@ -562,13 +658,63 @@ def _write_session_status(
         logger.warning(f"  Session status failed for {slug}: {exc}")
 
 
-def _write_circuit_info(session, year: int, round_num: int, slug: str) -> str:
-    """Circuit geometry (corners, coordinates, marshal sectors).
+def _session_dir(root: Path, year: int, slug: str, session_type: str = "R") -> Path:
+    """<root>/season=YYYY/race=<slug>[/session=Q]   one session's partition."""
+    out = root / f"season={year}" / f"race={slug}"
+    return out / "session=Q" if session_type == "Q" else out
+
+
+# CircuitInfo marker frames written to circuit_markers (corners stay in circuit_info).
+CIRCUIT_MARKER_FRAMES = {"corners": "corner", "marshal_lights": "marshal_light",
+                         "marshal_sectors": "marshal_sector"}
+
+
+def _write_circuit_markers(circuit, year: int, round_num: int, slug: str,
+                           session_type: str = "R") -> str:
+    """Every CircuitInfo marker set (corners, marshal lights, marshal sectors) plus
+    the track-map rotation, one row per marker with a marker_type column.
+
+    A separate dataset, not extra files in circuit_info/: stg_circuit_info reads
+    circuit_info/*/*/*.parquet with union_by_name, so a second file there would be
+    unioned into the corners. Returns 'ok: N markers' or 'failed: ...'.
+    """
+    try:
+        frames = []
+        for attr, kind in CIRCUIT_MARKER_FRAMES.items():
+            df = getattr(circuit, attr, None)
+            if isinstance(df, pd.DataFrame) and not df.empty:
+                frames.append(df.reset_index(drop=True).assign(marker_type=kind))
+        if not frames:
+            return "none"
+        markers = pd.concat(frames, ignore_index=True)
+        rotation = getattr(circuit, "rotation", None)
+        markers["rotation_deg"] = float(rotation) if isinstance(rotation, (int, float)) else float("nan")
+        markers["race_id"] = f"{year}_{round_num}"
+        markers["season"] = year
+        if session_type == "Q":
+            markers["session_type"] = "Q"
+        out = _session_dir(CIRCUIT_MARKERS_DIR, year, slug, session_type)
+        os.makedirs(out, exist_ok=True)
+        markers.to_parquet(out / "circuit_markers.parquet", index=False, compression="snappy")
+        logger.info(f"  Circuit markers ({session_type}): {len(markers)} markers")
+        return f"ok: {len(markers)} markers"
+    except Exception as exc:
+        logger.warning(f"  Circuit markers failed for {slug}: {exc}")
+        return f"failed: {_short_exc(exc)}"
+
+
+def _write_circuit_info(session, year: int, round_num: int, slug: str,
+                        session_type: str = "R", parts: tuple = ("corners", "markers")) -> str:
+    """Circuit geometry: corners -> circuit_info (unchanged for the race), and all
+    marker sets + rotation -> circuit_markers (_write_circuit_markers).
+
+    Q writes under session=Q/ (corner Distance is fitted to the session's own
+    fastest lap). `parts` lets --fill-missing write only the absent file.
 
     Returns a status for the manifest: 'ok: N corners', 'none' (FastF1 had no
-    circuit info) or 'failed: <error>'. A failure is tolerated (corner models
-    simply have no row for the race) but recorded, so it is visible in the
-    manifest and not only as a log line.
+    circuit info) or 'failed: <error>'; a markers failure is appended. A failure
+    is tolerated (corner models simply have no row for the race) but recorded, so
+    it is visible in the manifest and not only as a log line.
     """
     try:
         if not hasattr(session, "get_circuit_info"):
@@ -577,16 +723,73 @@ def _write_circuit_info(session, year: int, round_num: int, slug: str) -> str:
         if circuit is None:
             logger.warning(f"  Circuit info unavailable for {slug}")
             return "none"
-        ci = pd.DataFrame(circuit.corners).reset_index()
-        ci["race_id"] = f"{year}_{round_num}"
-        ci["season"] = year
-        out = CIRCUIT_INFO_DIR / f"season={year}" / f"race={slug}"
-        os.makedirs(out, exist_ok=True)
-        ci.to_parquet(out / "circuit_info.parquet", index=False, compression="snappy")
-        logger.info(f"  Circuit info: {len(ci)} corners")
-        return f"ok: {len(ci)} corners"
+        status = ""
+        if "corners" in parts:
+            ci = pd.DataFrame(circuit.corners).reset_index()
+            ci["race_id"] = f"{year}_{round_num}"
+            ci["season"] = year
+            if session_type == "Q":
+                ci["session_type"] = "Q"
+            out = _session_dir(CIRCUIT_INFO_DIR, year, slug, session_type)
+            os.makedirs(out, exist_ok=True)
+            ci.to_parquet(out / "circuit_info.parquet", index=False, compression="snappy")
+            logger.info(f"  Circuit info ({session_type}): {len(ci)} corners")
+            status = f"ok: {len(ci)} corners"
+        if "markers" in parts:
+            markers = _write_circuit_markers(circuit, year, round_num, slug, session_type)
+            if markers.startswith("failed"):
+                status = f"{status}; markers {markers}".lstrip("; ")
+            elif not status:
+                status = markers
+        return status or "none"
     except Exception as exc:
         logger.warning(f"  Circuit info failed for {slug}: {exc}")
+        return f"failed: {_short_exc(exc)}"
+
+
+def _scalar(session, attr: str, kinds: tuple):
+    """session.<attr> if it is one of `kinds`, else None (not loaded, mock, error)."""
+    try:
+        value = getattr(session, attr)
+    except Exception:
+        return None
+    return value if isinstance(value, kinds) else None
+
+
+def _write_session_info(session, year: int, round_num: int, slug: str,
+                        session_type: str = "R") -> str:
+    """FastF1 Session.session_info (the livetiming SessionInfo dict: meeting,
+    country and circuit keys and names, session key, local start/end, GMT offset)
+    flattened to one row, plus the session scalars FastF1 derives at load:
+    total_laps, session_start_time_s (SessionTime of the start), t0_date (UTC at
+    SessionTime 0), session_date_utc, api_path, f1_api_support.
+
+    Returns 'ok' | 'none' (no session info loaded) | 'failed: ...'.
+    """
+    try:
+        info = _scalar(session, "session_info", (dict,))
+        if not info:
+            logger.warning(f"  Session info unavailable for {slug}")
+            return "none"
+        row = pd.json_normalize(info, sep="_")
+        start = _scalar(session, "session_start_time", (pd.Timedelta,))
+        total = _scalar(session, "total_laps", (int, float))
+        row["total_laps"] = pd.array([total], dtype="Int64")
+        row["session_start_time_s"] = start.total_seconds() if start is not None else float("nan")
+        row["t0_date"] = _scalar(session, "t0_date", (pd.Timestamp,))
+        row["session_date_utc"] = _scalar(session, "date", (pd.Timestamp,))
+        row["api_path"] = _scalar(session, "api_path", (str,))
+        row["f1_api_support"] = _scalar(session, "f1_api_support", (bool,))
+        row["race_id"] = f"{year}_{round_num}"
+        row["season"] = year
+        row["session_type"] = session_type
+        out = _session_dir(SESSION_INFO_DIR, year, slug, session_type)
+        os.makedirs(out, exist_ok=True)
+        row.to_parquet(out / "session_info.parquet", index=False, compression="snappy")
+        logger.info(f"  Session info ({session_type}): written")
+        return "ok"
+    except Exception as exc:
+        logger.warning(f"  Session info failed for {slug}: {exc}")
         return f"failed: {_short_exc(exc)}"
 
 
@@ -628,33 +831,16 @@ def _assess_loaded(session, session_type: str, year: int, round_num: int) -> tup
     return bronze_checks.split_known_thin(year, round_num, session_type, problems)
 
 
-def _load_checked(loader, session_type: str, year: int, round_num: int, slug: str):
-    """Load a session (with the usual retry/backoff), then check it is complete.
+def _load_checked(loader, session_type: str, year: int, round_num: int, slug: str,
+                  stats: Optional[dict] = None):
+    """Load a session (rate-limit waits, transient backoff), then check it is complete.
 
-    A thin load is retried ONCE, after THIN_RETRY_DELAY_S, with the FastF1 cache
-    bypassed. The retry's result is kept unless it came back worse. Returns
-    (session, unexplained problems, known-gap note); problems empty = complete.
+    A thin load is not retried: a rate-limit failure raises instead of coming back
+    thin, so thin means FastF1 genuinely returned an empty or partial session.
+    Returns (session, unexplained problems, known-gap note); problems empty = complete.
     """
-    session = _with_retry(lambda: loader(year, round_num))
+    session = _with_retry(lambda: loader(year, round_num), stats=stats)
     thin, known = _assess_loaded(session, session_type, year, round_num)
-    if not thin:
-        return session, thin, known
-
-    logger.warning(
-        f"  [THIN] {session_type}  {year} Rd{round_num} {slug}: {'; '.join(thin.values())}"
-        f"   retrying once in {THIN_RETRY_DELAY_S:.0f}s with the FastF1 cache bypassed"
-    )
-    time.sleep(THIN_RETRY_DELAY_S)
-    try:
-        retry = loader(year, round_num, fresh=True)
-    except Exception as exc:
-        logger.warning(f"  Thin-load retry failed for {slug}: {_short_exc(exc)}")
-        return session, thin, known
-    thin_retry, known_retry = _assess_loaded(retry, session_type, year, round_num)
-    if len(thin_retry) <= len(thin):
-        session, thin, known = retry, thin_retry, known_retry
-    if not thin:
-        logger.info(f"  [RECOVERED] {session_type}  {year} Rd{round_num} {slug}: complete on retry")
     return session, thin, known
 
 
@@ -662,10 +848,123 @@ def _thin_not_written(session_type: str, year: int, round_num: int, slug: str,
                       target: Path, thin: dict) -> None:
     kept = " Existing files for it were left as they were." if target.exists() else ""
     logger.warning(
-        f"  [THIN] {session_type}  {year} Rd{round_num} {slug}: still incomplete after the retry "
+        f"  [THIN] {session_type}  {year} Rd{round_num} {slug}: incomplete from the source "
         f"({'; '.join(thin.values())}). NOT written, so the next run pulls it again.{kept} "
         f"If the source is genuinely incomplete, re-run with --accept-thin to write it as is."
     )
+
+
+def _failed_row(exc: Exception, run_id: str, year: int, round_num: int, slug: str,
+                session_type: str, venue_note: str, stats: dict) -> dict:
+    """Manifest row for a session whose load or write raised; the reason says why."""
+    reason = "rate_limited" if isinstance(exc, RateLimitCapReached) else "error"
+    logger.warning(f"  [ERR]  {session_type}  {year} Rd{round_num} {slug}: {exc}")
+    return _make_manifest_row(run_id, year, round_num, slug, session_type, "error",
+                              venue_note=venue_note, reason=reason, **stats)
+
+
+# ---------------------------------------------------------------------------
+# --fill-missing: complete a session already on disk without rewriting it
+# ---------------------------------------------------------------------------
+
+def _single_file_datasets() -> dict[str, tuple[Path, str]]:
+    """dataset -> (root, file name) for the one-file-per-session datasets.
+    Read at call time so set_bronze_root / tests redirect them."""
+    return {
+        "weather":         (WEATHER_DIR, "weather.parquet"),
+        "race_control":    (RC_DIR, "race_control.parquet"),
+        "results":         (RESULTS_DIR, "results.parquet"),
+        "track_status":    (TRACK_STATUS_DIR, "track_status.parquet"),
+        "session_status":  (SESSION_STATUS_DIR, "session_status.parquet"),
+        "session_info":    (SESSION_INFO_DIR, "session_info.parquet"),
+        "circuit_info":    (CIRCUIT_INFO_DIR, "circuit_info.parquet"),
+        "circuit_markers": (CIRCUIT_MARKERS_DIR, "circuit_markers.parquet"),
+        "telemetry":       (TELEMETRY_DIR, "telemetry.parquet"),
+    }
+
+
+def _missing_datasets(year: int, slug: str, session_type: str,
+                      skip_telemetry: bool = False, telemetry_full: bool = False) -> list[str]:
+    """Datasets the normal write path produces for this session that are not on disk.
+
+    Laps are the 'session done' marker and are not listed. Telemetry counts only
+    when requested (not --skip-telemetry; car_data/pos_data only with
+    --telemetry-full). A dataset the source genuinely lacks (e.g. no circuit info
+    for a venue) stays missing, so a later fill reloads it again: from the FastF1
+    cache that costs no API calls.
+    """
+    missing = []
+    for name, (root, fname) in _single_file_datasets().items():
+        if name == "telemetry" and skip_telemetry:
+            continue
+        if not (_session_dir(root, year, slug, session_type) / fname).exists():
+            missing.append(name)
+    if telemetry_full:
+        for name, root, fname in (("telemetry_full", TELEMETRY_FULL_DIR, "car_data.parquet"),
+                                  ("pos_data", POS_DATA_DIR, "pos_data.parquet")):
+            d = _session_dir(root, year, slug, session_type)
+            if not (d.exists() and any(d.glob(f"driver=*/{fname}"))):
+                missing.append(name)
+    return missing
+
+
+def _fill_session(loader, year: int, round_num: int, slug: str, session_type: str,
+                  missing: list[str], run_id: str, venue_note: str) -> tuple[str, dict]:
+    """Load a session already on disk and run only the writers in `missing`.
+
+    Laps and every file already present are left as they are. The manifest row is
+    status 'skip' (the session was done) with fill_note saying what was written and
+    what the source still lacks; a load failure is 'error' like any other, so the
+    pipeline's retry and known-gap handling apply unchanged.
+    """
+    logger.info(f"  [FILL] {session_type}  {year} Rd{round_num} {slug}: missing {', '.join(missing)}")
+    stats = _new_stats()
+    try:
+        session = _with_retry(lambda: loader(year, round_num), stats=stats)
+    except Exception as exc:
+        row = _failed_row(exc, run_id, year, round_num, slug, session_type, venue_note, stats)
+        row["fill_note"] = f"fill failed for {', '.join(missing)}: {_short_exc(exc)}"
+        return "error", row
+
+    args = (session, year, round_num, slug, session_type)
+    fields: dict = {}
+    simple = {"weather": _write_weather, "race_control": _write_race_control,
+              "results": _write_results, "track_status": _write_track_status,
+              "session_status": _write_session_status}
+    for name in missing:
+        if name in simple:
+            simple[name](*args)
+    if "session_info" in missing:
+        fields["session_info_status"] = _write_session_info(*args)
+    parts = tuple(p for p, ds in (("corners", "circuit_info"), ("markers", "circuit_markers"))
+                  if ds in missing)
+    if parts:
+        fields["circuit_info_status"] = _write_circuit_info(*args, parts=parts)
+    if "telemetry" in missing:
+        try:
+            fields.update(_judge_telemetry(_write_telemetry(*args), year, round_num, slug, session_type))
+        except Exception as exc:
+            logger.warning(f"  Telemetry failed for {session_type} {slug}: {exc}")
+            fields["telemetry_note"] = f"telemetry writer failed: {_short_exc(exc)}"
+    channel = [w for name, w in (("telemetry_full", _write_telemetry_full), ("pos_data", _write_pos_data))
+               if name in missing]
+    if channel:
+        results = [w(*args) for w in channel]
+        rank = {"ok": 0, "empty": 1, "error": 2}
+        fields["telemetry_full_status"] = max((r[0] for r in results), key=rank.__getitem__)
+        fields["telemetry_full_note"] = "; ".join(r[1] for r in results)
+
+    still = set(_missing_datasets(year, slug, session_type, telemetry_full=True))
+    filled = [m for m in missing if m not in still]
+    lacking = [m for m in missing if m in still]
+    note = "filled: " + (", ".join(filled) or "nothing")
+    if lacking:
+        note += f"; source has none: {', '.join(lacking)}"
+    logger.info(f"  [FILL] {session_type}  {year} Rd{round_num} {slug}: {note}")
+    known = fields.pop("known_gap_note", "")
+    return "skip", _make_manifest_row(run_id, year, round_num, slug, session_type, "skip",
+                                      fill_note=note, known_gap_note=known,
+                                      venue_note=venue_note, **stats, **fields)
 
 
 def ingest_race(
@@ -674,22 +973,29 @@ def ingest_race(
     run_id: str = "",
     accept_thin: bool = False,
     venue_note: str = "",
+    fill_missing: bool = False,
 ) -> tuple[str, dict]:
     """
     Ingest a single Race session. Returns (status, manifest_row).
     Status is one of: 'ok', 'skip', 'error', 'thin' (loaded but incomplete,
-    nothing written; see _load_checked).
+    nothing written). 'error' rows carry reason rate_limited | error; 'thin' rows
+    carry reason source_empty.
     """
     target = _laps_path_race(year, slug)
 
     if target.exists() and not force:
+        missing = _missing_datasets(year, slug, "R", skip_telemetry, telemetry_full) if fill_missing else []
+        if missing:
+            return _fill_session(_load_race_session, year, round_num, slug, "R", missing,
+                                 run_id, venue_note)
         logger.info(f"  [SKIP] R  {year} Rd{round_num} {slug}")
         return "skip", _make_manifest_row(run_id, year, round_num, slug, "R", "skip",
                                           venue_note=venue_note)
 
     logger.info(f"  [PULL] R  {year} Rd{round_num} {slug}")
+    stats = _new_stats()
     try:
-        session, thin, known_note = _load_checked(_load_race_session, "R", year, round_num, slug)
+        session, thin, known_note = _load_checked(_load_race_session, "R", year, round_num, slug, stats)
 
         laps_df = pd.DataFrame(session.laps)
         laps_df["race_id"] = f"{year}_{round_num}"
@@ -703,6 +1009,7 @@ def ingest_race(
                 run_id, year, round_num, slug, "R", "error",
                 row_count=len(laps_df), dq_passed=False,
                 thin_reasons="; ".join(thin.values()), venue_note=venue_note,
+                reason="error", **stats,
             )
 
         thin_text = "; ".join(thin.values())
@@ -712,6 +1019,7 @@ def ingest_race(
                 run_id, year, round_num, slug, "R", "thin",
                 row_count=len(laps_df), dq_passed=True, duplicate_lap_keys=dupe_count,
                 thin_reasons=thin_text, known_gap_note=known_note or "", venue_note=venue_note,
+                reason="source_empty", **stats,
             )
         if thin:
             logger.warning(f"  [THIN-ACCEPTED] R  {year} Rd{round_num} {slug}: writing as is "
@@ -738,16 +1046,13 @@ def ingest_race(
                 tel_fields = {"telemetry_note": f"telemetry writer failed: {_short_exc(exc)}"}
 
         if telemetry_full:
-            try:
-                _write_telemetry_full(session, year, round_num, slug)
-                _write_pos_data(session, year, round_num, slug)
-            except Exception as exc:
-                logger.warning(f"  Full telemetry/pos failed for {slug}: {exc}")
+            tel_fields.update(_full_channel_fields(session, year, round_num, slug))
 
         _write_results(session, year, round_num, slug)
         _write_track_status(session, year, round_num, slug)
         _write_session_status(session, year, round_num, slug)
         circuit_info_status = _write_circuit_info(session, year, round_num, slug)
+        session_info_status = _write_session_info(session, year, round_num, slug)
 
         known_notes = [n for n in (known_note, tel_fields.pop("known_gap_note", "")) if n]
         time.sleep(0.5)
@@ -759,15 +1064,15 @@ def ingest_race(
             thin_reasons=thin_text,
             known_gap_note="; ".join(known_notes),
             circuit_info_status=circuit_info_status,
+            session_info_status=session_info_status,
             venue_note=venue_note,
+            **stats,
             **tel_fields,
         )
         return "ok", row
 
     except Exception as exc:
-        logger.warning(f"  [ERR]  R  {year} Rd{round_num} {slug}: {exc}")
-        return "error", _make_manifest_row(run_id, year, round_num, slug, "R", "error",
-                                           venue_note=venue_note)
+        return "error", _failed_row(exc, run_id, year, round_num, slug, "R", venue_note, stats)
 
 
 def ingest_qualifying(
@@ -775,6 +1080,9 @@ def ingest_qualifying(
     run_id: str = "",
     accept_thin: bool = False,
     venue_note: str = "",
+    skip_telemetry: bool = False,
+    telemetry_full: bool = False,
+    fill_missing: bool = False,
 ) -> tuple[str, dict]:
     """
     Ingest a single Qualifying session. Returns (status, manifest_row).
@@ -784,14 +1092,19 @@ def ingest_qualifying(
     target = _laps_path_quali(year, slug)
 
     if target.exists() and not force:
+        missing = _missing_datasets(year, slug, "Q", skip_telemetry, telemetry_full) if fill_missing else []
+        if missing:
+            return _fill_session(_load_qualifying_session, year, round_num, slug, "Q", missing,
+                                 run_id, venue_note)
         logger.info(f"  [SKIP] Q  {year} Rd{round_num} {slug}")
         return "skip", _make_manifest_row(run_id, year, round_num, slug, "Q", "skip",
                                           venue_note=venue_note)
 
     logger.info(f"  [PULL] Q  {year} Rd{round_num} {slug}")
+    stats = _new_stats()
     try:
         session, thin, known_note = _load_checked(
-            _load_qualifying_session, "Q", year, round_num, slug,
+            _load_qualifying_session, "Q", year, round_num, slug, stats,
         )
 
         laps = session.laps
@@ -799,7 +1112,7 @@ def ingest_qualifying(
             logger.warning(f"  [WARN] Q  {year} Rd{round_num}   no lap data")
             return "error", _make_manifest_row(run_id, year, round_num, slug, "Q", "error",
                                                thin_reasons="; ".join(thin.values()),
-                                               venue_note=venue_note)
+                                               venue_note=venue_note, reason="source_empty", **stats)
 
         laps = laps.copy()
         laps["season"]       = year
@@ -817,6 +1130,7 @@ def ingest_qualifying(
                 run_id, year, round_num, slug, "Q", "thin",
                 row_count=len(laps), dq_passed=True, duplicate_lap_keys=dupe_count,
                 thin_reasons=thin_text, known_gap_note=known_note or "", venue_note=venue_note,
+                reason="source_empty", **stats,
             )
         if thin:
             logger.warning(f"  [THIN-ACCEPTED] Q  {year} Rd{round_num} {slug}: writing as is "
@@ -829,9 +1143,29 @@ def ingest_qualifying(
         logger.info(f"  [OK]   Q  {year} Rd{round_num} {slug}   {len(laps)} laps")
 
         _write_weather(session, year, round_num, slug, "Q")
+        if skip_telemetry:
+            tel_fields: dict = {"telemetry_note": "not requested (--skip-telemetry)"}
+        else:
+            try:
+                tel_fields = _judge_telemetry(
+                    _write_telemetry(session, year, round_num, slug, "Q"),
+                    year, round_num, slug, "Q",
+                )
+            except Exception as exc:
+                logger.warning(f"  Telemetry failed for Q {slug}: {exc}")
+                tel_fields = {"telemetry_note": f"telemetry writer failed: {_short_exc(exc)}"}
+
+        if telemetry_full:
+            tel_fields.update(_full_channel_fields(session, year, round_num, slug, "Q"))
+        tel_known = tel_fields.pop("known_gap_note", "")
+        known_note = "; ".join(n for n in (known_note, tel_known) if n)
+
         _write_track_status(session, year, round_num, slug, "Q")
         _write_session_status(session, year, round_num, slug, "Q")
         _write_results(session, year, round_num, slug, "Q")
+        _write_race_control(session, year, round_num, slug, "Q")
+        circuit_info_status = _write_circuit_info(session, year, round_num, slug, "Q")
+        session_info_status = _write_session_info(session, year, round_num, slug, "Q")
 
         time.sleep(0.3)
         row = _make_manifest_row(
@@ -841,35 +1175,28 @@ def ingest_qualifying(
             schema_fingerprint=_schema_fingerprint(laps),
             thin_reasons=thin_text,
             known_gap_note=known_note or "",
+            circuit_info_status=circuit_info_status,
+            session_info_status=session_info_status,
             venue_note=venue_note,
+            **tel_fields,
+            **stats,
         )
         return "ok", row
 
     except Exception as exc:
-        logger.warning(f"  [ERR]  Q  {year} Rd{round_num} {slug}: {exc}")
-        return "error", _make_manifest_row(run_id, year, round_num, slug, "Q", "error",
-                                           venue_note=venue_note)
+        return "error", _failed_row(exc, run_id, year, round_num, slug, "Q", venue_note, stats)
 
 
-def _load_race_session(year: int, round_num: int, fresh: bool = False):
-    """Load a race. fresh=True bypasses the FastF1 cache (used by the thin-load retry)."""
+def _load_race_session(year: int, round_num: int):
     session = fastf1.get_session(year, round_num, "R")
-    if fresh:
-        with fastf1.Cache.disabled():
-            session.load()
-    else:
-        session.load()
+    session.load()
     return session
 
 
-def _load_qualifying_session(year: int, round_num: int, fresh: bool = False):
-    """Load qualifying (no telemetry). fresh=True bypasses the FastF1 cache."""
+def _load_qualifying_session(year: int, round_num: int):
+    """Load qualifying with telemetry (car, position, merged per-lap telemetry)."""
     session = fastf1.get_session(year, round_num, "Q", backend="fastf1")
-    if fresh:
-        with fastf1.Cache.disabled():
-            session.load(laps=True, telemetry=False, weather=True)
-    else:
-        session.load(laps=True, telemetry=False, weather=True)
+    session.load(laps=True, telemetry=True, weather=True)
     return session
 
 
@@ -995,6 +1322,7 @@ def ingest_season(
     ready_after: timedelta = bronze_checks.SESSION_READY_AFTER,
     include_unfinished: bool = False,
     accept_thin: bool = False,
+    fill_missing: bool = False,
 ) -> tuple[dict, list[dict]]:
     """
     Ingest the finished rounds of a season (all of them, only_round, or only_rounds).
@@ -1039,12 +1367,25 @@ def ingest_season(
             if p["session_type"] == "R":
                 result, mrow = ingest_race(year, round_num, slug, force, skip_telemetry,
                                            telemetry_full, run_id,
-                                           accept_thin=accept_thin, venue_note=note)
+                                           accept_thin=accept_thin, venue_note=note,
+                                           fill_missing=fill_missing)
             else:
                 result, mrow = ingest_qualifying(year, round_num, slug, force, run_id,
-                                                 accept_thin=accept_thin, venue_note=note)
+                                                 accept_thin=accept_thin, venue_note=note,
+                                                 skip_telemetry=skip_telemetry,
+                                                 telemetry_full=telemetry_full,
+                                                 fill_missing=fill_missing)
             counts[f"{p['session_type']}_{result}"] += 1
             manifest_rows.append(mrow)
+            if mrow.get("reason") == "rate_limited":
+                logger.error(f"Rate-limit wait budget spent at {year} Rd{round_num} "
+                             f"{p['session_type']}; stopping the run. Re-run later to resume "
+                             f"(finished sessions are skipped).")
+                counts["rate_limit_stop"] = 1
+                break
+        else:
+            continue
+        break
 
     _write_event_schedule(year)
     _log_season_summary(year, sessions, counts)
@@ -1078,11 +1419,19 @@ def _attention_lines(rows: list[dict]) -> tuple[list[str], list[str]]:
     for r in rows:
         tag = f"{r['season']} Rd{r['round_number']} {r['session_type']} {r['race_slug']}"
         if r["status"] == "error":
-            blocking.append(f"FAILED {tag}: load or write failed (see [ERR] / [DQ FAIL] above)")
+            why = "rate limited, wait budget spent" if r.get("reason") == "rate_limited" else \
+                  "load or write failed (see [ERR] / [DQ FAIL] above)"
+            blocking.append(f"FAILED {tag}: {why}")
         elif r["status"] == "thin":
             blocking.append(f"THIN   {tag}: {r.get('thin_reasons', '')} -> not written")
+        fill = r.get("fill_note") or ""
+        if r["status"] == "skip" and "source has none" in fill:
+            notes.append(f"FILL   {tag}: {fill}")
         if r["status"] != "ok":
             continue
+        sis = r.get("session_info_status") or ""
+        if sis and sis != "ok":
+            notes.append(f"NO SESSION INFO {tag}: {sis}")
         if r.get("thin_reasons"):
             notes.append(f"THIN (accepted) {tag}: {r['thin_reasons']}")
         share = r.get("telemetry_coverage")
@@ -1092,6 +1441,9 @@ def _attention_lines(rows: list[dict]) -> tuple[list[str], list[str]]:
                 and (share is None or share < bronze_checks.TELEMETRY_LOW_COVERAGE)):
             notes.append(f"LOW TELEMETRY {tag}: {r.get('telemetry_laps_merged')}/"
                          f"{r.get('telemetry_laps_attempted')} laps merged")
+        tfs = r.get("telemetry_full_status") or ""
+        if r["session_type"] == "R" and tfs in ("empty", "error"):
+            notes.append(f"FULL TELEMETRY {tfs.upper()} {tag}: {r.get('telemetry_full_note', '')}")
         ci = r.get("circuit_info_status") or ""
         if r["session_type"] == "R" and ci and not ci.startswith("ok"):
             notes.append(f"NO CIRCUIT INFO {tag}: {ci}")
@@ -1197,6 +1549,12 @@ the future) are skipped without loading. Exit code is 1 if any session ended
         help="Overwrite existing Parquet files instead of skipping them",
     )
     p.add_argument(
+        "--fill-missing", action="store_true",
+        help="For a session already on disk, reload it (FastF1 cache first) and run only "
+             "the writers whose output is absent (e.g. session_info, qualifying race "
+             "control); existing files are not rewritten. Ignored with --force",
+    )
+    p.add_argument(
         "--ready-after-hours", type=float, metavar="H",
         default=bronze_checks.SESSION_READY_AFTER.total_seconds() / 3600,
         help="Treat a session as finished this many hours after its scheduled start "
@@ -1251,7 +1609,9 @@ def _dry_run(years: range, args, only_rounds: Optional[set[int]], ready_after: t
             if p["action"] == "not_run":
                 what = f"not run yet: {_not_run_text(p)}"
             elif target.exists() and not args.force:
-                what = "on disk, would skip"
+                missing = (_missing_datasets(year, p["slug"], p["session_type"], args.skip_telemetry,
+                                             args.telemetry_full) if args.fill_missing else [])
+                what = f"on disk, would fill: {', '.join(missing)}" if missing else "on disk, would skip"
             else:
                 what = "would pull" + (" (overwrite)" if target.exists() else "")
                 n_pull += p["session_type"] == "R"
@@ -1295,20 +1655,23 @@ def main() -> int:
         logger.info(f"Bronze: {BRONZE_DIR} | FastF1 cache: {cache_dir}")
         return _dry_run(range(start_year, end_year + 1), args, only_rounds, ready_after)
 
-    for d in [LAPS_DIR, WEATHER_DIR, RC_DIR, TELEMETRY_DIR, TELEMETRY_FULL_DIR, POS_DATA_DIR, RESULTS_DIR, TRACK_STATUS_DIR, SESSION_STATUS_DIR, CIRCUIT_INFO_DIR, SCHEDULE_DIR, MANIFESTS_DIR]:
+    for d in [LAPS_DIR, WEATHER_DIR, RC_DIR, TELEMETRY_DIR, TELEMETRY_FULL_DIR, POS_DATA_DIR, RESULTS_DIR, TRACK_STATUS_DIR, SESSION_STATUS_DIR, CIRCUIT_INFO_DIR, CIRCUIT_MARKERS_DIR, SESSION_INFO_DIR, SCHEDULE_DIR, MANIFESTS_DIR]:
         os.makedirs(d, exist_ok=True)
 
     run_id = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+    global _rate_limit_waits
+    _rate_limit_waits = 0
 
     logger.info(
         f"Ingestion run {run_id}: {start_year}–{end_year} | sessions={args.sessions} | "
-        f"force={args.force} | skip_telemetry={args.skip_telemetry} | telemetry_full={args.telemetry_full}"
+        f"force={args.force} | fill_missing={args.fill_missing} | skip_telemetry={args.skip_telemetry} | telemetry_full={args.telemetry_full}"
     )
     logger.info(f"Bronze: {BRONZE_DIR} | FastF1 cache: {cache_dir}")
 
     total_ok = 0
     not_run = 0
     failed_schedules: list[int] = []
+    rate_limit_stopped = False
     all_manifest_rows: list[dict] = []
     for year in range(start_year, end_year + 1):
         counts, manifest_rows = ingest_season(
@@ -1322,17 +1685,24 @@ def main() -> int:
             ready_after=ready_after,
             include_unfinished=args.include_unfinished,
             accept_thin=args.accept_thin,
+            fill_missing=args.fill_missing,
         )
         total_ok += counts.get("R_ok", 0) + counts.get("Q_ok", 0)
         not_run += counts.get("R_not_run", 0) + counts.get("Q_not_run", 0)
         if counts.get("schedule_error"):
             failed_schedules.append(year)
         all_manifest_rows.extend(manifest_rows)
+        if counts.get("rate_limit_stop"):
+            rate_limit_stopped = True
+            break
 
     _write_manifest(all_manifest_rows, run_id)
 
     blocking, notes = _attention_lines(all_manifest_rows)
     blocking += [f"FAILED {y}: schedule fetch failed, nothing attempted" for y in failed_schedules]
+    if rate_limit_stopped:
+        blocking.append("STOPPED: FastF1 rate limit (500 calls/h) outlasted the wait budget; "
+                        "the remaining sessions were not attempted")
     if blocking:
         logger.warning("=== NEEDS ATTENTION: these sessions are not done; re-run the same "
                        "command to retry them (finished sessions are skipped) ===")

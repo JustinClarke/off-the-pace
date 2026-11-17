@@ -19,7 +19,10 @@ Sections:
                     (key-column shares, results vs the field, weather and race
                     control non-empty), per race and qualifying session.
   4. Telemetry      share of each race's laps with merged per-lap telemetry.
-  5. Row counts     rows per race per dataset (informational).
+  5. Manifest       per session, the latest WRITING run's status and telemetry_full
+                    status (skip rows inherit it), circuit_info failures, and sessions
+                    the source has no circuit_info / circuit_markers for (informational).
+  6. Row counts     rows per race per dataset (informational).
 
 Usage:
     python ingestion/verify_bronze.py                  # every season on disk
@@ -52,6 +55,16 @@ BRONZE_DIR = PROJECT_ROOT / "data" / "bronze"
 
 # Per-race datasets checked for presence (telemetry: races only).
 EXPECTED_DATASETS = ["laps", "weather", "race_control", "telemetry"]
+
+# Per-session datasets added after the first backfill: (dataset, session types).
+# Checked like the others. A session the source genuinely lacks is accepted when the
+# fill pass recorded "source has none" for it in the manifest (see source_none_keys).
+SUPPLEMENTARY_DATASETS = [
+    ("session_info", ("R", "Q")),
+    ("circuit_markers", ("R", "Q")),
+    ("race_control", ("Q",)),
+    ("circuit_info", ("Q",)),
+]
 
 # The --markdown coverage table feeds the committed docs snippet
 # (docs/snippets/bronze-coverage.mdx, drift-gated by scripts/ingestion_docs_facts.py).
@@ -165,6 +178,130 @@ def _n_rows_frame(n: int) -> pd.DataFrame:
 # Checks
 # ---------------------------------------------------------------------------
 
+KNOWN_GAPS_FILE = Path(__file__).resolve().parent / "known_gaps.txt"
+
+
+def known_gap_keys(path: Optional[Path] = None) -> set[tuple[int, str, str]]:
+    """(season, session type, slug) for each line of ingestion/known_gaps.txt."""
+    path = path or KNOWN_GAPS_FILE
+    if not path.exists():
+        return set()
+    keys = set()
+    for raw in path.read_text().splitlines():
+        line = raw.strip()
+        if not line or line.startswith("#"):
+            continue
+        year, stype, slug = line.split()[:3]
+        keys.add((int(year), stype, slug))
+    return keys
+
+
+def source_none_keys(bronze: Path) -> set[tuple[int, str, str, str]]:
+    """(season, session type, slug, dataset) the fill pass recorded as absent at the source."""
+    manifests = sorted((bronze / "manifests").glob("run_*.parquet"))
+    keys: set[tuple[int, str, str, str]] = set()
+    marker = "source has none: "
+    for path in manifests:
+        frame = pd.read_parquet(path)
+        if not {"season", "race_slug", "session_type", "fill_note"} <= set(frame.columns):
+            continue  # manifests written before the fill pass have no fill_note
+        for row in frame.itertuples(index=False):
+            note = row.fill_note
+            if not isinstance(note, str) or marker not in note:
+                continue
+            for dataset in note.split(marker, 1)[1].split(";")[0].split(","):
+                keys.add((int(row.season), row.session_type, row.race_slug, dataset.strip()))
+    return keys
+
+
+def latest_session_status(bronze: Path) -> pd.DataFrame:
+    """One row per (season, session_type, race_slug): the status of the run that last WROTE it.
+
+    Every run writes a manifest row for every session; a run that leaves a session alone
+    writes status 'skip' with blank telemetry_full_status / circuit_info_status. Read naively,
+    those skip rows look like blank coverage (TX-22). Here a session takes status,
+    telemetry_full_status and telemetry_full_note from its latest non-skip row (the writing
+    run), and circuit_info_status from its latest non-blank value (the fill pass also sets
+    it). A session that only ever has skip rows gets status 'skip-only'.
+    """
+    cols = ["season", "session_type", "race_slug", "round_number", "status", "writing_run",
+            "telemetry_full_status", "telemetry_full_note", "circuit_info_status", "n_runs"]
+    paths = sorted((bronze / "manifests").glob("run_*.parquet"))
+    frames = [pd.read_parquet(p) for p in paths]
+    frames = [f for f in frames if {"season", "race_slug", "session_type", "status", "run_id"} <= set(f.columns)]
+    if not frames:
+        return pd.DataFrame(columns=cols)
+    m = pd.concat(frames, ignore_index=True)
+    for c in ("telemetry_full_status", "telemetry_full_note", "circuit_info_status",
+              "ingested_at_utc"):
+        if c not in m.columns:
+            m[c] = ""
+        m[c] = m[c].fillna("").astype(str)
+    if "round_number" not in m.columns:
+        m["round_number"] = None
+    m = m.sort_values(["run_id", "ingested_at_utc"], kind="stable")
+    out = []
+    for (season, stype, slug), g in m.groupby(["season", "session_type", "race_slug"], sort=True):
+        written = g[g["status"] != "skip"]
+        last = written.iloc[-1] if len(written) else None
+        ci = g.loc[g["circuit_info_status"].str.strip() != "", "circuit_info_status"]
+        out.append({
+            "season": int(season), "session_type": stype, "race_slug": slug,
+            "round_number": g["round_number"].iloc[-1],
+            "status": last["status"] if last is not None else "skip-only",
+            "writing_run": last["run_id"] if last is not None else "",
+            "telemetry_full_status": last["telemetry_full_status"] if last is not None else "",
+            "telemetry_full_note": last["telemetry_full_note"] if last is not None else "",
+            "circuit_info_status": ci.iloc[-1] if len(ci) else "",
+            "n_runs": int(g["run_id"].nunique()),
+        })
+    return pd.DataFrame(out, columns=cols)
+
+
+def manifest_findings(bronze: Path, season: int) -> list[Finding]:
+    """Section 5: telemetry_full coverage per session from the latest writing run, circuit_info
+    failures, and sessions the fill pass recorded without circuit_info / circuit_markers.
+    Informational only: presence (section 1) is what fails a run."""
+    findings: list[Finding] = []
+    latest = latest_session_status(bronze)
+    latest = latest[latest["season"] == season]
+    known_keys = known_gap_keys()
+    for stype in ("R", "Q"):
+        s = latest[latest["session_type"] == stype]
+        if s.empty:
+            continue
+        counts = s["telemetry_full_status"].replace("", "none recorded").value_counts().to_dict()
+        summary = ", ".join(f"{k} {v}" for k, v in sorted(counts.items()))
+        findings.append(Finding("info", "manifest", season,
+                                f"{stype}: {len(s)} sessions; telemetry_full from the latest "
+                                f"writing run: {summary}"))
+        for row in s.itertuples(index=False):
+            tag = f"Rd{row.round_number} {stype} {row.race_slug}"
+            known = (season, stype, row.race_slug) in known_keys
+            if row.status not in ("ok",):
+                findings.append(Finding("known" if known else "info", "manifest", season,
+                                        f"{tag}: latest writing run status {row.status} "
+                                        f"({row.n_runs} runs)"
+                                        + ("; listed in known_gaps.txt" if known else "")))
+            if row.status == "ok" and row.telemetry_full_status not in ("ok",):
+                findings.append(Finding("info", "manifest", season,
+                                        f"{tag}: telemetry_full {row.telemetry_full_status or 'not recorded'}"
+                                        + (f" ({row.telemetry_full_note})" if row.telemetry_full_note else "")))
+            if row.circuit_info_status.startswith("failed"):
+                findings.append(Finding("info", "manifest", season,
+                                        f"{tag}: circuit_info {row.circuit_info_status}"))
+    none = sorted(k for k in source_none_keys(bronze)
+                  if k[0] == season and k[3] in ("circuit_info", "circuit_markers"))
+    by_session: dict[tuple[str, str], list[str]] = defaultdict(list)
+    for _, stype, slug, dataset in none:
+        by_session[(stype, slug)].append(dataset)
+    for (stype, slug), datasets in sorted(by_session.items()):
+        findings.append(Finding("info", "manifest", season,
+                                f"{stype} {slug}: source has no {' or '.join(sorted(datasets))} "
+                                f"(fill pass)"))
+    return findings
+
+
 def verify_season(bronze: Path, season: int, now_utc: Optional[datetime] = None) -> list[Finding]:
     now_utc = now_utc or datetime.now(timezone.utc)
     findings: list[Finding] = []
@@ -174,6 +311,8 @@ def verify_season(bronze: Path, season: int, now_utc: Optional[datetime] = None)
 
     on_disk = race_slugs_on_disk(bronze, season)
     expected = expected_rounds(bronze, season, now_utc)
+    known_keys = known_gap_keys()
+    source_none = source_none_keys(bronze)
 
     # -- 1. Presence ----------------------------------------------------------
     if expected is None:
@@ -199,13 +338,31 @@ def verify_season(bronze: Path, season: int, now_utc: Optional[datetime] = None)
         for dataset in EXPECTED_DATASETS:
             if dataset_file(bronze, dataset, season, slug) is not None:
                 continue
-            known = bronze_checks.known_telemetry_gap(season, rnd) if dataset == "telemetry" else None
-            if known:
-                add("known", "presence", f"{tag}: no telemetry, known gap: {known}")
+            telemetry_gap = bronze_checks.known_telemetry_gap(season, rnd) if dataset == "telemetry" else None
+            if telemetry_gap:
+                add("known", "presence", f"{tag}: no telemetry, known gap: {telemetry_gap}")
+            elif (season, "R", slug) in known_keys:
+                add("known", "presence", f"{tag}: {dataset} missing, listed in known_gaps.txt")
             else:
                 add("new", "presence", f"{tag}: missing {dataset}")
         if meta.get("quali_ready") is not False and dataset_file(bronze, "laps", season, slug, quali=True) is None:
             add("new", "presence", f"{tag}: missing qualifying laps")
+
+    for dataset, stypes in SUPPLEMENTARY_DATASETS:
+        for stype in stypes:
+            quali = stype == "Q"
+            for slug in sorted(rounds, key=lambda s: rounds[s]["round"] or 0):
+                if slug not in on_disk or dataset_file(bronze, "laps", season, slug, quali=quali) is None:
+                    continue
+                if dataset_file(bronze, dataset, season, slug, quali=quali) is not None:
+                    continue
+                tag = f"Rd{rounds[slug]['round']} {stype} {slug}"
+                if (season, stype, slug) in known_keys:
+                    add("known", "presence", f"{tag}: {dataset} missing, listed in known_gaps.txt")
+                elif (season, stype, slug, dataset) in source_none:
+                    add("known", "presence", f"{tag}: {dataset} missing, source has none (fill pass)")
+                else:
+                    add("new", "presence", f"{tag}: missing {dataset}; run make ingest-full")
 
     # -- 2. Laps DQ + 3. Completeness ------------------------------------------
     for slug, meta in sorted(rounds.items(), key=lambda kv: kv[1]["round"] or 0):
@@ -265,11 +422,15 @@ def verify_season(bronze: Path, season: int, now_utc: Optional[datetime] = None)
         share = merged / n_laps if n_laps else 0.0
         if share >= bronze_checks.TELEMETRY_LOW_COVERAGE:
             continue
-        known = bronze_checks.known_telemetry_gap(season, rnd) if rnd is not None else None
+        gap = bronze_checks.known_telemetry_gap(season, rnd) if rnd is not None else None
+        if gap is None and (season, "R", slug) in known_keys:
+            gap = "listed in known_gaps.txt"
         msg = (f"Rd{rnd} {slug}: telemetry on {merged}/{n_laps} laps ({share:.1%}, "
                f"threshold {bronze_checks.TELEMETRY_LOW_COVERAGE:.0%})")
-        add("known" if known else "new", "telemetry", msg + (f"; known gap: {known}" if known else ""))
+        add("known" if gap else "new", "telemetry", msg + (f"; known gap: {gap}" if gap else ""))
 
+    # -- 5. Manifest: latest status per session (TX-22) ----------------------
+    findings.extend(manifest_findings(bronze, season))
     return findings
 
 
@@ -292,6 +453,7 @@ SECTIONS = [
     ("dq", "2. LAPS DATA QUALITY (required columns, duplicate lap keys)"),
     ("completeness", "3. COMPLETENESS (the thin-load rules ingest.py applies)"),
     ("telemetry", "4. TELEMETRY COVERAGE (laps with merged per-lap telemetry)"),
+    ("manifest", "5. MANIFEST (latest writing run per session: telemetry_full, circuit_info, markers)"),
 ]
 ICON = {"new": "✗ NEW  ", "known": "· KNOWN", "info": "  info "}
 
@@ -316,7 +478,7 @@ def report(bronze: Path, seasons: list[int], now_utc: Optional[datetime] = None)
             for f in season_rows:
                 print(f"   {ICON[f.level]} {f.message}")
 
-    print("\n" + "=" * 80 + "\n5. ROW COUNTS (rows per race)\n" + "=" * 80)
+    print("\n" + "=" * 80 + "\n6. ROW COUNTS (rows per race)\n" + "=" * 80)
     for season in seasons:
         table = row_count_table(bronze, season)
         print(f"\n{season}:")

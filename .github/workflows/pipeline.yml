@@ -49,9 +49,14 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
+      - name: Set up Python 3.14
+        uses: actions/setup-python@v7
+        with:
+          python-version: '3.14'
+
       - name: Set up Python + deps
         run: |
-          python3 -m venv .venv || true
+          python3.14 -m venv .venv || true
           ./.venv/bin/pip install -q -r requirements.txt
           cd transform && ../.venv/bin/dbt deps
 

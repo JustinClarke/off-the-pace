@@ -1,0 +1,38 @@
+# TX-29 — Move the holdout to 2025 across transform and ML; guard that no fit reads 2025 or 2026
+
+**Group:** 1-transform · **Depends on:** none (ruling HD17 is RESOLVED) · **Model / cost:** `opus-5`, 1-2d · **Stage:** SPEC (nothing edited yet)
+
+**Ruling (HD17, owner, 2026-11-16):** the holdout is 2025, not 2026. Models are trained strictly on 2018-2024. 2025 is held out. 2026 is not the holdout and is not yet defined for use.
+**How to run:** every dbt run in your own scratch folder with the copy named `dev.duckdb`, 1 thread (rule 5). Never write `data/dev.duckdb`, `data/ci.duckdb`, `data/bronze/` or `data/fits/`. No `make ingest`, `bronze-lock`, `bronze-unlock`, `dbt build` on the real warehouse, `export` or `deg-iso-fit` without the owner. Nothing is staged or committed by an agent. Refitting a shipped model or seed is an owner step (PK1 / XM still stand for ML).
+
+## Why
+The pinned holdout is 2026 (FD4, WI-03, 2026-09-28), and several fits default to 2018-2025, so 2025 is training data today. The owner has moved the holdout to 2025. Note: 2025 has already been looked at: `ml/src/card.py` HOLDOUT_NOTE says 2025 was consumed as a selection fold by 02c's admission gate (n_eval = 13,951, 2026-09-23), and the v14 models in `ml/models/` were trained on 2018-2025. After this change, 2025 is a holdout from now on, not a clean never-seen season; the model card must say so.
+
+## Files found referencing the holdout or a 2018-2025 fit window (grep 2026-11-16)
+- Config: `transform/dbt_project.yml:153-158` (`holdout_season: 2026`, WI-03/FD4 comment); `ml/src/holdout_config.py:13` (`HOLDOUT_SEASON = 2026`).
+- Read the holdout: `transform/models/marts/mart_build_provenance.sql:31`, `transform/models/marts/_provenance.yml`, `transform/tests/assert_build_provenance_one_row_matches_vars.sql`, `transform/tests/data_profile.baseline.json`; `ml/src/features.py:52-66,127-136,232-244`, `ml/src/predict.py:81,129`, `ml/src/card.py:36,46-52,292-293`, `ml/src/flag_chance.py:64,176-192`, `ml/src/schema.py:488`, `ml/src/evaluate.py`, `ml/src/tune.py`, `ml/src/export_onnx.py`, `ml/src/powerlaw.py:416-417,661`; `ml/model_card.yml`, `ml/models/manifest.json` (`holdout_season: 2026`), `ml/models/model_card.json`, `ml/artefacts/evaluation_metrics.json`, `ml/artefacts/powerlaw_report.json`, `ml/README.md`, `ml/tests/test_features.py`, `ml/tests/test_fit_parity.py`, `ml/tests/test_predict.py`, `ml/tests/README.md`.
+- Fits whose default window includes 2025 (must stop at 2024): `transform/tasks/coefficients/fit_compound_cliff.py:708-715` (default 2018-2025; comment calls 2026 the blind test), its test `transform/tasks/coefficients/tests/test_seed_param_provenance.py:149`; `transform/tasks/coefficients/fit_dirty_air_microsector.py:585,592` (`FOLLOWUP_SEASONS = range(2018, 2026)`); `transform/tasks/coefficients/fit_constructor_car_fe.py:52,109` (2025 entry); `transform/tasks/wake_calibration/sidecar.py:465`, `run_wc03.py:299,303,618-619`, `build_pass_table.py:1121` (defaults 2018-2025). `wake_calibration/estimator.py:58-61` already holds 2025 out of the main fit (fit 2022-2024). `fit_weight_penalty.py:286` already stops at 2024. `fit_degradation_isotonic.py` takes min/max season from the data (check it). `transform/tasks/coefficients/measure_f9_decoupling.py` mentions a holdout.
+- Scripts: `scripts/arms_05d_training_window.py:133-136`, `scripts/gate_08f1_survival_weight.py`, `scripts/gate_08o_ipw_weight.py:69` (2024 eval fold), `scripts/gen_ml_reference.py`, `scripts/ml_docs_facts.py`, `scripts/assistant_cards/card_types.py`, `scripts/tests/test_export_app_data.py`.
+- Roadmap: 64 files under `_roadmap/` mention FD4, WI-03 or holdout; the rulings of record are `_roadmap/_fixes/wi/WI-03-holdout-policy.md` and `_roadmap/_fixes/status/build-log.json` (FD4). Add a superseded-by-HD17 line there; do not rewrite history.
+
+## Method
+1. Change `holdout_season` to 2025 in `dbt_project.yml` and `HOLDOUT_SEASON` in `holdout_config.py`, with the comment pointing at HD17 (superseding FD4).
+2. Make every fit default stop at 2024 (or read the holdout var and stop before it), and make any fit refuse a season >= holdout.
+3. 2026: excluded from every fit and from evaluation; no page reads it until the owner defines its use.
+4. Guard test (new, transform and ML): fails if any fit input or seed parameter row carries race_year 2025 or 2026 (scratch build plus a pytest over each fit's season argument). Plant a 2025 row to prove it fails.
+5. Scratch rebuild, diff marts and provenance; list every published number that changes. Refits of shipped models and seeds are the owner's step.
+
+## Done when
+Holdout is 2025 in both configs; no fit default includes 2025 or 2026; the guard test fails on a planted 2025 row and passes otherwise; the model card wording says 2025 is a holdout that was previously used as a selection fold.
+
+## Sources
+`transform/dbt_project.yml`, `ml/src/holdout_config.py`, `ml/src/features.py`, `transform/tasks/coefficients/fit_compound_cliff.py`, `transform/tasks/coefficients/fit_dirty_air_microsector.py`, `transform/tasks/wake_calibration/`, `ml/src/card.py`.
+
+## 2026-11-16 fix (fixall session): config and guard only, nothing refitted
+- `transform/dbt_project.yml` `holdout_season: 2025` (HD17 comment). `ml/src/holdout_config.py` `HOLDOUT_SEASON = 2025`. `ml/src/card.py` `HOLDOUT_NOTE` now says 2025 is the holdout, that it was used as a selection fold before (02c gate), and that v14 was trained on 2018-2025, so no clean holdout result exists until a 2018-2024 retrain.
+- ML training already reads `race_year < HOLDOUT_SEASON`, so with 2025 it trains on 2018-2024, and 2026 is neither trained on nor evaluated (`features.py:130-136`).
+- `transform/tasks/coefficients/holdout_guard.py` (new): reads the dbt var; `check_point_in_time_seasons` refuses any cell season after the holdout; `rows_reading_holdout` flags seed rows whose `data_window` ends in or after it. `fit_compound_cliff.main` now refuses `--seasons` after the holdout (exit 2).
+- Finding that changes the doc's list: `fit_compound_cliff` is point-in-time (a season-S cell is fitted on seasons before S). Its 2025 rows have `data_window 2018_to_2024`, so the default 2018-2025 **cell** list reads no 2025 data and is left as is. A 2026 cell would read 2025 and is now refused.
+- Guard tests: `transform/tasks/coefficients/tests/test_holdout_guard.py` (6 tests: dbt and ML agree on 2025; the live seed passes; a planted `2018_to_2025` row is caught; the cliff fit refuses 2026) and the dbt singular test `transform/tests/assert_no_fit_reads_holdout.sql`.
+- Not changed, for the owner: `fit_dirty_air_microsector.FOLLOWUP_SEASONS` (the DA-03F pre-registered follow-up, archived; changing it would amend a registration), the wake-calibration defaults (`sidecar.py`, `run_wc03.py`, `build_pass_table.py`: XW track, owner) and `fit_constructor_car_fe` (a per-race descriptive fit of every race, not a model trained for prediction; the 2025 WDC anchor stays).
+- Needs a re-run (owner steps, PK1/XM): the v14 ML models (cliff, degradation p10/p50/p90, stint-life), `ml/models/manifest.json` and `model_card.json` (still say `holdout_season 2026`), `ml/artefacts/evaluation_metrics.json`, `powerlaw_report.json`, `data/marts/mart_degradation_predictions.parquet` (its `is_holdout` flags 2026), the flag-chance fit (`ml/src/flag_chance.py`), and the wake-calibration fits if XW rules they must stop at 2024. `ml/tests/test_predict.py:39` asserts no holdout rows; it will fail after a re-score on the 2025 holdout and must be updated with it. `mart_build_provenance.holdout_season` moves from 2026 to 2025 and the data-profile baseline moves with it (owner re-takes).

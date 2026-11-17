@@ -9,7 +9,7 @@ export interface HiddenPerformanceEntry {
   delta: number
   adjustedDelta: number | null
   adjustedDeltaZ: number | null
-  finishPosSe: number
+  finishPosSe: number | null
   confidence: number
   laps: number
   affinityS: number | null
@@ -74,7 +74,7 @@ export function toCsvRows(entries: HiddenPerformanceEntry[]): Record<string, unk
     delta_positions: e.delta,
     adjusted_delta: e.adjustedDelta?.toFixed(2) ?? '',
     adjusted_delta_z: e.adjustedDeltaZ?.toFixed(2) ?? '',
-    finish_pos_se: e.finishPosSe.toFixed(2),
+    finish_pos_se: e.finishPosSe?.toFixed(2) ?? '',
     recombination_confidence: e.confidence.toFixed(3),
     laps_counted: e.laps,
     circuit_affinity_s: e.affinityS?.toFixed(3) ?? '',

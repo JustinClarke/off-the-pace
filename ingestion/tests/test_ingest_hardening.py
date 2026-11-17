@@ -1,7 +1,9 @@
 """Offline tests for ingest.py's season hardening (no network, no data/bronze):
 
   * rounds that have not run yet are skipped without loading or a manifest row;
-  * a thin (incomplete) load is retried once, then not written unless accepted;
+  * a thin (incomplete) load is not written unless accepted, and is never re-fetched
+    with the cache bypassed;
+  * rate-limit errors wait and retry (bounded per run), recorded in the manifest;
   * per-race telemetry coverage and circuit-info status reach the manifest;
   * slug -> venue changes are detected;
   * the end-of-run summary and exit code, the dry run and the log monitor.
@@ -15,6 +17,7 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
+import fastf1
 import pandas as pd
 import pytest
 
@@ -245,22 +248,9 @@ def test_known_thin_split():
     assert bronze_checks.split_known_thin(2025, 7, "R", problems) == (problems, None)
 
 
-def test_thin_race_recovers_on_retry():
-    thin, good = _session(points=False), _session()
-    with patch("ingest._load_race_session", side_effect=[thin, good]) as load, \
-         patch("ingest.time.sleep") as sleep:
-        status, row = ingest.ingest_race(2026, 4, "miami_grand_prix", force=False, skip_telemetry=True)
-    assert status == "ok" and row["status"] == "ok" and row["thin_reasons"] == ""
-    assert load.call_count == 2 and load.call_args_list[1].kwargs == {"fresh": True}
-    sleep.assert_any_call(ingest.THIN_RETRY_DELAY_S)
-    assert ingest._laps_path_race(2026, "miami_grand_prix").exists()
-    written = pd.read_parquet(ingest.RESULTS_DIR / "season=2026" / "race=miami_grand_prix" / "results.parquet")
-    assert written["Points"].notna().all()                # the retry's results, not the thin ones
-
-
-def test_thin_race_twice_is_not_written_and_not_done():
+def test_thin_race_is_not_written_and_not_done():
     thin = _session(points=False)
-    with patch("ingest._load_race_session", side_effect=[thin, thin]), patch("ingest.time.sleep"):
+    with patch("ingest._load_race_session", side_effect=[thin]), patch("ingest.time.sleep"):
         status, row = ingest.ingest_race(2026, 4, "miami_grand_prix", force=False, skip_telemetry=True)
     assert status == "thin" and row["status"] == "thin"
     assert "results.Points 0% non-null" in row["thin_reasons"]
@@ -281,7 +271,7 @@ def test_thin_forced_reload_keeps_existing_files():
     before = pd.read_parquet(results_path)
 
     thin = _session(points=False)
-    with patch("ingest._load_race_session", side_effect=[thin, thin]), patch("ingest.time.sleep"):
+    with patch("ingest._load_race_session", side_effect=[thin]), patch("ingest.time.sleep"):
         status, _ = ingest.ingest_race(2026, 4, "miami_grand_prix", force=True, skip_telemetry=True)
     assert status == "thin"
     pd.testing.assert_frame_equal(pd.read_parquet(results_path), before)
@@ -289,7 +279,7 @@ def test_thin_forced_reload_keeps_existing_files():
 
 def test_accept_thin_writes_and_records_reasons():
     thin = _session(points=False)
-    with patch("ingest._load_race_session", side_effect=[thin, thin]), patch("ingest.time.sleep"):
+    with patch("ingest._load_race_session", side_effect=[thin]), patch("ingest.time.sleep"):
         status, row = ingest.ingest_race(2026, 4, "miami_grand_prix", False, True, accept_thin=True)
     assert status == "ok" and "results.Points" in row["thin_reasons"]
     assert ingest._laps_path_race(2026, "miami_grand_prix").exists()
@@ -297,7 +287,7 @@ def test_accept_thin_writes_and_records_reasons():
 
 def test_thin_qualifying_not_written():
     thin = _session(q1=False, stype="Q")
-    with patch("ingest._load_qualifying_session", side_effect=[thin, thin]), patch("ingest.time.sleep"):
+    with patch("ingest._load_qualifying_session", side_effect=[thin]), patch("ingest.time.sleep"):
         status, row = ingest.ingest_qualifying(2026, 4, "miami_grand_prix", force=False)
     assert status == "thin" and "results.Q1" in row["thin_reasons"]
     assert not ingest._laps_path_quali(2026, "miami_grand_prix").exists()
@@ -313,12 +303,86 @@ def test_known_thin_session_is_written_with_note_and_no_retry():
     assert row["thin_reasons"] == "" and "known source gap" in row["known_gap_note"]
 
 
-def test_retry_failure_keeps_first_result_as_thin():
-    thin = _session(points=False)
-    with patch("ingest._load_race_session", side_effect=[thin, RuntimeError("503")]), \
-         patch("ingest.time.sleep"):
-        status, _ = ingest.ingest_race(2026, 4, "miami_grand_prix", False, True)
-    assert status == "thin"
+def test_thin_race_manifest_reason_is_source_empty_and_loaded_once():
+    with patch("ingest._load_race_session", side_effect=[_session(points=False)]) as load, \
+         patch("ingest.time.sleep") as sleep:
+        status, row = ingest.ingest_race(2026, 4, "miami_grand_prix", False, True)
+    assert status == "thin" and row["reason"] == "source_empty"
+    assert load.call_count == 1 and row["attempts"] == 1 and row["rate_limit_waits"] == 0
+    assert load.call_args.kwargs == {}            # never the cache-bypass path
+    sleep.assert_not_called()
+
+
+def test_rate_limit_waits_then_succeeds():
+    limited = fastf1.exceptions.RateLimitExceededError("any API: 500 calls/h")
+    with patch("ingest._load_race_session", side_effect=[limited, _session()]) as load, \
+         patch("ingest.time.sleep") as sleep:
+        status, row = ingest.ingest_race(2026, 4, "miami_grand_prix", False, True)
+    assert status == "ok" and row["reason"] == ""
+    sleep.assert_any_call(ingest.RATE_LIMIT_WAIT_S)
+    assert row["attempts"] == 2 and row["rate_limit_waits"] == 1
+    assert row["rate_limit_wait_s"] == ingest.RATE_LIMIT_WAIT_S
+    assert all(c.kwargs == {} for c in load.call_args_list)   # cache never bypassed
+    assert ingest._laps_path_race(2026, "miami_grand_prix").exists()
+
+
+def test_rate_limit_matched_by_message_and_qualifying():
+    with patch("ingest._load_qualifying_session",
+               side_effect=[RuntimeError("429: any API: 500 calls/h"), _session(stype="Q")]), \
+         patch("ingest.time.sleep") as sleep:
+        status, row = ingest.ingest_qualifying(2026, 4, "miami_grand_prix", force=False)
+    assert status == "ok" and row["rate_limit_waits"] == 1
+    sleep.assert_any_call(ingest.RATE_LIMIT_WAIT_S)
+
+
+def test_rate_limit_cap_stops_the_run_and_writes_nothing():
+    limited = fastf1.exceptions.RateLimitExceededError("any API: 500 calls/h")
+    with patch("ingest._load_race_session", side_effect=limited), patch("ingest.time.sleep") as sleep:
+        status, row = ingest.ingest_race(2026, 4, "miami_grand_prix", False, True)
+    assert status == "error" and row["reason"] == "rate_limited"
+    assert row["rate_limit_waits"] == ingest.MAX_RATE_LIMIT_WAITS
+    assert sleep.call_count == ingest.MAX_RATE_LIMIT_WAITS
+    assert not ingest._laps_path_race(2026, "miami_grand_prix").exists()
+
+    # The season loop stops at the first rate-limited session and says so.
+    with patch("ingest._with_retry", return_value=SCHED_2026), \
+         patch("ingest.ingest_race", return_value=("error", {"reason": "rate_limited"})) as race, \
+         patch("ingest.ingest_qualifying", return_value=("ok", {})) as quali, \
+         patch("ingest._write_event_schedule"):
+        counts, rows = ingest.ingest_season(2026, "both", False, True, only_rounds={14, 16},
+                                            now_utc=NOW, include_unfinished=True)
+    assert counts["rate_limit_stop"] == 1 and race.call_count == 1 and quali.call_count == 0
+    blocking, _ = ingest._attention_lines([{**_row_stub(), "reason": "rate_limited"}])
+    assert "rate limited" in blocking[0]
+
+
+def _row_stub():
+    return {"season": 2026, "round_number": 4, "session_type": "R",
+            "race_slug": "miami_grand_prix", "status": "error"}
+
+
+def test_transient_error_uses_short_backoff_not_rate_limit_wait():
+    with patch("ingest._load_race_session", side_effect=[RuntimeError("503"), _session()]), \
+         patch("ingest.time.sleep") as sleep:
+        status, row = ingest.ingest_race(2026, 4, "miami_grand_prix", False, True)
+    assert status == "ok" and row["attempts"] == 2 and row["rate_limit_waits"] == 0
+    sleep.assert_any_call(1.0)
+    assert ingest.RATE_LIMIT_WAIT_S not in [c.args[0] for c in sleep.call_args_list]
+
+
+def test_persistent_transient_error_is_reason_error():
+    with patch("ingest._load_race_session", side_effect=RuntimeError("503")), patch("ingest.time.sleep"):
+        status, row = ingest.ingest_race(2026, 4, "miami_grand_prix", False, True)
+    assert status == "error" and row["reason"] == "error" and row["attempts"] == 4
+
+
+def test_existing_session_is_skipped_without_loading():
+    ingest._laps_path_race(2026, "miami_grand_prix").parent.mkdir(parents=True)
+    _laps().to_parquet(ingest._laps_path_race(2026, "miami_grand_prix"))
+    with patch("ingest._load_race_session") as load:
+        status, row = ingest.ingest_race(2026, 4, "miami_grand_prix", False, True)
+    assert status == "skip" and row["attempts"] == 0
+    load.assert_not_called()
 
 
 # ---------------------------------------------------------------------------
@@ -551,3 +615,380 @@ def test_monitor_flags_completed_run_that_needs_attention(tmp_path, capsys):
     clean = tmp_path / "clean.log"
     clean.write_text("x | ingest | INFO | === COMPLETE: 3 sessions newly written ===\n")
     assert monitor_ingest.monitor(clean, poll_interval=0) == 0
+
+
+# ---------------------------------------------------------------------------
+# Full-channel telemetry (--telemetry-full): FastF1 3.x car_data / pos_data are
+# dicts of driver number -> Telemetry; failures must reach the manifest.
+# ---------------------------------------------------------------------------
+
+_CAR_COLS = ["Date", "Speed", "Throttle", "Brake", "nGear", "RPM", "DRS"]
+_POS_COLS = ["Date", "X", "Y", "Z"]
+
+
+def _chan(cols, drivers):
+    return {d: pd.DataFrame({c: [1.0, 2.0] for c in cols}) for d in drivers}
+
+
+def test_full_channels_write_one_parquet_per_driver_from_dicts():
+    s = MagicMock()
+    s.car_data = _chan(_CAR_COLS, ["1", "44"])
+    s.pos_data = _chan(_POS_COLS, ["1", "44"])
+    assert ingest._write_telemetry_full(s, 2026, 4, "miami_grand_prix")[0] == "ok"
+    assert ingest._write_pos_data(s, 2026, 4, "miami_grand_prix")[0] == "ok"
+    for drv in ("1", "44"):
+        car = pd.read_parquet(ingest.TELEMETRY_FULL_DIR / "season=2026" / "race=miami_grand_prix"
+                              / f"driver={drv}" / "car_data.parquet")
+        pos = pd.read_parquet(ingest.POS_DATA_DIR / "season=2026" / "race=miami_grand_prix"
+                              / f"driver={drv}" / "pos_data.parquet")
+        assert set(_CAR_COLS) | {"driver_id", "race_id", "season"} == set(car.columns)
+        assert set(_POS_COLS) | {"driver_id", "race_id", "season"} == set(pos.columns)
+        assert (car["driver_id"] == drv).all() and (car["race_id"] == "2026_4").all()
+
+
+def test_empty_full_channel_is_recorded_in_manifest_not_dropped(caplog):
+    s = _session()
+    s.car_data = {}                               # loaded but no samples
+    s.pos_data = _chan(_POS_COLS, ["1"])
+    with caplog.at_level("ERROR"), patch("ingest._load_race_session", return_value=s), \
+         patch("ingest.time.sleep"):
+        status, row = ingest.ingest_race(2026, 4, "miami_grand_prix", False, True, telemetry_full=True)
+    assert status == "ok"                         # one channel never fails the run
+    assert row["telemetry_full_status"] == "empty"
+    assert "car_data: no samples" in row["telemetry_full_note"]
+    assert any(r.levelname == "ERROR" for r in caplog.records)
+    assert (ingest.POS_DATA_DIR / "season=2026" / "race=miami_grand_prix" / "driver=1"
+            / "pos_data.parquet").exists()
+
+
+def test_full_channel_ok_and_not_requested_statuses():
+    s = _session()
+    s.car_data = _chan(_CAR_COLS, ["1"])
+    s.pos_data = _chan(_POS_COLS, ["1"])
+    with patch("ingest._load_race_session", return_value=s), patch("ingest.time.sleep"):
+        _, row = ingest.ingest_race(2026, 5, "a_grand_prix", False, True, telemetry_full=True)
+        _, row2 = ingest.ingest_race(2026, 6, "b_grand_prix", False, True)
+    assert row["telemetry_full_status"] == "ok"
+    assert row2["telemetry_full_status"] == ""
+
+
+def test_full_channel_driver_write_failure_is_error():
+    s = MagicMock()
+    s.car_data = {"1": pd.DataFrame({"Speed": [1.0]})}
+    s.pos_data = _chan(_POS_COLS, ["1"])
+    with patch("pandas.DataFrame.to_parquet", side_effect=OSError("disk full")):
+        fields = ingest._full_channel_fields(s, 2026, 4, "x")
+    assert fields["telemetry_full_status"] == "error" and "failed" in fields["telemetry_full_note"]
+
+
+# ---------------------------------------------------------------------------
+# Qualifying telemetry path
+# ---------------------------------------------------------------------------
+
+def test_load_qualifying_session_requests_telemetry():
+    s = MagicMock()
+    with patch("ingest.fastf1.get_session", return_value=s) as get:
+        assert ingest._load_qualifying_session(2026, 4) is s
+    assert get.call_args.args == (2026, 4, "Q")
+    s.load.assert_called_once_with(laps=True, telemetry=True, weather=True)
+
+
+def test_ingest_qualifying_skip_telemetry_writes_note_and_no_telemetry():
+    with patch("ingest._load_qualifying_session", return_value=_session(stype="Q")), \
+         patch("ingest._write_telemetry") as wt, patch("ingest.time.sleep"):
+        status, row = ingest.ingest_qualifying(2026, 4, "miami_grand_prix", False, skip_telemetry=True)
+    assert status == "ok"
+    wt.assert_not_called()
+    assert row["telemetry_note"] == "not requested (--skip-telemetry)"
+    assert row["telemetry_laps_attempted"] is None
+
+
+def test_ingest_qualifying_telemetry_full_merges_fields_and_session_scoped_paths():
+    s = _session(stype="Q")
+    cov = {"telemetry_laps_attempted": 10, "telemetry_laps_merged": 10, "telemetry_coverage": 1.0,
+           "telemetry_car_drivers": 20, "telemetry_pos_drivers": 20, "telemetry_note": ""}
+    full = {"telemetry_full_status": "ok", "telemetry_full_note": "car_data: 2 drivers"}
+    with patch("ingest._load_qualifying_session", return_value=s), \
+         patch("ingest._write_telemetry", return_value=cov) as wt, \
+         patch("ingest._full_channel_fields", return_value=full) as ff, patch("ingest.time.sleep"):
+        status, row = ingest.ingest_qualifying(2026, 4, "miami_grand_prix", False, telemetry_full=True)
+    assert status == "ok"
+    wt.assert_called_once_with(s, 2026, 4, "miami_grand_prix", "Q")
+    ff.assert_called_once_with(s, 2026, 4, "miami_grand_prix", "Q")
+    assert row["telemetry_full_status"] == "ok" and row["telemetry_laps_merged"] == 10
+
+
+def test_ingest_qualifying_telemetry_writer_failure_does_not_fail_session():
+    with patch("ingest._load_qualifying_session", return_value=_session(stype="Q")), \
+         patch("ingest._write_telemetry", side_effect=OSError("disk full")), patch("ingest.time.sleep"):
+        status, row = ingest.ingest_qualifying(2026, 4, "miami_grand_prix", False)
+    assert status == "ok"
+    assert row["telemetry_note"].startswith("telemetry writer failed")
+    assert ingest._laps_path_quali(2026, "miami_grand_prix").exists()
+
+
+def test_quali_telemetry_does_not_overwrite_race_and_ignores_known_race_gap():
+    race = ingest._write_telemetry(_tel_session(n_ok=2, n_fail=0), 2026, 4, "miami_grand_prix")
+    ingest._write_telemetry(_tel_session(n_ok=1, n_fail=0), 2026, 4, "miami_grand_prix", "Q")
+    base = ingest.TELEMETRY_DIR / "season=2026" / "race=miami_grand_prix"
+    assert len(pd.read_parquet(base / "telemetry.parquet")) == 4          # race file untouched
+    q = pd.read_parquet(base / "session=Q" / "telemetry.parquet")
+    assert len(q) == 2 and set(q["session_type"]) == {"Q"}
+    assert race["telemetry_laps_merged"] == 2
+    gap = {"telemetry_laps_attempted": 940, "telemetry_laps_merged": 0,
+           "telemetry_coverage": 0.0, "telemetry_note": ""}
+    out = ingest._judge_telemetry(dict(gap), 2018, 1, "australian_grand_prix", "Q")
+    assert "known_gap_note" not in out and out["telemetry_note"].startswith("low coverage")
+
+
+def test_quali_full_channels_write_under_session_q():
+    s = MagicMock()
+    s.car_data = _chan(_CAR_COLS, ["1"])
+    s.pos_data = _chan(_POS_COLS, ["1"])
+    assert ingest._full_channel_fields(s, 2026, 4, "x", "Q")["telemetry_full_status"] == "ok"
+    assert (ingest.TELEMETRY_FULL_DIR / "season=2026" / "race=x" / "session=Q" / "driver=1"
+            / "car_data.parquet").exists()
+    assert not (ingest.TELEMETRY_FULL_DIR / "season=2026" / "race=x" / "driver=1").exists()
+
+
+# ---------------------------------------------------------------------------
+# Every dataset FastF1 offers, for R and Q: qualifying race control, session
+# info, qualifying circuit info, circuit markers; and --fill-missing.
+# ---------------------------------------------------------------------------
+
+_INFO = {"Meeting": {"Key": 1000, "Name": "Miami Grand Prix", "Location": "Miami",
+                     "Country": {"Key": 19, "Code": "USA", "Name": "United States"},
+                     "Circuit": {"Key": 151, "ShortName": "Miami"}},
+         "ArchiveStatus": {"Status": "Complete"}, "Key": 9999, "Type": "Qualifying",
+         "Name": "Qualifying", "StartDate": datetime(2026, 5, 2, 16, 0),
+         "EndDate": datetime(2026, 5, 2, 17, 0), "GmtOffset": timedelta(hours=-4),
+         "Path": "2026/2026-05-04_Miami_Grand_Prix/2026-05-02_Qualifying/"}
+
+
+def _circuit():
+    c = MagicMock()
+    marker = lambda n: pd.DataFrame({"X": [1.0] * n, "Y": [2.0] * n, "Number": list(range(1, n + 1)),
+                                     "Letter": [""] * n, "Angle": [0.0] * n, "Distance": [10.0] * n})
+    c.corners, c.marshal_lights, c.marshal_sectors, c.rotation = marker(3), marker(2), marker(4), 92.0
+    return c
+
+
+def _full_session(stype="R"):
+    s = _session(stype=stype)
+    s.session_info = dict(_INFO)
+    s.session_start_time = pd.Timedelta(minutes=55)
+    s.total_laps = 57 if stype == "R" else None
+    s.t0_date = pd.Timestamp("2026-05-02 19:05:00")
+    s.date = pd.Timestamp("2026-05-02 20:00:00")
+    s.api_path = _INFO["Path"]
+    s.f1_api_support = True
+    s.get_circuit_info.return_value = _circuit()
+    s.track_status = pd.DataFrame({"Time": pd.to_timedelta([0], unit="s"), "Status": ["1"]})
+    s.session_status = pd.DataFrame({"Time": pd.to_timedelta([0], unit="s"), "Status": ["Started"]})
+    return s
+
+
+def _part(root, slug="miami_grand_prix", q=False, season=2026):
+    return ingest._session_dir(root, season, slug, "Q" if q else "R")
+
+
+def test_quali_race_control_goes_under_session_q_and_race_file_is_untouched():
+    s = _full_session("Q")
+    ingest._write_race_control(_full_session("R"), 2026, 6, "miami_grand_prix")
+    s.race_control_messages = pd.DataFrame({"Time": pd.to_timedelta([0, 30], unit="s"),
+                                            "Category": ["Flag", "Other"], "Message": ["GREEN", "Q1 ENDED"]})
+    ingest._write_race_control(s, 2026, 6, "miami_grand_prix", "Q")
+    race = pd.read_parquet(_part(ingest.RC_DIR) / "race_control.parquet")
+    q = pd.read_parquet(_part(ingest.RC_DIR, q=True) / "race_control.parquet")
+    assert len(race) == 1 and "session_type" not in race.columns       # race output unchanged
+    assert len(q) == 2 and set(q["session_type"]) == {"Q"} and list(q["session_time_s"]) == [0.0, 30.0]
+
+
+@pytest.mark.parametrize("stype", ["R", "Q"])
+def test_session_info_is_flattened_to_one_row_with_session_scalars(stype):
+    assert ingest._write_session_info(_full_session(stype), 2026, 6, "miami_grand_prix", stype) == "ok"
+    df = pd.read_parquet(_part(ingest.SESSION_INFO_DIR, q=stype == "Q") / "session_info.parquet")
+    assert len(df) == 1
+    row = df.iloc[0]
+    assert row["Meeting_Circuit_Key"] == 151 and row["Meeting_Country_Code"] == "USA"
+    assert row["Key"] == 9999 and row["GmtOffset"] == pd.Timedelta(hours=-4)
+    assert row["session_start_time_s"] == 3300.0 and row["session_type"] == stype
+    assert row["race_id"] == "2026_6" and row["f1_api_support"]
+    assert (row["total_laps"] == 57) if stype == "R" else pd.isna(row["total_laps"])
+
+
+def test_session_info_absent_or_unloaded_writes_nothing():
+    assert ingest._write_session_info(MagicMock(), 2026, 6, "x") == "none"     # mock attr, not a dict
+    s = MagicMock()
+    type(s).session_info = property(lambda self: (_ for _ in ()).throw(
+        fastf1.exceptions.DataNotLoadedError("not loaded")))
+    assert ingest._write_session_info(s, 2026, 6, "x") == "none"
+    assert not ingest.SESSION_INFO_DIR.exists()
+
+
+def test_circuit_info_race_corners_unchanged_and_markers_written_for_r_and_q():
+    s = _full_session()
+    assert ingest._write_circuit_info(s, 2026, 6, "miami_grand_prix") == "ok: 3 corners"
+    assert ingest._write_circuit_info(s, 2026, 6, "miami_grand_prix", "Q") == "ok: 3 corners"
+    corners = pd.read_parquet(_part(ingest.CIRCUIT_INFO_DIR) / "circuit_info.parquet")
+    assert list(corners.columns) == ["index", "X", "Y", "Number", "Letter", "Angle", "Distance",
+                                     "race_id", "season"]                 # race file as before
+    q = pd.read_parquet(_part(ingest.CIRCUIT_INFO_DIR, q=True) / "circuit_info.parquet")
+    assert set(q["session_type"]) == {"Q"}
+    for quali in (False, True):
+        m = pd.read_parquet(_part(ingest.CIRCUIT_MARKERS_DIR, q=quali) / "circuit_markers.parquet")
+        assert m["marker_type"].value_counts().to_dict() == {"marshal_sector": 4, "corner": 3, "marshal_light": 2}
+        assert (m["rotation_deg"] == 92.0).all()
+    # Markers live outside circuit_info/, so stg_circuit_info's glob (*/*/*.parquet) sees corners only.
+    assert [p.name for p in ingest.CIRCUIT_INFO_DIR.glob("*/*/*.parquet")] == ["circuit_info.parquet"]
+
+
+def test_circuit_markers_failure_is_appended_not_fatal():
+    s = _full_session()
+    with patch("ingest._write_circuit_markers", return_value="failed: OSError: disk full"):
+        status = ingest._write_circuit_info(s, 2026, 6, "miami_grand_prix")
+    assert status == "ok: 3 corners; markers failed: OSError: disk full"
+
+
+def test_ingest_qualifying_writes_race_control_circuit_and_session_info():
+    with patch("ingest._load_qualifying_session", return_value=_full_session("Q")), \
+         patch("ingest.time.sleep"):
+        status, row = ingest.ingest_qualifying(2026, 6, "miami_grand_prix", False, skip_telemetry=True)
+    assert status == "ok"
+    assert row["circuit_info_status"] == "ok: 3 corners" and row["session_info_status"] == "ok"
+    for root, fname in [(ingest.RC_DIR, "race_control.parquet"),
+                        (ingest.CIRCUIT_INFO_DIR, "circuit_info.parquet"),
+                        (ingest.CIRCUIT_MARKERS_DIR, "circuit_markers.parquet"),
+                        (ingest.SESSION_INFO_DIR, "session_info.parquet")]:
+        assert (_part(root, q=True) / fname).exists(), root
+        assert not (_part(root) / fname).exists(), root                    # never the race path
+
+
+def test_ingest_race_writes_session_info_and_markers():
+    with patch("ingest._load_race_session", return_value=_full_session("R")), patch("ingest.time.sleep"):
+        status, row = ingest.ingest_race(2026, 6, "miami_grand_prix", False, True)
+    assert status == "ok" and row["session_info_status"] == "ok"
+    assert (_part(ingest.SESSION_INFO_DIR) / "session_info.parquet").exists()
+    assert (_part(ingest.CIRCUIT_MARKERS_DIR) / "circuit_markers.parquet").exists()
+
+
+def _on_disk_quali(slug="miami_grand_prix"):
+    """A qualifying session as written before this change: laps + the old writers."""
+    with patch("ingest._load_qualifying_session", return_value=_full_session("Q")), \
+         patch("ingest.time.sleep"):
+        assert ingest.ingest_qualifying(2026, 6, slug, False, skip_telemetry=True)[0] == "ok"
+    for root, fname in [(ingest.RC_DIR, "race_control.parquet"),
+                        (ingest.SESSION_INFO_DIR, "session_info.parquet"),
+                        (ingest.CIRCUIT_INFO_DIR, "circuit_info.parquet"),
+                        (ingest.CIRCUIT_MARKERS_DIR, "circuit_markers.parquet")]:
+        (_part(root, slug, q=True) / fname).unlink()
+
+
+def test_missing_datasets_lists_absent_outputs_and_respects_telemetry_flags():
+    _on_disk_quali()
+    assert ingest._missing_datasets(2026, "miami_grand_prix", "Q", skip_telemetry=True) == [
+        "race_control", "session_info", "circuit_info", "circuit_markers"]
+    with_tel = ingest._missing_datasets(2026, "miami_grand_prix", "Q", telemetry_full=True)
+    assert with_tel[-3:] == ["telemetry", "telemetry_full", "pos_data"]
+
+
+def test_fill_missing_loads_once_writes_only_missing_and_keeps_existing_files():
+    _on_disk_quali()
+    laps = ingest._laps_path_quali(2026, "miami_grand_prix")
+    weather = _part(ingest.WEATHER_DIR, q=True) / "weather.parquet"
+    before = (laps.stat().st_mtime_ns, weather.stat().st_mtime_ns)
+    s = _full_session("Q")
+    with patch("ingest._load_qualifying_session", return_value=s) as load, \
+         patch("ingest._write_weather") as ww, patch("ingest._write_results") as wr:
+        status, row = ingest.ingest_qualifying(2026, 6, "miami_grand_prix", False,
+                                               skip_telemetry=True, fill_missing=True)
+    load.assert_called_once()
+    ww.assert_not_called(); wr.assert_not_called()                          # present: not rewritten
+    assert (laps.stat().st_mtime_ns, weather.stat().st_mtime_ns) == before
+    assert status == "skip" and row["attempts"] == 1
+    assert row["fill_note"] == "filled: race_control, session_info, circuit_info, circuit_markers"
+    assert row["session_info_status"] == "ok" and row["circuit_info_status"] == "ok: 3 corners"
+    assert ingest._missing_datasets(2026, "miami_grand_prix", "Q", skip_telemetry=True) == []
+    # Nothing left to fill: the next run skips without loading.
+    with patch("ingest._load_qualifying_session") as load2:
+        status2, row2 = ingest.ingest_qualifying(2026, 6, "miami_grand_prix", False,
+                                                 skip_telemetry=True, fill_missing=True)
+    load2.assert_not_called()
+    assert status2 == "skip" and row2["fill_note"] == ""
+
+
+def test_fill_records_what_the_source_lacks_and_only_markers_when_corners_exist():
+    _on_disk_quali()
+    s = _full_session("Q")
+    s.session_info = None                         # source has no SessionInfo
+    corners = _part(ingest.CIRCUIT_INFO_DIR, q=True) / "circuit_info.parquet"
+    corners.parent.mkdir(parents=True, exist_ok=True)
+    pd.DataFrame({"Number": [9]}).to_parquet(corners)
+    with patch("ingest._load_qualifying_session", return_value=s):
+        status, row = ingest.ingest_qualifying(2026, 6, "miami_grand_prix", False,
+                                               skip_telemetry=True, fill_missing=True)
+    assert status == "skip"
+    assert row["fill_note"] == ("filled: race_control, circuit_markers; source has none: session_info")
+    assert pd.read_parquet(corners)["Number"].tolist() == [9]                # corners not rewritten
+    _, notes = ingest._attention_lines([row])
+    assert any(n.startswith("FILL   2026 Rd6 Q miami_grand_prix") for n in notes)
+
+
+def test_fill_load_failure_is_an_error_row_with_a_fill_note():
+    _on_disk_quali()
+    with patch("ingest._load_qualifying_session", side_effect=ValueError("boom")), \
+         patch("ingest.time.sleep"):
+        status, row = ingest.ingest_qualifying(2026, 6, "miami_grand_prix", False,
+                                               skip_telemetry=True, fill_missing=True)
+    assert status == "error" and row["reason"] == "error"
+    assert row["fill_note"].startswith("fill failed for race_control")
+    blocking, _ = ingest._attention_lines([row])
+    assert blocking == ["FAILED 2026 Rd6 Q miami_grand_prix: load or write failed (see [ERR] / [DQ FAIL] above)"]
+
+
+def test_fill_race_with_full_channels():
+    ingest._laps_path_race(2026, "miami_grand_prix").parent.mkdir(parents=True)
+    _laps().to_parquet(ingest._laps_path_race(2026, "miami_grand_prix"))
+    s = _full_session("R")
+    s.car_data = _chan(_CAR_COLS, ["1"])
+    s.pos_data = _chan(_POS_COLS, ["1"])
+    with patch("ingest._load_race_session", return_value=s), \
+         patch("ingest._write_telemetry", return_value={"telemetry_laps_attempted": 0}):
+        status, row = ingest.ingest_race(2026, 6, "miami_grand_prix", False, skip_telemetry=True,
+                                         telemetry_full=True, fill_missing=True)
+    assert status == "skip" and row["telemetry_full_status"] == "ok"
+    assert "telemetry_full, pos_data" in row["fill_note"] and "telemetry," not in row["fill_note"]
+    assert (_part(ingest.TELEMETRY_FULL_DIR) / "driver=1" / "car_data.parquet").exists()
+    assert ingest._missing_datasets(2026, "miami_grand_prix", "R", skip_telemetry=True,
+                                    telemetry_full=True) == []
+
+
+def test_force_ignores_fill_missing_and_rewrites():
+    _on_disk_quali()
+    with patch("ingest._load_qualifying_session", return_value=_full_session("Q")), \
+         patch("ingest._fill_session") as fill, patch("ingest.time.sleep"):
+        status, _ = ingest.ingest_qualifying(2026, 6, "miami_grand_prix", True,
+                                             skip_telemetry=True, fill_missing=True)
+    fill.assert_not_called()
+    assert status == "ok"
+
+
+def test_cli_fill_missing_flag_reaches_ingest_season(monkeypatch, tmp_path):
+    assert ingest._build_parser().parse_args(["-s", "2026", "--fill-missing"]).fill_missing is True
+    assert ingest._build_parser().parse_args(["-s", "2026"]).fill_missing is False
+    with patch("ingest.ingest_season", return_value=({}, [])) as season:
+        assert _run_main(monkeypatch, tmp_path, ["-s", "2026", "--fill-missing"]) == 0
+    assert season.call_args.kwargs["fill_missing"] is True
+
+
+def test_dry_run_shows_what_fill_would_write(monkeypatch, tmp_path, capsys):
+    ingest.set_bronze_root(tmp_path / "bronze")
+    _on_disk_quali("australian_grand_prix")
+    now = datetime.now(timezone.utc).replace(tzinfo=None)
+    sched = _schedule([(6, "Australian Grand Prix", "Melbourne",
+                        now - timedelta(days=30, hours=1), now - timedelta(days=30))])
+    with patch("ingest._with_retry", return_value=sched):
+        assert _run_main(monkeypatch, tmp_path, ["-s", "2026", "--session", "Q", "--dry-run",
+                                                 "--fill-missing", "--skip-telemetry"]) == 0
+    out = capsys.readouterr().out
+    assert "on disk, would fill: race_control, session_info, circuit_info, circuit_markers" in out

@@ -17,6 +17,15 @@
 -- int_stint_end_regime -- see that model for the precedence rule that assigns
 -- the cause and for the two label rules (CO-09, D5/D6).
 --
+-- TX-17: cumulative_dirty_air_tax_s is NULL, not 0.0, when no lap of the stint
+-- has a measured dirty-air tax (int_dirty_air_tax_component.dirty_air_tax_s is
+-- NULL when the lagged air state is unknown). A measured 0.0 (clean air) stays
+-- 0.0. dirty_air_unavailable_reason says why: NO_TELEMETRY when the race's
+-- measured air-state share is at or below
+-- var('isolation_thin_min_air_measured_share') (the mart_race_coverage rule;
+-- 2018_1, 2018_2), else NO_AIR_STATE. n_dirty_air_measured_laps counts the laps
+-- behind the sum (a partly measured stint sums its measured laps only).
+--
 -- CO-09 (D4): stint_id is a tyre run (int_stint_geometry), so a stint split by
 -- a same-tyre drive-through or red-flag pause is one row here, and
 -- stint_length_laps is the run's length.
@@ -89,12 +98,23 @@ thermal_last AS (
 dirty_air_agg AS (
     SELECT
         sg.stint_id,
-        SUM(da.dirty_air_tax_s) AS cumulative_dirty_air_tax_s
+        SUM(da.dirty_air_tax_s) AS cumulative_dirty_air_tax_s,
+        COUNT(da.dirty_air_tax_s) AS n_dirty_air_measured_laps
     FROM {{ ref('int_stint_geometry') }} AS sg
     LEFT JOIN
         {{ ref('int_dirty_air_tax_component') }} AS da
         ON sg.lap_id = da.lap_id
     GROUP BY sg.stint_id
+),
+
+-- TX-17: race-level telemetry flag, the same rule as mart_race_coverage.
+race_air AS (
+    SELECT
+        race_id,
+        AVG(CASE WHEN air_state_dominant IS NOT NULL THEN 1.0 ELSE 0.0 END)
+        > {{ var('isolation_thin_min_air_measured_share') }} AS has_telemetry
+    FROM {{ ref('int_lap_air_state') }}
+    GROUP BY race_id
 ),
 
 cliff_agg AS (
@@ -223,7 +243,14 @@ SELECT
     sa.compound,
     sa.starting_tyre_age_laps,
     ta.cumulative_thermal_load_end,
-    COALESCE(da.cumulative_dirty_air_tax_s, 0.0) AS cumulative_dirty_air_tax_s,
+    -- TX-17: NULL when unmeasured (was COALESCE(..., 0.0)); reason below.
+    da.cumulative_dirty_air_tax_s,
+    COALESCE(da.n_dirty_air_measured_laps, 0) AS n_dirty_air_measured_laps,
+    CASE
+        WHEN da.cumulative_dirty_air_tax_s IS NOT NULL THEN NULL
+        WHEN NOT COALESCE(rair.has_telemetry, FALSE) THEN 'NO_TELEMETRY'
+        ELSE 'NO_AIR_STATE'
+    END AS dirty_air_unavailable_reason,
     ca.cliff_lap_in_stint,
     -- tyre_management_score: actual end-of-stint residual normalised to
     -- opportunity cost.
@@ -290,6 +317,7 @@ FROM stint_aggregates AS sa
 LEFT JOIN constructor_per_stint AS cs ON sa.stint_id = cs.stint_id
 LEFT JOIN thermal_last AS ta ON sa.stint_id = ta.stint_id
 LEFT JOIN dirty_air_agg AS da ON sa.stint_id = da.stint_id
+LEFT JOIN race_air AS rair ON sa.race_id = rair.race_id
 LEFT JOIN cliff_agg AS ca ON sa.stint_id = ca.stint_id
 LEFT JOIN slope_calc AS sc ON sa.stint_id = sc.stint_id
 LEFT JOIN last_lap_residual AS llr ON sa.stint_id = llr.stint_id

@@ -792,7 +792,28 @@ models:
       - name: cumulative_thermal_load_end
         description: EW cumulative thermal load at the end of the stint
       - name: cumulative_dirty_air_tax_s
-        description: Sum of dirty air tax across all laps in the stint
+        description: >
+          Sum of the measured dirty-air tax (int_dirty_air_tax_component.dirty_air_tax_s) over
+          the stint's laps, seconds. NULL, not 0, when no lap of the stint has a measured tax
+          (TX-17); dirty_air_unavailable_reason says why. A measured 0 (clean air) is 0. A
+          partly measured stint sums its measured laps only (n_dirty_air_measured_laps).
+      - name: n_dirty_air_measured_laps
+        description: Laps of the stint with a measured dirty-air tax (behind cumulative_dirty_air_tax_s). 0 when none.
+        tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              arguments:
+                min_value: 0
+      - name: dirty_air_unavailable_reason
+        description: >
+          TX-17. Why cumulative_dirty_air_tax_s is NULL: NO_TELEMETRY (the race's measured
+          air-state share is at or below var isolation_thin_min_air_measured_share, as in
+          mart_race_coverage: 2018_1, 2018_2), NO_AIR_STATE (telemetry exists but no lap of the
+          stint has a known lagged air state). NULL when the tax is measured.
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['NO_TELEMETRY', 'NO_AIR_STATE']
       - name: cliff_lap_in_stint
         description: Lap position within stint where cliff is first detected (NULL if no cliff)
       - name: tyre_management_score
@@ -964,10 +985,35 @@ models:
           (wet compounds / low-sample = field-average degradation).
         tests: [not_null]
       - name: host_deg_slope_s_per_lap
-        description: Host constructor's deg slope for the ego lap's compound; 0 when no cell.
+        description: >
+          Host constructor's deg slope for the ego lap's compound; 0 (field-average PRIOR, TX-18,
+          pending owner ruling) when no cell, flagged by host_deg_slope_is_prior.
         tests: [not_null]
       - name: ego_deg_slope_s_per_lap
-        description: Ego constructor's deg slope for the ego lap's compound; 0 when no cell.
+        description: >
+          Ego constructor's deg slope for the ego lap's compound; 0 (field-average PRIOR, TX-18,
+          pending owner ruling) when no cell, flagged by ego_deg_slope_is_prior.
+        tests: [not_null]
+      - name: host_constructor_pace_is_prior
+        description: >
+          TX-18. TRUE when the host has no int_constructor_structural_pace cell, so
+          host_constructor_pace_s is the 0 (field-average) fill. Whether that 0 is a declared
+          prior or a missing value is PENDING an owner ruling.
+        tests: [not_null]
+      - name: circuit_interaction_is_prior
+        description: >
+          TX-18. TRUE when there is no int_circuit_x_constructor_interaction cell, so
+          circuit_interaction_s is the 0 fill (prior pending owner ruling).
+        tests: [not_null]
+      - name: host_deg_slope_is_prior
+        description: >
+          TX-18. TRUE when the host has no int_constructor_deg_sensitivity cell for the compound,
+          so host_deg_slope_s_per_lap and host_cliff_shift_laps are the 0 fill (prior pending
+          owner ruling) and their SEs are NULL.
+        tests: [not_null]
+      - name: ego_deg_slope_is_prior
+        description: >
+          TX-18. As host_deg_slope_is_prior, for the ego constructor.
         tests: [not_null]
       - name: cliff_interaction_s
         description: >
@@ -1000,22 +1046,22 @@ models:
                 max_value: 1
       - name: host_constructor_pace_se_s
         description: >
-          SE-propagation ingredient: SE of the host constructor's structural pace
-          (0 when no panel cell). Aggregated into predicted_mean_lap_se_s downstream; cancels
-          in within-scenario ordering since every driver shares the host car.
-        tests: [not_null]
+          SE-propagation ingredient: SE of the host constructor's structural pace. NULL
+          (unavailable, never 0) when no panel cell (TX-18). Aggregated into
+          predicted_mean_lap_se_s downstream; cancels in within-scenario ordering since every
+          driver shares the host car.
+        tests:
+          - dbt_utils.accepted_range:
+              arguments:
+                min_value: 0
       - name: host_deg_slope_sd_s_per_lap
-        description: "Posterior sd of the host deg slope for the ego lap's compound; 0 when no cell."
-        tests: [not_null]
+        description: "Posterior sd of the host deg slope for the ego lap's compound; NULL (never 0) when no cell (TX-18)."
       - name: ego_deg_slope_sd_s_per_lap
-        description: "Posterior sd of the ego deg slope for the ego lap's compound; 0 when no cell."
-        tests: [not_null]
+        description: "Posterior sd of the ego deg slope for the ego lap's compound; NULL (never 0) when no cell (TX-18)."
       - name: host_cliff_shift_se_laps
-        description: "SE (laps) of the host cliff-onset shift; 0 when no cell."
-        tests: [not_null]
+        description: "SE (laps) of the host cliff-onset shift; NULL (never 0) when no cell (TX-18)."
       - name: ego_cliff_shift_se_laps
-        description: "SE (laps) of the ego cliff-onset shift; 0 when no cell."
-        tests: [not_null]
+        description: "SE (laps) of the ego cliff-onset shift; NULL (never 0) when no cell (TX-18)."
       - name: host_cliff_active
         description: "1.0 when the host car is past its shifted cliff onset on this lap, else 0.0."
         tests: [not_null]
@@ -1092,8 +1138,9 @@ models:
           host structural-pace SE, host/ego deg-slope posterior sds, host/ego cliff-shift
           SEs (scaled by tyre-age and past-cliff exposure), and the finite-sample SE of the
           lap mean. Includes the host-pace term that cancels in within-scenario ordering.
+          NULL (unavailable, never 0) when an ingredient has no estimate on any lap of the
+          scenario, or the scenario has one lap (TX-18).
         tests:
-          - not_null
           - dbt_expectations.expect_column_values_to_be_between:
               arguments:
                 min_value: 0
@@ -1113,13 +1160,22 @@ models:
         description: >
           Standard error of the projected finish position the Poisson-binomial sd
           of the number of drivers predicted ahead (sqrt of sum p_k(1-p_k) over pairwise
-          order probabilities). 0 when the scenario has a single driver.
+          order probabilities). NULL, never 0, when there is no estimate (TX-18):
+          finish_pos_se_unavailable_reason says why.
         tests:
-          - not_null
           - dbt_expectations.expect_column_values_to_be_between:
               arguments:
                 min_value: 0
                 max_value: 25
+      - name: finish_pos_se_unavailable_reason
+        description: >
+          TX-18. SINGLE_DRIVER_SCENARIO (no other driver to compare with, so no pairwise
+          probability), NO_SE_ESTIMATE (an SE ingredient has no estimate, so a pairwise
+          probability is NULL). NULL when finish_pos_se is present.
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['SINGLE_DRIVER_SCENARIO', 'NO_SE_ESTIMATE']
 
   - name: mart_corner_skill_driver
     description: >

@@ -53,7 +53,7 @@ fail() {
 # Local version to assert the publish landed exactly what we built.
 LOCAL_VERSION=""
 if [[ -f "$LOCAL_MANIFEST" ]]; then
-  LOCAL_VERSION="$(python3 -c 'import json;print(json.load(open("'"$LOCAL_MANIFEST"'"))["version"])' 2>/dev/null || echo "")"
+  LOCAL_VERSION="$(${PYTHON:-python3.14} -c 'import json;print(json.load(open("'"$LOCAL_MANIFEST"'"))["version"])' 2>/dev/null || echo "")"
 fi
 
 # ── 1. HTTP smoke (+ version match when we know the local version) ───────────────
@@ -67,7 +67,7 @@ SMOKE_ARGS=(--env "$ENV")
 if [[ -f "$LOCAL_MANIFEST" ]]; then
   echo "── 2/4  stats parity (published vs local) ──"
   curl -fsS -o /tmp/_verify_pub.json "$BASE/data/_manifest.json" || fail "fetch published manifest"
-  python3 - "$LOCAL_MANIFEST" /tmp/_verify_pub.json <<'PY' || fail "stats mismatch (published != local export)"
+  ${PYTHON:-python3.14} - "$LOCAL_MANIFEST" /tmp/_verify_pub.json <<'PY' || fail "stats mismatch (published != local export)"
 import json, sys
 loc = json.load(open(sys.argv[1])).get("stats", {})
 pub = json.load(open(sys.argv[2])).get("stats", {})
@@ -86,13 +86,13 @@ fi
 # ── 3. Model plane: manifest + every ONNX reachable ─────────────────────────────
 echo "── 3/4  model artefacts ──"
 curl -fsS -o /tmp/_verify_models.json "$BASE/models/manifest.json" || fail "fetch model manifest"
-MODEL_VERSION="$(python3 -c 'import json;print(json.load(open("/tmp/_verify_models.json")).get("model_version",""))')"
+MODEL_VERSION="$(${PYTHON:-python3.14} -c 'import json;print(json.load(open("/tmp/_verify_models.json")).get("model_version",""))')"
 [[ -n "$MODEL_VERSION" ]] || fail "model manifest has no model_version"
 while IFS= read -r onnx; do
   [[ -z "$onnx" ]] && continue
   code="$(curl -fsS -I -o /dev/null -w '%{http_code}' "$BASE/models/$onnx" || echo 000)"
   [[ "$code" == "200" ]] || fail "onnx $onnx → HTTP $code"
-done < <(python3 -c 'import json;[print(m.get("onnx","")) for m in json.load(open("/tmp/_verify_models.json")).get("models",[])]')
+done < <(${PYTHON:-python3.14} -c 'import json;[print(m.get("onnx","")) for m in json.load(open("/tmp/_verify_models.json")).get("models",[])]')
 echo "    ✓ model_version=$MODEL_VERSION, all ONNX reachable"
 
 # ── 4. ONNX serving liveness (real inference) ───────────────────────────────────

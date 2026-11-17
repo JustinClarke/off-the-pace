@@ -95,6 +95,9 @@ renamed AS (
         COALESCE(pitouttime IS NOT NULL OR pitintime IS NOT NULL, FALSE)
             AS is_pit_lap,
         CAST(deleted AS BOOLEAN) AS is_deleted,
+        -- TX-24: the reason text Bronze gives for a deleted lap (e.g. 'TRACK
+        -- LIMITS AT TURN 4'), kept for fct_track_limits. NULL when not deleted.
+        CAST(deletedreason AS VARCHAR) AS deleted_reason,
         CAST(isaccurate AS BOOLEAN) AS is_accurate,
         CAST(fastf1generated AS BOOLEAN) AS is_fastf1_generated,
 

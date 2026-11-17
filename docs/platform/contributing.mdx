@@ -15,7 +15,7 @@ No cloud credentials are required to get started. The local DuckDB pipeline is t
 
 ## Prerequisites
 
-- **Python 3.11+**
+- **Python 3.14**
 - **Node.js v18+** and **pnpm** for the React app or docs site
 - **Git**
 - **Make** standard on macOS/Linux
@@ -25,7 +25,8 @@ No cloud credentials are required to get started. The local DuckDB pipeline is t
 ```bash
 git clone https://github.com/justinclarke/off-the-pace.git
 cd off-the-pace
-make setup          # creates .venv, installs Python + dbt dependencies
+make setup          # creates .venv (Python 3.14), installs ingestion + root + ml requirements, dbt deps
+make setup-check    # offline check: Python 3.14, fastf1 3.8.3, pip check
 make ml-setup       # installs ml/requirements.txt (ML layer only)
 make app-install    # installs React app dependencies
 make docs-install   # installs Mintlify docs dependencies

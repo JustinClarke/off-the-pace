@@ -44,12 +44,12 @@ _DEG_HORIZON_PHRASE = ("next-lap" if _DEG_HORIZON == 1
                        else f"cumulative {_DEG_HORIZON}-lap")
 
 HOLDOUT_NOTE = (
-    "2026 is the designated holdout, ingested incrementally as races complete; until 2026 data exists "
-    "the model trains on all ingested seasons (2018–2025) and evaluation rests on the final "
-    "TimeSeriesSplit fold (2025); holdout_populated = false. CAVEAT: 2025 was consumed as a selection "
-    "fold by 02c's admission gate (n_eval = 13,951 on 2026-09-23), so any claim about v14's 'holdout' "
-    "performance sits on a validation fold rather than a clean holdout. It switches to a true-holdout "
-    "evaluation the moment 2026 data arrives, with no code change (WI-03 FD4 ruling).")
+    "2025 is the designated holdout (HD17, 2026-11-16, superseding FD4's 2026): models train "
+    "strictly on 2018-2024 and 2025 is held out; 2026 is neither trained on nor evaluated. "
+    "CAVEAT: 2025 is a holdout from 2026-11-16 on, not a never-seen season: it was consumed as "
+    "a selection fold by 02c's admission gate (n_eval = 13,951 on 2026-09-23), and the v14 "
+    "artefacts were trained on 2018-2025, so no claim about v14's 'holdout' performance is a "
+    "clean holdout result. A model retrained on 2018-2024 is needed for that.")
 
 # WI-01 (label spine, 2026-09-27). The mart's label changed AFTER the v14 artefacts were
 # trained, so every card for v14 or earlier must say its numbers sit on the old label.

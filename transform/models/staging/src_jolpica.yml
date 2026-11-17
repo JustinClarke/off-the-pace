@@ -1,0 +1,17 @@
+version: 2
+
+# TX-27. Jolpica (Ergast successor) pit stops, ingested by ingestion/src/jolpica_client.py
+# into data/bronze/reference/jolpica/pit_stops/season=YYYY/round=R/pit_stops.parquet.
+# An independent measured source for stop counts and laps; read only by the TX-27
+# cross-check (fct_pit_stop_crosscheck), never used to overwrite stg_pits.
+sources:
+  - name: bronze_jolpica
+    database: read_only
+    tables:
+      - name: raw_jolpica_pit_stops
+        meta:
+          external_location: "read_parquet('{{ var('bronze_base', '../data/bronze') }}/reference/jolpica/pit_stops/*/*/*.parquet', union_by_name=true)"
+        description: >
+          One row per pit stop: season, round, race_name, driver_id (Ergast id, e.g. 'hamilton'),
+          stop (1-based), lap (the lap the stop was made on), time_of_day, duration_s (pit-lane
+          time as Jolpica reports it).

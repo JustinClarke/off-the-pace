@@ -203,12 +203,21 @@ ghost_recombined AS (
         el.dirty_air_tax_s,
         el.actual_lap_time_s,
         el.correction_weight,
+        -- TX-18: point estimates with no cell are filled with 0 (= field
+        -- average). That fill is a PRIOR PENDING AN OWNER RULING, flagged by
+        -- the *_is_prior columns below. Their SEs are never filled: a missing
+        -- SE is NULL (unavailable), not 0 (certain).
         COALESCE(hcp.constructor_structural_pace_s, 0.0)
             AS host_constructor_pace_s,
-        COALESCE(hcp.constructor_structural_pace_se_s, 0.0)
-            AS host_constructor_pace_se_s,
+        hcp.constructor_structural_pace_se_s AS host_constructor_pace_se_s,
         COALESCE(hi.circuit_constructor_interaction_s, 0.0)
             AS circuit_interaction_s,
+        hcp.constructor_structural_pace_s IS NULL
+            AS host_constructor_pace_is_prior,
+        hi.circuit_constructor_interaction_s IS NULL
+            AS circuit_interaction_is_prior,
+        deg_host.deg_slope_s_per_lap IS NULL AS host_deg_slope_is_prior,
+        deg_ego.deg_slope_s_per_lap IS NULL AS ego_deg_slope_is_prior,
         -- Deg interaction: host-vs-ego degradation slope delta × tyre
         -- age.
         -- COALESCE both lookups to 0 (field-average) so the ego == host case is
@@ -267,14 +276,13 @@ ghost_recombined AS (
         -- active)
         -- that scale those coefficient uncertainties into the predicted-pace
         -- variance.
-        COALESCE(deg_host.deg_slope_posterior_sd_s_per_lap, 0.0)
+        -- TX-18: NULL when the cell has no estimate (was COALESCE(..., 0.0)).
+        deg_host.deg_slope_posterior_sd_s_per_lap
             AS host_deg_slope_sd_s_per_lap,
-        COALESCE(deg_ego.deg_slope_posterior_sd_s_per_lap, 0.0)
+        deg_ego.deg_slope_posterior_sd_s_per_lap
             AS ego_deg_slope_sd_s_per_lap,
-        COALESCE(deg_host.cliff_onset_shift_se_laps, 0.0)
-            AS host_cliff_shift_se_laps,
-        COALESCE(deg_ego.cliff_onset_shift_se_laps, 0.0)
-            AS ego_cliff_shift_se_laps,
+        deg_host.cliff_onset_shift_se_laps AS host_cliff_shift_se_laps,
+        deg_ego.cliff_onset_shift_se_laps AS ego_cliff_shift_se_laps,
         CAST(COALESCE(el.age_in_stint, 0) AS DOUBLE) AS age_in_stint,
         COALESCE(el.compound_cliff_severity, 0.0) AS compound_cliff_severity,
         -- 1.0 when this car is past its (shifted) cliff onset on this lap, else
@@ -403,6 +411,12 @@ SELECT
     ego_deg_slope_s_per_lap,
     host_cliff_shift_laps,
     ego_cliff_shift_laps,
+    -- TX-18: which 0-filled point estimates are the field-average fill
+    -- (prior pending an owner ruling).
+    host_constructor_pace_is_prior,
+    circuit_interaction_is_prior,
+    host_deg_slope_is_prior,
+    ego_deg_slope_is_prior,
     -- SE-propagation ingredients (consumed by fct_ghost_race_finish).
     host_constructor_pace_se_s,
     host_deg_slope_sd_s_per_lap,

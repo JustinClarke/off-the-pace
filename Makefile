@@ -19,9 +19,12 @@
 
 .DEFAULT_GOAL := help
 
+# Interpreter for all Python targets (override: make PYTHON=... <target>)
+PYTHON ?= ./.venv/bin/python
+
 .PHONY: \
 	help \
-	setup ml-setup app-install \
+	setup setup-check ml-setup app-install \
 	ingest-all ingest-recent ingest-jolpica verify-bronze monitor-ingest manifest-report ingest-plan season-seeds-check simulate \
 	test test-integration cov-python \
 	coefficients-fit coefficients-promote coefficients-status coefficients-check car-fe-fit car-fe-isolation-fit deg-iso-fit \
@@ -44,15 +47,24 @@ help:  ## Show this help, grouped by pipeline stage
 
 
 ##@ 1. Setup
-setup:  ## Build venv + install all deps, scaffold data/ (run first)
-	@if [ ! -d ".venv" ]; then \
+VENV ?= .venv
+
+setup:  ## Build venv + install all deps (ingestion pins first, then root, then ml), scaffold data/ (run first)
+	@if [ ! -d "$(VENV)" ]; then \
 		echo "Creating virtual environment..."; \
-		uv venv -p 3.14 .venv; \
+		uv venv -p 3.14 $(VENV); \
 	fi
-	uv pip install -p .venv -r requirements.txt
+	uv pip install -p $(VENV) -r ingestion/requirements.txt -r requirements.txt -r ml/requirements.txt
 	mkdir -p data/bronze data/silver data/gold data/cache data/marts
 	touch data/bronze/.gitkeep data/silver/.gitkeep data/gold/.gitkeep data/cache/.gitkeep data/marts/.gitkeep
 	cd transform && ../.venv/bin/dbt deps
+
+setup-check:  ## Offline env check: Python 3.14.x, fastf1==3.9.2, pip check clean
+	@set -e; \
+	$(VENV)/bin/python -c "import sys; assert sys.version_info[:2]==(3,14), 'Python 3.14.x required, got '+sys.version" ; \
+	$(VENV)/bin/python -c "import fastf1; assert fastf1.__version__=='3.9.2', 'fastf1 3.9.2 required, got '+fastf1.__version__"; \
+	uv pip check -p $(VENV); \
+	echo "setup-check OK"
 
 ml-setup:  ## Install ML deps (ml/requirements.txt) into the shared venv
 	./.venv/bin/pip install -r ml/requirements.txt
@@ -63,38 +75,51 @@ app-install:  ## Install web-app dependencies (pnpm)
 
 ##@ 2. Ingest
 ingest-all:  ## Pull all 2018–2025 races → Bronze (~7 GB, mostly telemetry; 35–50 min)
-	./.venv/bin/python ingestion/src/ingest.py --start-season 2018 --end-season 2025 --session both
+	$(PYTHON) ingestion/src/ingest.py --start-season 2018 --end-season 2025 --session both
+
+ingest-full:  ## Full FastF1 pull 2018–2026 → Bronze, then lock + verify. Interactive terminal view; resumable (Ctrl+C, re-run)
+	PYTHON="$(PYTHON)" $(PYTHON) ingestion/scripts/ingest_full_tui.py
+
+bronze-lock:  ## Write data/bronze/MANIFEST.json (SHA-256 per file) and set the immutable flag on data/bronze
+	$(PYTHON) ingestion/src/bronze_lock.py lock data/bronze
+
+bronze-verify:  ## Re-hash data/bronze against MANIFEST.json; exit 1 on any added, missing or changed file
+	$(PYTHON) ingestion/src/bronze_lock.py verify data/bronze
+
+bronze-unlock:  ## Clear the immutable flag on data/bronze (deliberate rebuild only)
+	$(PYTHON) ingestion/src/bronze_lock.py unlock data/bronze
 
 ingest-recent:  ## Pull 2023–2024 only → Bronze (~15 min, ~200 MB)
-	./.venv/bin/python ingestion/src/ingest.py --start-season 2023 --end-season 2024 --session both
+	$(PYTHON) ingestion/src/ingest.py --start-season 2023 --end-season 2024 --session both
 
 ingest-jolpica:  ## Pull standings + pit stops (2018–2025) via Jolpica API (~2–3 min)
-	./.venv/bin/python ingestion/src/jolpica_client.py --start-season 2018 --end-season 2025
+	$(PYTHON) ingestion/src/jolpica_client.py --start-season 2018 --end-season 2025
 
 verify-bronze:  ## Verify Bronze integrity (counts, nulls, schema)
-	./.venv/bin/python ingestion/verify_bronze.py
+	$(PYTHON) ingestion/verify_bronze.py
 
 monitor-ingest:  ## Watch a running ingest log for failures/completion (LOG=path)
 	@test -n "$(LOG)" || { echo "Usage: make monitor-ingest LOG=path/to/ingest.log"; exit 1; }
-	./.venv/bin/python ingestion/scripts/monitor_ingest.py $(LOG)
+	$(PYTHON) ingestion/scripts/monitor_ingest.py $(LOG)
 
 simulate:  ## Replay a Bronze race lap-by-lap (demo of the data)
-	./.venv/bin/python ingestion/src/replay_simulator.py --parquet_path data/bronze/laps/season=2024/race=bahrain_grand_prix/2024_bahrain_grand_prix_laps.parquet --race_id 2024_1 --speed 10
+	$(PYTHON) ingestion/src/replay_simulator.py --parquet_path data/bronze/laps/season=2024/race=bahrain_grand_prix/2024_bahrain_grand_prix_laps.parquet --race_id 2024_1 --speed 10
 
 manifest-report:  ## Report ingestion run status + schema-drift from manifests
-	./.venv/bin/python ingestion/manifest_report.py
+	$(PYTHON) ingestion/manifest_report.py
 
 ingest-plan:  ## Dry run: which rounds of SEASON would be pulled / skipped / are not run yet
 	@test -n "$(SEASON)" || { echo "Usage: make ingest-plan SEASON=YYYY"; exit 1; }
-	./.venv/bin/python ingestion/src/ingest.py --season $(SEASON) --session both --dry-run
+	$(PYTHON) ingestion/src/ingest.py --season $(SEASON) --session both --dry-run
 
 season-seeds-check:  ## List the seed rows SEASON still needs (race_to_track, scheduled laps, ...)
 	@test -n "$(SEASON)" || { echo "Usage: make season-seeds-check SEASON=YYYY"; exit 1; }
-	./.venv/bin/python ingestion/scripts/check_season_seeds.py --season $(SEASON)
+	$(PYTHON) ingestion/scripts/check_season_seeds.py --season $(SEASON)
 
 test:  ## Offline ingestion unit tests (no network, <5 s)
 	./.venv/bin/pytest ingestion/tests/test_ingestion.py ingestion/tests/test_jolpica.py \
-		ingestion/tests/test_ingest_hardening.py ingestion/tests/test_bronze_verification.py
+		ingestion/tests/test_ingest_hardening.py ingestion/tests/test_bronze_verification.py \
+		ingestion/tests/test_ingest_full_tui.py
 
 test-integration:  ## Live FastF1 ingestion test (needs network)
 	./.venv/bin/pytest ingestion/tests/test_integration_fastf1.py -m integration
@@ -105,7 +130,7 @@ cov-python:  ## Coverage-threshold gate for the self-contained Python suites
 		--cov=ingestion --cov-report=term-missing --cov-fail-under=55
 	PYTHONPATH=transform ./.venv/bin/pytest transform/tasks/coefficients/tests/ \
 		--cov=transform/tasks/coefficients --cov-report=term-missing --cov-fail-under=60
-	./.venv/bin/python -m pytest ml/tests \
+	$(PYTHON) -m pytest ml/tests \
 		--cov=ml/src --cov-report=term-missing --cov-fail-under=25
 
 
@@ -194,53 +219,53 @@ transform-check:  ## Reproduce the CI transform gates in order (parse → lint �
 
 ##   Data quality
 data-profile-snapshot:  ## Record the data-profile baseline (row counts, null-rates, means) from data/dev.duckdb
-	./.venv/bin/python transform/scripts/snapshot_data_profile.py --db data/dev.duckdb
+	$(PYTHON) transform/scripts/snapshot_data_profile.py --db data/dev.duckdb
 
 data-profile-check:  ## Fail on data-profile drift vs the committed baseline (volume / null-rate / mean)
-	./.venv/bin/python transform/scripts/snapshot_data_profile.py --db data/dev.duckdb --check
+	$(PYTHON) transform/scripts/snapshot_data_profile.py --db data/dev.duckdb --check
 
 dq-test:  ## Data-quality suite: build-over-build profile diff + source freshness (MIN_SEASON=YYYY)
-	./.venv/bin/python transform/scripts/snapshot_data_profile.py --db data/dev.duckdb --check
-	./.venv/bin/python transform/scripts/check_source_freshness.py --db data/dev.duckdb --min-season $(or $(MIN_SEASON),2024)
+	$(PYTHON) transform/scripts/snapshot_data_profile.py --db data/dev.duckdb --check
+	$(PYTHON) transform/scripts/check_source_freshness.py --db data/dev.duckdb --min-season $(or $(MIN_SEASON),2024)
 
 
 ##@ 5. ML
 ml-features:  ## Validate the ML feature contract against the warehouse
-	./.venv/bin/python -m ml.src.features --check
+	$(PYTHON) -m ml.src.features --check
 
 ml-tune:  ## Hyperparameter search (Optuna, 50 trials) → chains production-version refit
-	./.venv/bin/python -m ml.src.tune --target all --trials 50
+	$(PYTHON) -m ml.src.tune --target all --trials 50
 
 ml-train:  ## Train all five at SMOKE_DEFAULTS as version v1 (experiments only - NOT a production retrain, use ml-retrain)
-	./.venv/bin/python -m ml.src.train --all
+	$(PYTHON) -m ml.src.train --all
 
 ml-retrain:  ## Production retrain: all five at their own *_best_params.json, at MODEL_VERSION_DEFAULT (no new search)
-	./.venv/bin/python -m ml.src.train --all --tuned
+	$(PYTHON) -m ml.src.train --all --tuned
 
 ml-evaluate:  ## Evaluate models (metrics + leakage checks)
-	./.venv/bin/python -m ml.src.evaluate --all
+	$(PYTHON) -m ml.src.evaluate --all
 
 ml-attribution:  ## Evaluate + within-stint attribution, drop/flatten/causal. Slow: ~50 refits/target
-	./.venv/bin/python -m ml.src.evaluate --all --attribution
+	$(PYTHON) -m ml.src.evaluate --all --attribution
 
 ml-predict:  ## Score → data/marts/mart_degradation_predictions.parquet
-	./.venv/bin/python -m ml.src.predict --out data/marts/mart_degradation_predictions.parquet
+	$(PYTHON) -m ml.src.predict --out data/marts/mart_degradation_predictions.parquet
 
 ml-onnx:  ## Export ONNX + parity + ml/models/manifest.json (no copy to app/)
-	./.venv/bin/python -m ml.src.export_onnx --all
+	$(PYTHON) -m ml.src.export_onnx --all
 
 ml-card:  ## Write the model card (ml/models/model_card.json)
-	./.venv/bin/python -m ml.src.card --write
+	$(PYTHON) -m ml.src.card --write
 
 ml-reference:  ## Regenerate the ML reference docs
-	./.venv/bin/python scripts/gen_ml_reference.py
+	$(PYTHON) scripts/gen_ml_reference.py
 
 # ml-tune already chains a production-version refit at the params it just found, so the
 # chain does not call ml-train (which would write untuned v1 artefacts nothing reads).
 ml-all: ml-features ml-tune ml-evaluate ml-predict ml-onnx ml-card ml-reference  ## Full ML pipeline end-to-end
 
 ml-test:  ## ML unit tests (leakage, parity, schema)
-	./.venv/bin/python -m pytest ml/tests -q
+	$(PYTHON) -m pytest ml/tests -q
 
 ml-clean:  ## Remove built models + predictions
 	rm -rf ml/models/*.bst ml/models/*.onnx ml/artefacts/* data/marts/mart_degradation_predictions.parquet
@@ -250,27 +275,27 @@ ml-clean:  ## Remove built models + predictions
 
 ##   Data export
 app-data:  ## Export warehouse → app/public/data/ parquet + _manifest.json, then cards (AX-08: export, build-cards, --finalize)
-	./.venv/bin/python scripts/export_app_data.py
+	$(PYTHON) scripts/export_app_data.py
 	cd app && node scripts/build-cards.mjs --data public/data --stage
-	./.venv/bin/python scripts/export_app_data.py --finalize
+	$(PYTHON) scripts/export_app_data.py --finalize
 
 app-cards-check:  ## Rebuild cards into a temp copy of app/public/data and compare card sha256 with the manifest (no warehouse)
-	./.venv/bin/python scripts/check_cards.py
+	$(PYTHON) scripts/check_cards.py
 
 app-data-canary:  ## Export canary tables only (fast)
-	./.venv/bin/python scripts/export_app_data.py --canary
+	$(PYTHON) scripts/export_app_data.py --canary
 
 app-data-check:  ## CI drift gate: regenerate manifest and diff (no write)
-	./.venv/bin/python scripts/export_app_data.py --check
+	$(PYTHON) scripts/export_app_data.py --check
 
 assistant-freeze-verify:  ## AX-19: recompute the assistant freeze from disk and diff against freeze.json (exit 1 names the field)
-	./.venv/bin/python scripts/assistant_freeze.py --verify
+	$(PYTHON) scripts/assistant_freeze.py --verify
 
 ##   Models
 app-models:  ## Copy ONNX models (version per manifest) + manifest/encoders → app/public/models/
 	@mkdir -p app/public/models
 	@if [ -d ml/models ]; then \
-	  ver=$$(./.venv/bin/python -c "import json;print(json.load(open('ml/models/manifest.json'))['model_version'])"); \
+	  ver=$$($(PYTHON) -c "import json;print(json.load(open('ml/models/manifest.json'))['model_version'])"); \
 	  rm -f app/public/models/*.onnx; \
 	  cp ml/models/*_$$ver.onnx app/public/models/ 2>/dev/null || true; \
 	  cp ml/models/manifest.json app/public/models/ 2>/dev/null || true; \
@@ -294,7 +319,7 @@ app-build:  ## Type-check + build the React app → app/dist/ (prod reads data+m
 	cd app && pnpm build
 
 app-parity:  ## Prove in-browser ONNX == booster ground truth
-	PYTHONPATH=. ./.venv/bin/python scripts/dump_parity_rows.py
+	PYTHONPATH=. $(PYTHON) scripts/dump_parity_rows.py
 	cd app && RUN_PARITY=1 ./node_modules/.bin/vitest run src/ml/parity.node.test.ts --environment node
 
 app-coverage:  ## Vitest unit tests with coverage threshold
@@ -374,14 +399,14 @@ tf-import:  ## Adopt existing scripts-created resources into TF state (run once,
 ##   The graph regenerates on source change and Mintlify hot-reloads.
 
 docs-reference:  ## Regenerate docs/reference/**/*.mdx from source
-	./.venv/bin/python scripts/build_reference.py
+	$(PYTHON) scripts/build_reference.py
 
 docs-coverage:  ## Regenerate docs/snippets/{bronze-coverage,overview-numbers,transform-inventory*,ml-inventory*}.mdx from source
-	./.venv/bin/python scripts/ingestion_docs_facts.py --write
-	./.venv/bin/python scripts/overview_docs_facts.py --write
+	$(PYTHON) scripts/ingestion_docs_facts.py --write
+	$(PYTHON) scripts/overview_docs_facts.py --write
 	cd transform && ../.venv/bin/dbt parse --profiles-dir profiles --target ci
-	./.venv/bin/python scripts/transform_docs_facts.py --write
-	./.venv/bin/python scripts/ml_docs_facts.py --write
+	$(PYTHON) scripts/transform_docs_facts.py --write
+	$(PYTHON) scripts/ml_docs_facts.py --write
 
 ml-docs-images:  ## Copy curated ML artefact plots into docs/images/ml/ (calibration, PDP, learning curve)
 	mkdir -p docs/images/ml
@@ -390,26 +415,26 @@ ml-docs-images:  ## Copy curated ML artefact plots into docs/images/ml/ (calibra
 	cp ml/artefacts/learning_curve_degradation_regressor_p50.png docs/images/ml/learning-curve-degradation-regressor-p50.png
 
 project-graph:  ## Regenerate the interactive project dependency graph HTML
-	./.venv/bin/python scripts/gen_project_graph.py -o docs/project-graph.html
+	$(PYTHON) scripts/gen_project_graph.py -o docs/project-graph.html
 
 watch-graph:  ## Watch source files and run project-graph on change
-	./.venv/bin/python scripts/watch_project_graph.py
+	$(PYTHON) scripts/watch_project_graph.py
 
 docs-audit:  ## CI gate: README-presence + tour-footer + file-header checks
-	./.venv/bin/python scripts/docs_audit.py --headers
+	$(PYTHON) scripts/docs_audit.py --headers
 
 docs-facts:  ## CI gate: reconcile headline counts across README + docs
-	./.venv/bin/python scripts/docs_facts.py
+	$(PYTHON) scripts/docs_facts.py
 
 docs-coverage-check:  ## CI gate: snippet mdx files match a fresh regeneration
-	./.venv/bin/python scripts/ingestion_docs_facts.py
-	./.venv/bin/python scripts/overview_docs_facts.py
+	$(PYTHON) scripts/ingestion_docs_facts.py
+	$(PYTHON) scripts/overview_docs_facts.py
 	cd transform && ../.venv/bin/dbt parse --profiles-dir profiles --target ci
-	./.venv/bin/python scripts/transform_docs_facts.py
-	./.venv/bin/python scripts/ml_docs_facts.py
+	$(PYTHON) scripts/transform_docs_facts.py
+	$(PYTHON) scripts/ml_docs_facts.py
 
 docs-app-audit:  ## CI gate: every shipped app feature has an /app/<slug> docs page
-	./.venv/bin/python scripts/app_docs_audit.py --strict
+	$(PYTHON) scripts/app_docs_audit.py --strict
 
 lint-comments:  ## CI gate: fail if banned planning/history language reaches committed source
 	@! grep -rn \
@@ -432,13 +457,13 @@ docs-install:  ## (no-op) npx fetches Mintlify automatically
 add-season:  ## Onboard a new season end-to-end (stops before publish): make add-season SEASON=YYYY
 	@test -n "$(SEASON)" || { echo "Usage: make add-season SEASON=YYYY"; exit 1; }
 	@echo "── 1/7  Ingest finished rounds for $(SEASON) (unrun rounds skipped) ──"
-	./.venv/bin/python ingestion/src/ingest.py --season $(SEASON) --session both
+	$(PYTHON) ingestion/src/ingest.py --season $(SEASON) --session both
 	@echo "── 2/7  Ingest standings + pit stops for $(SEASON) ─────────────────"
-	./.venv/bin/python ingestion/src/jolpica_client.py --start-season $(SEASON) --end-season $(SEASON)
+	$(PYTHON) ingestion/src/jolpica_client.py --start-season $(SEASON) --end-season $(SEASON)
 	@echo "── 3/7  Verify Bronze integrity ────────────────────────────────────"
-	./.venv/bin/python ingestion/verify_bronze.py
+	$(PYTHON) ingestion/verify_bronze.py
 	@echo "── 4/7  Seed coverage for $(SEASON) (stops with a to-do list) ──────"
-	./.venv/bin/python ingestion/scripts/check_season_seeds.py --season $(SEASON)
+	$(PYTHON) ingestion/scripts/check_season_seeds.py --season $(SEASON)
 	@echo "── 5/7  Re-fit isotonic tyre-deg curves ────────────────────────────"
 	$(MAKE) deg-iso-fit
 	@echo "── 6/7  Full dbt build + tests (car-FE refit + all models) ────────"
@@ -446,7 +471,7 @@ add-season:  ## Onboard a new season end-to-end (stops before publish): make add
 	@echo "── 7/7  Export warehouse → app/public/data/ ────────────────────────"
 	$(MAKE) app-data
 	@echo "── ✔    Smoke test ─────────────────────────────────────────────────"
-	./.venv/bin/python scripts/smoke_test_season.py $(SEASON)
+	$(PYTHON) scripts/smoke_test_season.py $(SEASON)
 	@echo ""
 	@echo "✔  Season $(SEASON) onboarded locally."
 	@echo "   Review the simulator at: make app-dev-local"

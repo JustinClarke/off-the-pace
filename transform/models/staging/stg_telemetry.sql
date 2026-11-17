@@ -16,7 +16,33 @@
 -- drs_active is unchanged. The same decode is in stg_telemetry_position.
 {{ config(materialized='view') }}
 
-WITH source AS (
+-- Plausibility bound on distance_m (TX-20, HD16). Genuine FastF1 laps run to
+-- the circuit length (plus a little overrun at the line); a few laps at other
+-- circuits carry runaway distance (up to ~25,000 m) and must stay out.
+-- Bound = official lap length x 1.10, floored at the historic 6500 m cut so
+-- that no circuit shorter than that changes. Bronze circuit_info has corner
+-- geometry only, no lap length, so the lengths below are the published
+-- circuit lengths, cross-checked against Bronze (per-lap max distance, p99):
+-- Spa 7004 m (p99 7009, max 7164), Las Vegas 6201 m (6181, 6226), Saudi 6174 m
+-- (6135, 6161), Baku 6003 m (6003, 6071). Every other circuit is under 6000 m,
+-- so 6500 m already clears it with margin. A new long circuit needs a row
+-- here; the test assert_stg_telemetry_distance_bound fails until it has one.
+-- Before this, a fixed 6500 m cut dropped ~10% of every Spa race (Turn 18 and
+-- Turn 19 at 6668 m / 6738 m).
+WITH circuit_bound AS (
+    SELECT
+        race_slug,
+        GREATEST(6500.0, CEIL(lap_length_m * 1.10)) AS max_distance_m
+    FROM (
+        VALUES
+        ('belgian_grand_prix', 7004.0),
+        ('las_vegas_grand_prix', 6201.0),
+        ('saudi_arabian_grand_prix', 6174.0),
+        ('azerbaijan_grand_prix', 6003.0)
+    ) AS t (race_slug, lap_length_m)
+),
+
+source AS (
     SELECT * FROM {{ source('bronze_f1', 'raw_telemetry') }}
 ),
 
@@ -66,9 +92,10 @@ renamed AS (
         -- unchanged; sample-level event detection filters to 'car' downstream.
         CAST(source AS VARCHAR) AS source_channel
     FROM source
+    LEFT JOIN circuit_bound ON source.race = circuit_bound.race_slug
     WHERE
         distance_m > 0
-        AND distance_m < 6500
+        AND distance_m < COALESCE(circuit_bound.max_distance_m, 6500.0)
 )
 
 SELECT * FROM renamed

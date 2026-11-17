@@ -45,6 +45,17 @@ UNION ALL
 -- build was red). On the full build the only race with no lap rows is 2021_12
 -- (has_telemetry TRUE), so this scope changes nothing there; a race with no
 -- laps is explained by NO_RACING_LAPS.
+-- TX-16: a race_to_track race (the race list every picker reads) whose laps
+-- are gone must say why. A race with no fct_lap_residuals rows and reason OK
+-- vanished silently; a race with no Bronze laps must be SOURCE_UNAVAILABLE.
+SELECT 'race_without_laps_unexplained' AS failure, c.race_id
+FROM cov AS c
+WHERE
+    (c.n_lap_rows = 0 AND c.coverage_reason = 'OK')
+    OR (c.n_bronze_lap_rows = 0 AND c.coverage_reason <> 'SOURCE_UNAVAILABLE')
+
+UNION ALL
+
 SELECT 'no_telemetry_not_a_known_gap' AS failure, c.race_id
 FROM cov AS c
 LEFT JOIN known_gaps AS k ON c.race_id = k.race_id

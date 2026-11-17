@@ -12,7 +12,7 @@ export interface HiddenPerformanceRow {
   predicted_finish_position: number
   actual_finish_position: number | null
   delta_vs_actual_position: number | null
-  finish_pos_se: number
+  finish_pos_se: number | null  // TX-18: NULL when unavailable, never 0
   avg_recombination_confidence: number
   laps_counted: number
   adjusted_delta: number | null

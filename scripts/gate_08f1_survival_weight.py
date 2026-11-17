@@ -45,13 +45,13 @@ METHOD (manual steps; this script has three stages selected by --stage).
        cd transform && dbt seed --select circuit_reference compound_cliff_params \\
            race_to_track seed_manual_lap_exceptions --target gate_before
        dbt run --select +fct_cliff_prediction_features --target gate_before
-       PYTHONPATH=. python3 scripts/gate_08f1_survival_weight.py --stage export-after
+       PYTHONPATH=. python3.14 scripts/gate_08f1_survival_weight.py --stage export-after
 
   2. Hand-revert the three CTEs (`revert_08f1()` prints the exact patch; apply it to
      `transform/models/marts/fct_cliff_prediction_features.sql`), then:
 
        cd transform && dbt run --select +fct_cliff_prediction_features --target gate_before
-       PYTHONPATH=. python3 scripts/gate_08f1_survival_weight.py --stage export-before
+       PYTHONPATH=. python3.14 scripts/gate_08f1_survival_weight.py --stage export-before
 
      Then `git checkout HEAD -- transform/models/marts/fct_cliff_prediction_features.sql`
      immediately, and confirm with `git diff --stat` that nothing is left modified.
@@ -160,13 +160,13 @@ only outputs are the two snapshot pickles (scratch, not committed) and the JSON 
 --out.
 
 Usage:
-    PYTHONPATH=. python3 scripts/gate_08f1_survival_weight.py --stage export-after \\
+    PYTHONPATH=. python3.14 scripts/gate_08f1_survival_weight.py --stage export-after \\
         --duckdb ../data/gate_before.duckdb --snapshot-dir /tmp/08f1_snap
     # (hand-revert, rebuild, ...)
-    PYTHONPATH=. python3 scripts/gate_08f1_survival_weight.py --stage export-before \\
+    PYTHONPATH=. python3.14 scripts/gate_08f1_survival_weight.py --stage export-before \\
         --duckdb ../data/gate_before.duckdb --snapshot-dir /tmp/08f1_snap
     # (git checkout HEAD --, delete gate_before.duckdb, remove profile block)
-    PYTHONPATH=. python3 scripts/gate_08f1_survival_weight.py --stage analyze \\
+    PYTHONPATH=. python3.14 scripts/gate_08f1_survival_weight.py --stage analyze \\
         --snapshot-dir /tmp/08f1_snap
 """
 from __future__ import annotations

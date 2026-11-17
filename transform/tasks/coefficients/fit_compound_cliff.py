@@ -46,6 +46,7 @@ import duckdb
 import numpy as np
 import pandas as pd
 
+from .holdout_guard import check_point_in_time_seasons
 from .provenance import build_provenance
 from .seed_writer import SEEDS_DIR, write_pending
 from .survival import (
@@ -705,10 +706,10 @@ def fill_coverage_gaps(seed_df: pd.DataFrame, needed: pd.DataFrame) -> pd.DataFr
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Fit compound cliff parameters from F1 stint data.")
     parser.add_argument("--dry-run", action="store_true", help="Print plan without writing output.")
-    # 2025 is a training season and is fitted point-in-time on 2018-2024; until
-    # CO-02 the default stopped at 2024, so no 2025 cell was ever fitted and
-    # --fill-gaps carried 2024 rows forward instead. 2026 is the blind-test
-    # holdout (dbt var holdout_season) and is never fitted here.
+    # Point-in-time: the 2025 cell is fitted on 2018-2024 only (history_mask), so the
+    # default still lists 2025 under HD17 (holdout 2025, TX-29): no cell reads 2025
+    # data. A 2026 cell would read 2025, so any season after the holdout (dbt var
+    # holdout_season) is refused below (holdout_guard).
     parser.add_argument(
         "--seasons", nargs="+", type=int,
         default=list(range(2018, 2026)),
@@ -725,6 +726,11 @@ def main(argv: list[str] | None = None) -> int:
              "for every cell the warehouse's valid laps need but the seed lacks.",
     )
     args = parser.parse_args(argv)
+    try:
+        check_point_in_time_seasons(args.seasons)   # TX-29 / HD17
+    except ValueError as exc:
+        log.error("%s", exc)
+        return 2
 
     if args.fill_gaps:
         con = duckdb.connect(str(DB_PATH), read_only=True)

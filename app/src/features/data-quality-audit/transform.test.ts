@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { transform } from './transform'
+import { transform, unavailableRaces } from './transform'
 import type { QualityAuditRow } from './queries'
 
 const mkRow = (race_id: string, total = 100, usable = 75): QualityAuditRow => ({
@@ -40,5 +40,21 @@ describe('transform', () => {
     const [r] = transform([row])
     expect(r.total_laps).toBe(row.total_laps)
     expect(r.pct_usable).toBe(row.pct_usable)
+  })
+})
+
+describe('unavailableRaces (TX-16)', () => {
+  it('lists a source-unavailable race with its reason and circuit name, not as zero laps', () => {
+    const [r] = unavailableRaces(
+      [{ race_id: '2018_14', coverage_reason: 'SOURCE_UNAVAILABLE' }],
+      { '2018_14': 'Monza' }
+    )
+    expect(r).toMatchObject({ race_id: '2018_14', round: 14, circuit_name: 'Monza' })
+    expect(r.reason).toMatch(/^Not available/)
+    expect(r).not.toHaveProperty('total_laps')
+  })
+
+  it('returns empty when the season has no unavailable race', () => {
+    expect(unavailableRaces([])).toEqual([])
   })
 })

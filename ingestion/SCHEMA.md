@@ -6,7 +6,7 @@ of this file, which contained inaccuracies (missing columns, phantom columns, wr
 
 Always re-verify with:
 ```bash
-python3 -c "import duckdb,glob; f=glob.glob('data/bronze/<dataset>/season=*/race=*/*.parquet')[0]; print(duckdb.sql(f\"DESCRIBE SELECT * FROM '{f}'\").df().to_string())"
+python3.14 -c "import duckdb,glob; f=glob.glob('data/bronze/<dataset>/season=*/race=*/*.parquet')[0]; print(duckdb.sql(f\"DESCRIBE SELECT * FROM '{f}'\").df().to_string())"
 ```
 
 ## Directory Structure
@@ -28,7 +28,17 @@ data/bronze/
 ├── race_control/
 │   └── season=YYYY/
 │       └── race=<slug>/
-│           └── race_control.parquet
+│           ├── race_control.parquet
+│           └── session=Q/race_control.parquet        # Qualifying (session_type = 'Q')
+├── session_info/
+│   └── season=YYYY/
+│       └── race=<slug>/
+│           ├── session_info.parquet                  # One row: FastF1 Session.session_info + scalars
+│           └── session=Q/session_info.parquet
+├── circuit_info/                                     # Corners only (read by stg_circuit_info)
+│   └── season=YYYY/race=<slug>/[session=Q/]circuit_info.parquet
+├── circuit_markers/                                  # Corners + marshal lights + marshal sectors + rotation
+│   └── season=YYYY/race=<slug>/[session=Q/]circuit_markers.parquet
 ├── telemetry/
 │   └── season=YYYY/
 │       └── race=<slug>/
@@ -79,7 +89,7 @@ back with `make manifest-report` (run status + schema-drift across all runs).
 | Team | VARCHAR | Yes | Constructor name |
 | LapStartTime | BIGINT | Yes | Session elapsed time at lap start (nanoseconds) |
 | LapStartDate | TIMESTAMP_NS | Yes | Wall-clock datetime at lap start |
-| TrackStatus | VARCHAR | Yes | Single-digit string: 1=green, 2=yellow, 4=SC, 5=VSC, 6=SC ending, 7=red flag |
+| TrackStatus | VARCHAR | Yes | Single-digit string: 1=green, 2=yellow, 4=SC, 5=red flag, 6=VSC deployed, 7=VSC ending (per `stg_laps.sql:121-126`) |
 | Position | DOUBLE | Yes | Race position at end of lap |
 | Deleted | BOOLEAN | Yes | True if the lap time was deleted (track limits, etc.) |
 | DeletedReason | VARCHAR | Yes | Reason for deletion (e.g. "Track Limits at Turn X"); null if not deleted |
@@ -204,7 +214,7 @@ back with `make manifest-report` (run status + schema-drift across all runs).
 | Lap | BIGINT | Yes | Lap number when the message was issued; null for pre-race messages |
 | race_id | VARCHAR | Yes | Hive partition-race name slug |
 | season | BIGINT | Yes | Hive partition-calendar year |
-| session_time_s | TIMESTAMP_NS | Yes | Session elapsed time. **Null/unreliable for 2024** (FastF1 v3.8.3 API regression). Use `Lap` for joins. |
+| session_time_s | TIMESTAMP_NS | Yes | **Time of day in seconds (UTC), not time since session start.** Filled for 2024. For time since session start use `session_time_corrected_s`. |
 | race | VARCHAR | Yes | Race name (redundant with race_id) |
 
 **Columns that do NOT exist (phantom from earlier docs):**
@@ -228,11 +238,58 @@ INCIDENT INVOLVING CARS 33 (VER) AND 44 (HAM) ... UNDER INVESTIGATION
 TIME PENALTY ... CAR 16 (LEC)
 ```
 
+**Qualifying:** `race_control/season=YYYY/race=<slug>/session=Q/race_control.parquet`, same
+columns plus `session_type` = `'Q'` and `session_time_corrected_s` (seconds from `t0_date`). It
+sits one level below the race file, so the race glob `race_control/*/*/*.parquet` does not read it.
+`Lap` is usually all-null in qualifying (stored as a null-typed column). Written from the change
+that added it on; older sessions are filled by `ingest.py --fill-missing`.
+
 **Known issues:**
-- `session_time_s` is null for all 2024 races (FastF1 v3.8.3 regression). Join to laps via `Lap`.
+- `session_time_s` is time of day in seconds (UTC), not time since session start; do not join it to lap or telemetry clocks. It is filled for 2024. Use `session_time_corrected_s` (seconds since session start, on the laps/telemetry SessionTime clock); it is filled everywhere except 69 rows in 2018 Bahrain R. Joining via `Lap` also works.
 - Some messages have null `Lap` (pre-race briefings, formation-lap events)-retain these rows;
   downstream models must filter `WHERE lap_number IS NOT NULL` as needed.
 - `RacingNumber` is the *car number* (string), not the driver code.
+
+---
+
+### Session Info
+
+**File:** `bronze/session_info/season=YYYY/race=<slug>/[session=Q/]session_info.parquet`
+
+**Type:** One row per session. FastF1 `Session.session_info` (the livetiming `SessionInfo`
+endpoint) flattened with `_` as the separator, plus scalars FastF1 derives at load.
+
+| Column | Notes |
+|--------|-------|
+| Key, Type, Name, Path | Livetiming session key, type and name, archive path |
+| StartDate, EndDate | Local (track) start and end, naive datetime |
+| GmtOffset | Track offset from UTC (duration) |
+| Meeting_Key, Meeting_Name, Meeting_Location, Meeting_Country_Key/Code/Name | Meeting ids and names |
+| Meeting_Circuit_Key, Meeting_Circuit_ShortName | Circuit key (the one FastF1 uses for circuit info) |
+| ArchiveStatus_Status | Archive status at fetch time |
+| total_laps | Scheduled race distance in laps (`Int64`, null for qualifying) |
+| session_start_time_s | `Session.session_start_time` in seconds on the SessionTime clock |
+| t0_date | `Session.t0_date`: UTC at SessionTime 0 (null without telemetry) |
+| session_date_utc | `Session.date` (scheduled start, UTC) |
+| api_path, f1_api_support | FastF1 API path and whether the F1 live-timing API covers the session |
+| race_id, season, session_type | `YYYY_R`, year, `R` or `Q` |
+
+Extra keys FastF1 adds in later seasons (e.g. `Meeting_OfficialName`, `Meeting_Number`) appear as
+extra columns; read with `union_by_name=true`.
+
+---
+
+### Circuit Markers
+
+**File:** `bronze/circuit_markers/season=YYYY/race=<slug>/[session=Q/]circuit_markers.parquet`
+
+**Type:** One row per track marker from FastF1 `CircuitInfo`: `X, Y, Number, Letter, Angle,
+Distance` (Distance fitted to that session's fastest lap), plus `marker_type` (`corner` \|
+`marshal_light` \| `marshal_sector`), `rotation_deg` (track-map rotation), `race_id`, `season`
+and, for qualifying, `session_type`. A separate dataset rather than extra files in
+`circuit_info/`, because `stg_circuit_info` reads `circuit_info/*/*/*.parquet` with
+`union_by_name` and would union them into the corners. `circuit_info/` keeps the race corners
+file unchanged and gains `session=Q/circuit_info.parquet` for qualifying.
 
 ---
 
@@ -252,11 +309,20 @@ TIME PENALTY ... CAR 16 (LEC)
 | round_number | BIGINT | Round within the season |
 | race_slug | VARCHAR | Event name slug (e.g. `bahrain_grand_prix`) |
 | session_type | VARCHAR | `R` or `Q` |
-| status | VARCHAR | `ok` \| `skip` \| `error` |
+| status | VARCHAR | `ok` \| `skip` \| `error` \| `thin` |
 | row_count | BIGINT | Laps written (0 for skip/error) |
 | dq_passed | BOOLEAN | True if data-quality schema check passed |
 | duplicate_lap_keys | BIGINT | Count of duplicate lap keys detected |
 | schema_fingerprint | VARCHAR | SHA-1 (first 12 chars) of sorted column names; blank for skip/error. Used to detect FastF1 schema drift between runs. |
+| reason | VARCHAR | Why a session was not written: `rate_limited` (FastF1 500 calls/h outlasted the run's wait budget), `source_empty` (FastF1 returned an empty or partial session), `error` (anything else). Blank for ok/skip. Absent in older files. |
+| attempts | BIGINT | Loader calls made for the session (0 for skip). Absent in older files. |
+| rate_limit_waits | BIGINT | Rate-limit waits spent on the session (each `RATE_LIMIT_WAIT_S`, 3600 s; a run stops after `MAX_RATE_LIMIT_WAITS` = 24). Absent in older files. |
+| rate_limit_wait_s | DOUBLE | Seconds spent in those waits. Absent in older files. |
+| telemetry_full_status | VARCHAR | Only with `--telemetry-full`: `ok` \| `empty` (car_data/pos_data missing or no samples) \| `error` (a driver write failed or the channel was unreadable); the worse of the two channels. Blank when not requested. A non-ok value is also logged at ERROR; the session itself still counts as ok. Absent in older files. |
+| telemetry_full_note | VARCHAR | Reason and drivers written per channel, e.g. `car_data: 20 drivers; pos_data: no samples`. Absent in older files. |
+| circuit_info_status | VARCHAR | `ok: N corners` \| `none` \| `failed: ...`, with `; markers failed: ...` appended if only the markers file failed. Race only in older files; R and Q now. |
+| session_info_status | VARCHAR | `ok` \| `none` (no SessionInfo loaded) \| `failed: ...`; blank when not attempted. Absent in older files. |
+| fill_note | VARCHAR | `--fill-missing` on a session already on disk: `filled: <datasets>` and `source has none: <datasets>`; `fill failed for ...` on an `error` row. The row's status is `skip` (laps untouched). Blank otherwise. Absent in older files. |
 
 `make manifest-report` reads every `run_*.parquet`, reports the latest status per
 session, and flags any `schema_fingerprint` change over time as schema drift.

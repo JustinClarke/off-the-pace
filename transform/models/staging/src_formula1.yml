@@ -79,7 +79,7 @@ sources:
             description: Session time at pit lane exit (nanoseconds); null if no pit-out this lap
           - name: TrackStatus
             description: >
-              Encoded track condition. 1=clear, 2=yellow, 4=SC, 5=VSC, 6=SC ending, 7=red flag.
+              Encoded track condition. 1=clear, 2=yellow, 4=SC, 5=red flag, 6=VSC deployed, 7=VSC ending (as decoded in stg_laps.sql:121-126).
             tests:
               - not_null
           - name: IsPersonalBest

@@ -7,9 +7,9 @@ import { methodologyContent, methodologyHref } from './methodology'
 import { useQuery } from '../../data/hooks/useQuery'
 import { useFilters } from '../../state/FilterContext'
 import { useRaceOptions } from '../shared/useRaceOptions'
-import { transform, toCsvRows } from './transform'
+import { transform, toCsvRows, unavailableRaces } from './transform'
 import './queries'
-import type { QualityAuditRow } from './queries'
+import type { QualityAuditRow, UnavailableRaceRow } from './queries'
 import type { QualityResult } from './transform'
 
 const columns: RankedTableColumn<QualityResult>[] = [
@@ -51,6 +51,12 @@ export default function DataQualityAuditPage() {
   )
 
   const result = data ? transform(data, nameMap) : null
+  // TX-16: races with a recorded source gap (no lap rows) are listed with their reason.
+  const { data: unavailableData } = useQuery<UnavailableRaceRow[]>(
+    'data-quality-audit.unavailable',
+    { season }
+  )
+  const unavailable = unavailableRaces(unavailableData ?? [], nameMap)
 
   return (
     <FeaturePage
@@ -86,6 +92,18 @@ export default function DataQualityAuditPage() {
             Sorted chronologically · green = ≥80% usable · amber = &lt;70%
           </p>
           <RankedTable rows={result} columns={columns} initialRows={30} />
+        </section>
+      )}
+      {unavailable.length > 0 && (
+        <section className="rounded-xl border border-border bg-white/[0.015] p-4 sm:p-5 mt-4">
+          <h2 className="text-sm font-semibold tracking-tight mb-1">Races not available · {season}</h2>
+          <ul className="text-xs text-muted/80 space-y-1">
+            {unavailable.map(r => (
+              <li key={r.race_id}>
+                <span className="font-medium">{r.circuit_name}</span> (round {r.round}): {r.reason}
+              </li>
+            ))}
+          </ul>
         </section>
       )}
     </FeaturePage>

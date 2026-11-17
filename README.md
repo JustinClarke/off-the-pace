@@ -6,7 +6,7 @@
 
 Under the hood, every lap is decomposed into five additive, physically-grounded components, so lost time is attributed to an exact, named cause rather than a vibe.
 
-![Python](https://img.shields.io/badge/Python-3.11+-3776AB?logo=python&logoColor=white)
+![Python](https://img.shields.io/badge/Python-3.14-3776AB?logo=python&logoColor=white)
 ![dbt](https://img.shields.io/badge/dbt--core-FF694B?logo=dbt&logoColor=white)
 ![DuckDB](https://img.shields.io/badge/DuckDB--Wasm-FFF000?logo=duckdb&logoColor=black)
 ![XGBoost → ONNX](https://img.shields.io/badge/XGBoost%E2%86%92ONNX-005CED?logo=onnx&logoColor=white)
@@ -86,7 +86,7 @@ Bronze Parquet → a dbt/DuckDB warehouse → XGBoost models exported to ONNX �
 
 ## Quickstart
 
-Requires Python 3.11+.
+Requires Python 3.14.
 
 ```bash
 git clone https://github.com/justinclarke/off-the-pace

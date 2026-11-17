@@ -39,8 +39,20 @@ def _write(path: Path, df: pd.DataFrame):
     df.to_parquet(path, index=False)
 
 
+def _supplementary(bronze, season, slug, quali):
+    """Write the per-session datasets the fill pass adds, so a fixture is complete."""
+    for ds in ("session_info", "circuit_markers", "circuit_info"):
+        base = bronze / ds / f"season={season}" / f"race={slug}"
+        _write(base / f"{ds}.parquet", pd.DataFrame({"x": [1]}))
+        if quali:
+            _write(base / "session=Q" / f"{ds}.parquet", pd.DataFrame({"x": [1]}))
+    if quali:
+        _write(bronze / "race_control" / f"season={season}" / f"race={slug}" / "session=Q"
+               / "race_control.parquet", pd.DataFrame({"x": [1]}))
+
+
 def _race(bronze, season, rnd, slug, *, telemetry_share=1.0, telemetry=True, points=True,
-          q1=True, stint_null_share=0.0, quali=True):
+          q1=True, stint_null_share=0.0, quali=True, supplementary=True):
     laps = _laps(rnd, season, stint_null_share=stint_null_share)
     _write(bronze / "laps" / f"season={season}" / f"race={slug}" / f"{season}_{slug}_laps.parquet", laps)
     drivers = sorted(laps["DriverNumber"].unique())
@@ -65,6 +77,8 @@ def _race(bronze, season, rnd, slug, *, telemetry_share=1.0, telemetry=True, poi
         _write(bronze / "results" / f"season={season}" / f"race={slug}" / "session=Q" / "results.parquet", qres)
         _write(bronze / "weather" / f"season={season}" / f"race={slug}" / "session=Q" / "weather.parquet",
                pd.DataFrame({"x": [1]}))
+    if supplementary:
+        _supplementary(bronze, season, slug, quali=quali)
 
 
 def _schedule(bronze, season, rounds):
@@ -116,7 +130,8 @@ def test_known_telemetry_gap_is_known_but_a_new_one_fails(tmp_path):
     assert ("new", "Rd3 chinese_grand_prix: missing telemetry") in presence
 
 
-def test_low_telemetry_coverage_is_flagged(tmp_path):
+def test_low_telemetry_coverage_is_flagged(tmp_path, monkeypatch):
+    monkeypatch.setattr(verify_bronze, "KNOWN_GAPS_FILE", tmp_path / "no-known-gaps.txt")
     b = tmp_path
     _schedule(b, 2026, [(6, "Monaco Grand Prix", "Monte Carlo", "2026-06-07 13:00"),
                         (7, "Barcelona Grand Prix", "Barcelona", "2026-06-14 13:00")])
@@ -286,3 +301,85 @@ def test_manifest_report_old_files_only(tmp_path, capsys, status, expected):
                    "round_number": 1, "race_slug": "x", "session_type": "R", "status": status,
                    "schema_fingerprint": "abc", **OLD_COLUMNS}]).to_parquet(mdir / "run_a.parquet")
     assert manifest_report.main(["--bronze-dir", str(tmp_path)]) == expected
+
+
+def test_supplementary_datasets_are_required_unless_source_has_none(tmp_path, monkeypatch):
+    """session_info, circuit_markers, circuit_info and race_control (Q) must be on disk.
+    A dataset is accepted as missing only when the fill pass recorded 'source has none'
+    for it in a manifest, or when it is listed in known_gaps.txt."""
+    b = tmp_path
+    monkeypatch.setattr(verify_bronze, "KNOWN_GAPS_FILE", tmp_path / "no-known-gaps.txt")
+    _schedule(b, 2026, [(1, "Australian Grand Prix", "Melbourne", "2026-03-08 04:00")])
+    _race(b, 2026, 1, "australian_grand_prix", supplementary=False)
+    new = [m for lvl, m in _levels(verify_bronze.verify_season(b, 2026, NOW), "presence") if lvl == "new"]
+    assert "Rd1 R australian_grand_prix: missing session_info; run make ingest-full" in new
+    assert "Rd1 Q australian_grand_prix: missing circuit_markers; run make ingest-full" in new
+
+    _supplementary(b, 2026, "australian_grand_prix", quali=True)
+    new = [m for lvl, m in _levels(verify_bronze.verify_season(b, 2026, NOW), "presence") if lvl == "new"]
+    assert not any(m.startswith("Rd1") and "circuit_" in m or "session_info" in m for m in new)
+
+    # Now pretend the source has no circuit markers for the race: the manifest says so.
+    _supplementary_gap = pd.DataFrame({
+        "season": [2026], "race_slug": ["australian_grand_prix"], "session_type": ["R"],
+        "fill_note": ["filled: session_info; source has none: circuit_markers"]})
+    (b / "circuit_markers" / "season=2026" / "race=australian_grand_prix" / "circuit_markers.parquet").unlink()
+    (b / "manifests").mkdir(parents=True, exist_ok=True)
+    _write(b / "manifests" / "run_fill.parquet", _supplementary_gap)
+    findings = verify_bronze.verify_season(b, 2026, NOW)
+    assert not [f for f in findings if f.level == "new" and "circuit_markers" in f.message]
+    assert any(f.level == "known" and "source has none" in f.message for f in findings)
+
+
+# ---------------------------------------------------------------------------
+# TX-22: latest status per session from the manifests
+# ---------------------------------------------------------------------------
+
+def _manifest_row(run, season, slug, stype, status, tf="", ci="", fill=None, rnd=1):
+    return {"run_id": run, "ingested_at_utc": f"2026-11-1{run[-1]}T00:00:00+00:00", "season": season,
+            "round_number": rnd, "race_slug": slug, "session_type": stype, "status": status,
+            "telemetry_full_status": tf, "telemetry_full_note": "", "circuit_info_status": ci,
+            "fill_note": fill}
+
+
+def test_skip_rows_inherit_the_latest_writing_run(tmp_path, monkeypatch):
+    """A later skip run writes blank telemetry_full_status; the session keeps the status of
+    the run that wrote it, and circuit_info failures and missing markers are named."""
+    monkeypatch.setattr(verify_bronze, "KNOWN_GAPS_FILE", tmp_path / "no-known-gaps.txt")
+    mdir = tmp_path / "manifests"
+    mdir.mkdir()
+    pd.DataFrame([
+        _manifest_row("r1", 2018, "australian_grand_prix", "R", "ok", tf="empty", ci="failed: KeyError: '3'"),
+        _manifest_row("r1", 2018, "australian_grand_prix", "Q", "ok", tf="ok", ci="ok: 16 corners"),
+        _manifest_row("r1", 2018, "italian_grand_prix", "R", "error", rnd=14),
+    ]).to_parquet(mdir / "run_r1.parquet")
+    pd.DataFrame([
+        _manifest_row("r2", 2018, "australian_grand_prix", "R", "skip"),
+        _manifest_row("r2", 2018, "australian_grand_prix", "Q", "skip"),
+        _manifest_row("r2", 2018, "italian_grand_prix", "R", "skip", rnd=14),
+        _manifest_row("r2", 2018, "sakhir_grand_prix", "Q", "skip",
+                      fill="filled: nothing; source has none: circuit_markers", rnd=16),
+    ]).to_parquet(mdir / "run_r2.parquet")
+
+    latest = verify_bronze.latest_session_status(tmp_path).set_index(["session_type", "race_slug"])
+    assert latest.loc[("Q", "australian_grand_prix"), "telemetry_full_status"] == "ok"   # not blank
+    assert latest.loc[("Q", "australian_grand_prix"), "writing_run"] == "r1"
+    assert latest.loc[("R", "australian_grand_prix"), "telemetry_full_status"] == "empty"
+    assert latest.loc[("R", "australian_grand_prix"), "circuit_info_status"] == "failed: KeyError: '3'"
+    assert latest.loc[("R", "italian_grand_prix"), "status"] == "error"
+    assert latest.loc[("Q", "sakhir_grand_prix"), "status"] == "skip-only"
+    assert latest.loc[("R", "italian_grand_prix"), "n_runs"] == 2
+
+    msgs = [m for _, m in _levels(verify_bronze.manifest_findings(tmp_path, 2018), "manifest")]
+    assert "Q: 2 sessions; telemetry_full from the latest writing run: none recorded 1, ok 1" in msgs
+    assert "Rd1 R australian_grand_prix: circuit_info failed: KeyError: '3'" in msgs
+    assert any(m.startswith("Rd1 R australian_grand_prix: telemetry_full empty") for m in msgs)
+    assert "Rd14 R italian_grand_prix: latest writing run status error (2 runs)" in msgs
+    assert "Q sakhir_grand_prix: source has no circuit_markers (fill pass)" in msgs
+    # informational only: the manifest section never fails a run on its own
+    assert all(f.level != "new" for f in verify_bronze.manifest_findings(tmp_path, 2018))
+
+
+def test_latest_session_status_with_no_manifests(tmp_path):
+    assert verify_bronze.latest_session_status(tmp_path).empty
+    assert verify_bronze.manifest_findings(tmp_path, 2026) == []

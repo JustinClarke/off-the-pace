@@ -35,8 +35,8 @@ Reads the warehouse read-only. Writes nothing to `ml/models/`, nothing to
 `evaluate.run()` is never called, so no artefact directory is touched. The only
 output is the JSON named below.
 
-Usage:  PYTHONPATH=. python3 scripts/arms_08h_baseline_observations_n.py
-        PYTHONPATH=. python3 scripts/arms_08h_baseline_observations_n.py --families cliff_classifier
+Usage:  PYTHONPATH=. python3.14 scripts/arms_08h_baseline_observations_n.py
+        PYTHONPATH=. python3.14 scripts/arms_08h_baseline_observations_n.py --families cliff_classifier
 """
 from __future__ import annotations
 

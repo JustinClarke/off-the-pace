@@ -38,6 +38,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v7
 
+      - name: Set up Python 3.14
+        uses: actions/setup-python@v7
+        with:
+          python-version: '3.14'
+
       - name: Authenticate to GCP (WIF, keyless)
         uses: google-github-actions/auth@v3
         with:
@@ -65,7 +70,7 @@ jobs:
         id: staging
         run: |
           v=$(gcloud storage cat gs://off-the-pace-cdn/staging/data/_manifest.json \
-                | python3 -c 'import sys,json; print(json.load(sys.stdin)["version"])')
+                | python3.14 -c 'import sys,json; print(json.load(sys.stdin)["version"])')
           echo "version=$v" >> "$GITHUB_OUTPUT"
           echo "staging version: $v"
 

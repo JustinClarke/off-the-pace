@@ -59,7 +59,7 @@ fi
 gcloud storage ls "$TARGET" >/dev/null 2>&1 || { echo "❌  archive not found: $TARGET" >&2; exit 1; }
 
 VERSION="$(gcloud storage cat "$TARGET" \
-  | python3 -c 'import sys,json; print(json.load(sys.stdin)["version"])' 2>/dev/null || echo unknown)"
+  | ${PYTHON:-python3.14} -c 'import sys,json; print(json.load(sys.stdin)["version"])' 2>/dev/null || echo unknown)"
 echo "── rolling back prod manifest → $TARGET (version $VERSION) ──"
 echo "    (pointer only confirm object versioning if parquet bytes changed since)"
 gcloud storage cp "$TARGET" "$PROD_DATA/_manifest.json" \

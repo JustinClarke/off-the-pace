@@ -12,7 +12,7 @@ Follow steps 1–5 in order; step 6 hands off to the downstream layers. The refe
 ## 1. Setup
 
 ```bash
-pip install -r requirements.txt
+make setup   # run from the repo root: builds ./.venv (Python 3.14) with all pinned requirements
 ```
 
 No credentials required for FastF1. FastF1 caches to `data/cache/` automatically.

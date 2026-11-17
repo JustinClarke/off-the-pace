@@ -21,6 +21,15 @@ models:
         tests: [not_null]
       - name: circuit_id
         description: Physical circuit identifier from dim_circuits.
+      - name: n_bronze_lap_rows
+        description: >
+          Race laps in stg_laps (what Bronze delivered, before any filter). 0 when the source
+          could not deliver the race (coverage_reason SOURCE_UNAVAILABLE; TX-16, 2018_14).
+        tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              arguments:
+                min_value: 0
       - name: n_lap_rows
         description: Laps in fct_lap_residuals for the race. 0 when it has none.
         tests:
@@ -68,7 +77,9 @@ models:
         tests: [not_null]
       - name: coverage_reason
         description: >
-          Why coverage is short, first match wins: NO_RACING_LAPS (no fct_lap_residuals rows),
+          Why coverage is short, first match wins: SOURCE_UNAVAILABLE (no stg_laps rows: the
+          source delivered no race laps, listed in ingestion/known_gaps.txt; TX-16 / HD15 option
+          B, 2018_14), NO_RACING_LAPS (no fct_lap_residuals rows),
           ALL_WET_NO_DRY_PAIRS (no rating and rain_lap_share > 0.5), NO_TELEMETRY (has_telemetry
           FALSE), TYRE_QA_QUARANTINED (tyre_qa_status = 'quarantined_race'), TYRE_LIFE_PARTIAL
           (bronze_tyre_life_share < 0.90), OK.
@@ -76,4 +87,4 @@ models:
           - not_null
           - accepted_values:
               arguments:
-                values: ['NO_RACING_LAPS', 'ALL_WET_NO_DRY_PAIRS', 'NO_TELEMETRY', 'TYRE_QA_QUARANTINED', 'TYRE_LIFE_PARTIAL', 'OK']
+                values: ['SOURCE_UNAVAILABLE', 'NO_RACING_LAPS', 'ALL_WET_NO_DRY_PAIRS', 'NO_TELEMETRY', 'TYRE_QA_QUARANTINED', 'TYRE_LIFE_PARTIAL', 'OK']

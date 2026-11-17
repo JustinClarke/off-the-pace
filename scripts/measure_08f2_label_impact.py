@@ -102,7 +102,7 @@ warehouse (see `export()`). Writes nothing to `ml/models/`, nothing to the
 warehouse, nothing to git.
 
 Usage:
-    PYTHONPATH=. python3 scripts/measure_08f2_label_impact.py \\
+    PYTHONPATH=. python3.14 scripts/measure_08f2_label_impact.py \\
         --after-dir <dir with after_*.parquet> --before-dir <dir with before_*.parquet>
 """
 from __future__ import annotations

@@ -102,3 +102,11 @@ describe('toSeasonCsvRows', () => {
     expect(rows[0]).toHaveProperty('driver_season_rating')
   })
 })
+
+describe('finish_pos_se NULL (TX-18)', () => {
+  it('keeps a NULL SE as null and writes an empty CSV cell, never 0', () => {
+    const [e] = transform([{ ...base, finish_pos_se: null }])
+    expect(e.finishPosSe).toBeNull()
+    expect(toCsvRows([e])[0].finish_pos_se).toBe('')
+  })
+})

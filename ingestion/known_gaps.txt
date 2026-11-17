@@ -1,0 +1,33 @@
+# Sessions the source cannot deliver complete. The ingest still runs, and the
+# pipeline locks Bronze with these listed as known gaps instead of blocking.
+#
+# Format: YEAR TYPE SLUG   (TYPE is R for race or Q for qualifying)
+# A session listed here is accepted when it fails or comes back thin. Anything
+# NOT listed still stops the pipeline, so new problems are never hidden.
+#
+# Recorded for information (not blocking, not listed below): position and car data
+# the source returns empty. 2018 R australian_grand_prix (pos data); 2018 R
+# bahrain_grand_prix (car and pos data; the manifest records no samples). Their other data is written as normal.
+# circuit_info fails at the source for the same two races (FastF1 KeyError '3' for
+# 2018 R australian_grand_prix, KeyError '77' for 2018 R bahrain_grand_prix), so they
+# have no circuit_info or circuit_markers. Also without circuit markers (fill pass:
+# "source has none"): 2020 R and Q sakhir_grand_prix (markers only); 2026 R
+# monaco_grand_prix, 2026 R and Q spanish_grand_prix, 2026 Q bahrain_grand_prix
+# (circuit_info and markers). verify_bronze.py section 5 lists these from the manifests.
+#
+# To remove a gap (once the source is fixed), delete its line and re-run.
+#
+# 2018 R italian_grand_prix: FastF1 fails to load the race ("data not loaded yet",
+#   in lap timing from Ergast). Nothing is written for the race; qualifying is fine.
+#   Re-tried on 2026-11-16 with a fresh fetch into a new cache; it failed again with the
+#   same FastF1 IndexError in __fix_tyre_info. The race is a known gap with no Bronze files.
+#   Investigated again on 2026-11-16 with the library's stint code: driver 3's tyre messages carry 4 stints
+#   bunched at one timestamp but timing shows only 1 pit-in, so stint_brackets[3] is out of range; accepted as a gap.
+# 2026 R bahrain_grand_prix: laps.TyreLife is 87% non-null, below the 90% bar. The
+#   race is held back rather than written as is.
+# 2026 R monaco_grand_prix: merged telemetry covers 8.8% of laps. FastF1 raises a
+#   KeyError ('Date') on 1,324 laps from the source. Written as is; coverage is low.
+
+2018 R italian_grand_prix
+2026 R bahrain_grand_prix
+2026 R monaco_grand_prix

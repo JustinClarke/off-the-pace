@@ -1,8 +1,8 @@
 {
   "schema_version": 2,
   "project": "off the pace AI integration v2 (assistant data access)",
-  "updated": "2026-11-09T03:00:00+04:00",
-  "pointer": "AX-10",
+  "updated": "2026-11-17T16:30:00+04:00",
+  "pointer": "TX-15",
   "stage_vocabulary": {
     "SPEC": "Reverified and specced in its WI doc. Nothing run.",
     "BUILDING": "In progress.",
@@ -23,6 +23,18 @@
       "title": "Triage - archive v1, open this board",
       "parallel": false,
       "summary": "Done by the archive on 2026-11-07."
+    },
+    {
+      "id": "0a-bronze-honesty",
+      "title": "Bronze 2026-11 re-ingest - rebuild parity, honesty and doc fixes before any new number",
+      "parallel": true,
+      "summary": "Added 2026-11-16 after the full 2018-2026 re-ingest (bronze-verify OK) and the read-only data-use audit. Rule 3: TX items first. TX-15 measures what the rebuild alone moves; TX-17/18 stop missing values being published as 0; TX-19/20 the 6,500 m telemetry clip; TX-21/22 docs and manifest. Inside PK1's transform-only scope."
+    },
+    {
+      "id": "0b-new-data",
+      "title": "New measured data - marts, then pages, then cards (cards wait for HD14)",
+      "parallel": true,
+      "summary": "Added 2026-11-16 from the audit's ranked feature list (1-6). All measured, transform class (rule 4: live since AX-07). Marts (TX-23..28) and pages (AP-09) are inside PK1; the card item AX-28 waits on HD14 (assistant unparked). 2026 measured-only pages are not here: HD17."
     },
     {
       "id": "1-transform",
@@ -233,7 +245,7 @@
       "doc": "wi/TX-09.md",
       "cost": "0.5d",
       "model": "sonnet-5",
-      "note": "P2. The fit file feeding the envelope is from 2026-09-24: 44 cells have NULL monotone columns, the SQL fallback fires on exactly 44 rows (cells with no fit row; the 2,261 rows at headroom 8.0 are mostly written by the fit script itself, and a refit removes only the 44) and 709 cells have fewer than 5 observations. A refit moves published numbers: owner sees the diff before it lands. DEFERRED 2026-11-07 to the ML track: the refit only feeds the Simulator and held ML cards.",
+      "note": "P2. The fit file feeding the envelope is from 2026-09-24: 44 cells have NULL monotone columns, the SQL fallback fires on exactly 44 rows (cells with no fit row; the 2,261 rows at headroom 8.0 are mostly written by the fit script itself, and a refit removes only the 44) and 709 cells have fewer than 5 observations. A refit moves published numbers: owner sees the diff before it lands. DEFERRED 2026-11-07 to the ML track: the refit only feeds the Simulator and held ML cards. | 2026-11-16: does NOT block TX-30 (no item in the sweep depends on it). It still sits in the waits of AX-10/12/13/14/28 under HD14; HD19 asks the owner whether it should. | 2026-11-16: HD19 RESOLVED (owner): TX-09 no longer sits in the waits of AX-10/12/13/14/28.",
       "blocked_by_decision": [
         "XM"
       ]
@@ -590,7 +602,15 @@
         "AX-06",
         "AX-08",
         "AX-09",
-        "AX-21"
+        "AX-21",
+        "AX-24",
+        "TX-29",
+        "TX-30",
+        "TX-23",
+        "TX-24",
+        "TX-25",
+        "TX-26",
+        "TX-27"
       ],
       "title": "Assistant core v2: dispatcher for the 7 tools, page-card pre-load, loop cap 4, per-slot budget meter, checker repair turn, headless CLI",
       "sources": [
@@ -601,9 +621,10 @@
       "doc": "wi/AX-10.md",
       "cost": "2d",
       "model": "sonnet-5",
-      "note": "Replaces v1's AI-04. Acceptance: loop limit, empty result, refused call and number-without-source tests with the model stubbed; 10 sample questions headless; budget log per slot. 2026-11-08 lane U (sonnet): BUILT, ALL RUNS USED A SCRIPTED MODEL (real-model behaviour not measured). app/src/assistant/core/ (types, validateArgs, budget, cardStore, preload, dispatcher, loop, modelClient, cli, nodeDeps, nodeTools, sampleQuestions, testKit + tests) and assistant/grounding.ts (the real findUngroundedNumbers; AX-21's stand-in swapped out in forbidden-chains.test.ts, 25/25 pass). Dispatcher for all 7 tools; make_chart and compare_lap_times registered for real; the AX-11 check repeated: no row-cap string in the generated tools or template, query_data limit tops out at 25, compare_lap_times takes only race_id/driver_a/driver_b, a rowCap/row_cap/rowcap key is refused by the strict top-level key check. Loop cap 4 tool calls (5 rounds) with a final 'answer from what you have'; empty result -> no-data answer with no digit; refused calls come back as structured tool errors; a number without a source triggers exactly one repair message. CLI app/scripts/assistant-cli.mjs (Vite SSR loader, no new dependency; --stub --sample / --demo deterministic and offline; real mode --endpoint <url> --protocol worker|openai; ran end to end against a local stand-in server mimicking the Worker contract incl. ticket headers: one-off scratch script, not a test). 10 sample questions all answered, pass checker and grounding, none needed a repair turn; 5 demo teammate_race questions: 1 tool call, 2 rounds, peak context 2,649-2,659 of 13,100, about 4,800 tokens total (about 90 neurons), figures are chars/4 estimates. Tests: full app vitest 1213 pass / 2 pre-existing fail (no env); 1332 pass with AX04_DATA_DIR, AX06_DATA_DIR and AX10_CARDS (laneR/cards-07b/cards.json); core 92 (102 with data); grounding 13. Evidence in _evidence/AX-10-2026-11-08/. OWNER-LEVEL FINDINGS: (1) teammate_id is derived from the race.teammate_gap card's display text ('vs PER') else the other driver on the same constructor: fragile, fix = policy_fields.teammate_id on the gap card (mart has the column); (2) the repair turn shares the ticket's 5 rounds: a question using 4 tool calls plus the answer cannot be repaired (REPAIR_SKIPPED); alternative = AX-12 grants a 6th round for repair only; (3) worker/src/generated/tools.ts is STALE (built from an older 10-kind index): run cd worker && npm run gen-tools after make app-data before any deploy; (4) grounding rules: sources are card value, interval ends, interval level (grounds '95%' only), n, display text and reason texts, every number in query_data/compare/chart results, numbers in the question; unchecked: years 1950-2099, ids, citations, list markers, numbers glued to letters; a whole number must match a whole source exactly or round a source of 10 or more; display counts as a source though the model projection lacks it (so AX-14 can reuse it at render time); (5) the checker runs on every card the model received, not only cited ones: conservative, can cost repair turns; (6) a compliant teammate_race answer must carry three sentences (pit-call reproduction rate, held-card wording, 'different measures') and system.md covers only the first two ideas, so a real model may often need the repair turn -> tune in AX-13. Not committed. RULINGS 2026-11-08 (status/rulings-2026-11-08.md, decision OR-AX-10): 1 no 6th round: MAX_ROUNDS stays 5; REPAIR_SKIPPED drafts carry their failures as notes and AX-14 strikes at render; revisit only if REPAIR_SKIPPED > 5% of real runs. 2 checker on every card received stays for v1; narrow to cited + bundle cards only if > 10% of runs repair solely on an uncited card's rule. 3 grounding rules accepted as built; sign/direction is not grounding (expected_value + human read). 4 no agent build work left; LANDED when AX-13's real run shows an answered 2+ round run with no round-2+ endpoint error. Needs owner (real model run).",
+      "note": "Replaces v1's AI-04. Acceptance: loop limit, empty result, refused call and number-without-source tests with the model stubbed; 10 sample questions headless; budget log per slot. 2026-11-08 lane U (sonnet): BUILT, ALL RUNS USED A SCRIPTED MODEL (real-model behaviour not measured). app/src/assistant/core/ (types, validateArgs, budget, cardStore, preload, dispatcher, loop, modelClient, cli, nodeDeps, nodeTools, sampleQuestions, testKit + tests) and assistant/grounding.ts (the real findUngroundedNumbers; AX-21's stand-in swapped out in forbidden-chains.test.ts, 25/25 pass). Dispatcher for all 7 tools; make_chart and compare_lap_times registered for real; the AX-11 check repeated: no row-cap string in the generated tools or template, query_data limit tops out at 25, compare_lap_times takes only race_id/driver_a/driver_b, a rowCap/row_cap/rowcap key is refused by the strict top-level key check. Loop cap 4 tool calls (5 rounds) with a final 'answer from what you have'; empty result -> no-data answer with no digit; refused calls come back as structured tool errors; a number without a source triggers exactly one repair message. CLI app/scripts/assistant-cli.mjs (Vite SSR loader, no new dependency; --stub --sample / --demo deterministic and offline; real mode --endpoint <url> --protocol worker|openai; ran end to end against a local stand-in server mimicking the Worker contract incl. ticket headers: one-off scratch script, not a test). 10 sample questions all answered, pass checker and grounding, none needed a repair turn; 5 demo teammate_race questions: 1 tool call, 2 rounds, peak context 2,649-2,659 of 13,100, about 4,800 tokens total (about 90 neurons), figures are chars/4 estimates. Tests: full app vitest 1213 pass / 2 pre-existing fail (no env); 1332 pass with AX04_DATA_DIR, AX06_DATA_DIR and AX10_CARDS (laneR/cards-07b/cards.json); core 92 (102 with data); grounding 13. Evidence in _evidence/AX-10-2026-11-08/. OWNER-LEVEL FINDINGS: (1) teammate_id is derived from the race.teammate_gap card's display text ('vs PER') else the other driver on the same constructor: fragile, fix = policy_fields.teammate_id on the gap card (mart has the column); (2) the repair turn shares the ticket's 5 rounds: a question using 4 tool calls plus the answer cannot be repaired (REPAIR_SKIPPED); alternative = AX-12 grants a 6th round for repair only; (3) worker/src/generated/tools.ts is STALE (built from an older 10-kind index): run cd worker && npm run gen-tools after make app-data before any deploy; (4) grounding rules: sources are card value, interval ends, interval level (grounds '95%' only), n, display text and reason texts, every number in query_data/compare/chart results, numbers in the question; unchecked: years 1950-2099, ids, citations, list markers, numbers glued to letters; a whole number must match a whole source exactly or round a source of 10 or more; display counts as a source though the model projection lacks it (so AX-14 can reuse it at render time); (5) the checker runs on every card the model received, not only cited ones: conservative, can cost repair turns; (6) a compliant teammate_race answer must carry three sentences (pit-call reproduction rate, held-card wording, 'different measures') and system.md covers only the first two ideas, so a real model may often need the repair turn -> tune in AX-13. Not committed. RULINGS 2026-11-08 (status/rulings-2026-11-08.md, decision OR-AX-10): 1 no 6th round: MAX_ROUNDS stays 5; REPAIR_SKIPPED drafts carry their failures as notes and AX-14 strikes at render; revisit only if REPAIR_SKIPPED > 5% of real runs. 2 checker on every card received stays for v1; narrow to cited + bundle cards only if > 10% of runs repair solely on an uncited card's rule. 3 grounding rules accepted as built; sign/direction is not grounding (expected_value + human read). 4 no agent build work left; LANDED when AX-13's real run shows an answered 2+ round run with no round-2+ endpoint error. Needs owner (real model run). | 2026-11-16 re-plan: the assistant is PARKED by the owner (2026-11-09 history entry) pending the owner's external-harness tests; the board now records that as HD14, which this item waits on. Stage unchanged. Cards and query views were built from the Nov-8 export on the old Bronze: rebuild them after TX-15 and the next owner-approved re-export (watch AXW14). 2026-11-16 HD14 RESOLVED (owner): unparked, but only once the transform group is sorted; now depends on every live 0a-bronze-honesty and 1-transform item and on the new marts TX-23..TX-27. Stage unchanged; do not start before those land. | 2026-11-16: waits on TX-30 and on TX-23..TX-27; the absorbed TX-15..TX-22 waits are dropped (covered through TX-30). Stage unchanged. TX-09 kept: HD14's ruling (\"only once the transform group is sorted\") covers every live 1-transform item and TX-09 is one; whether that was meant is open as HD19. | 2026-11-16: HD19 RESOLVED (owner, \"3 no\"): TX-09 wait removed. Any assistant card that reads the degradation envelope is labelled stale until the TX-09 refit lands.",
       "blocked_by_decision": [
-        "HD1"
+        "HD1",
+        "HD14"
       ]
     },
     {
@@ -631,7 +652,15 @@
       "group": "4-assistant",
       "stage": "MEASURED",
       "depends_on": [
-        "AX-08"
+        "AX-08",
+        "AX-24",
+        "TX-29",
+        "TX-30",
+        "TX-23",
+        "TX-24",
+        "TX-25",
+        "TX-26",
+        "TX-27"
       ],
       "title": "Worker v2: one ticket per question, per-question limit, cap at or under the free allowance, generated tools, 409 on version skew, CSP",
       "sources": [
@@ -643,11 +672,12 @@
       "doc": "wi/AX-12.md",
       "cost": "1-2d",
       "model": "sonnet-5",
-      "note": "As built, every model round spends a single-use Turnstile token and a visitor slot, so round 2 fails and a visitor gets about 2 questions a day; DAILY_NEURON_CAP defaults to 90,909 against the free 10,000; MAX_OUTPUT_TOKENS is 800; TOOLS is empty. Acceptance: the existing 16 tests pass; a 5-round question spends 1 token and 1 slot; round 6 refused; version mismatch gives 409; default cap <= 10,000; bundle scan fails on a planted key. Needs an owner preview deploy. 2026-11-08 lane P (sonnet): CODE DONE, nothing deployed. Question ticket (HMAC, ticket.ts): round 1 takes Turnstile + a visitor slot and returns a ticket; rounds 2-5 send X-Question-Ticket; ledger counts rounds per question; round 6 -> 429 round_limit; forged/expired/other-visitor/replayed tickets refused. Missing or different X-Catalogue-Version -> 409 app_updated before Turnstile or any slot. Ledger split answers into rounds and questions. Defaults per HD6: 3 questions/visitor/day, daily cap 10,000 neurons; MAX_OUTPUT_TOKENS 2,500 PROVISIONAL (reasoning-token accounting unverified); tool messages capped at 5,000 chars. firebase.json CSP stays Report-Only with challenges.cloudflare.com added to script-src, frame-src, connect-src (HD11) plus WORKER_HOST_PLACEHOLDER. worker-ci.yml now runs app build, scan-bundle, a planted-key negative step and gen-tools:check. Worker tests 33 pass (16 old + 6 gen-tools + 3 ticket + 8 v2); worker and app typecheck clean. Existing tests modified (none deleted): the ignores-browser-tools test, the usage test, the chat helper. UNVERIFIED (left to AX-13): multi-round tool use, reasoning tokens vs max output, prefix caching. OWNER STEPS, in order: (1) make app-data then cd worker && npm run gen-tools && npm test; (2) wrangler secret put TURNSTILE_SECRET, ADMIN_TOKEN, TICKET_SECRET, then wrangler deploy for the preview; (3) replace WORKER_HOST_PLACEHOLDER in firebase.json, firebase deploy --only hosting:app; (4) ./scripts/publish_cdn.sh --dry-run (must list assistant/) then make app-publish; (5) client sends X-Catalogue-Version and X-Question-Ticket (AX-10/AX-14), run the preview 3-round check and read /admin/usage. Not committed. RULINGS 2026-11-08 (status/rulings-2026-11-08.md, decision OR-AX-12): 1 forward finish_reason in worker/src/handler.ts (+ test); nothing else in the contract. 2 Origin stays strict; clients send --origin. 3 no 6th round. 4 keep 2,500 unless real-run finish_reason=length (or empty answer at cap) > 1% of rounds; then smallest multiple of 250 >= 1.25 x p99 completion, with peak prompt + cap <= 20,480; never below 2,500. 5 VISITOR_DAILY_LIMIT raised by --var for the eval only; default stays 3. Lane L2 runnable now (sonnet-5); LANDED needs the owner's preview deploy. | 2026-11-08 ruling 1 CODE DONE: worker/src/handler.ts forwards the Workers AI finish_reason in its JSON reply, with a test (worker npm test 34 pass). Nothing deployed: LANDED needs the owner's preview deploy and the 3-round check. | 2026-11-09 (sonnet): step 9 of wi/AX-12.md already satisfied: worker-ci.yml has the scan-bundle step and the planted-key negative step (the WI's 'CI step still owed' row is stale). Step 8 CSP stays OWNER: firebase.json keeps WORKER_HOST_PLACEHOLDER and needs the real Worker host from the preview deploy. CI app-perf.yml and Makefile (app-bundle help) now use `pnpm build --manifest` so the split assistant bundle budget has dist/.vite/manifest.json. AXW7 findings in _evidence/AX-12-axw7-2026-11-09.md: tool calls CONFIRMED on the model page; effort parameter shape and reasoning-token accounting against max_tokens UNCONFIRMED; config.ts MAX_OUTPUT_TOKENS is 2500 (the 800 in this note and the WI is stale), kept, AX-13 measures finish_reason and completion tokens. Stage stays MEASURED: LANDED needs the owner's preview deploy and the 3-round check.",
+      "note": "As built, every model round spends a single-use Turnstile token and a visitor slot, so round 2 fails and a visitor gets about 2 questions a day; DAILY_NEURON_CAP defaults to 90,909 against the free 10,000; MAX_OUTPUT_TOKENS is 800; TOOLS is empty. Acceptance: the existing 16 tests pass; a 5-round question spends 1 token and 1 slot; round 6 refused; version mismatch gives 409; default cap <= 10,000; bundle scan fails on a planted key. Needs an owner preview deploy. 2026-11-08 lane P (sonnet): CODE DONE, nothing deployed. Question ticket (HMAC, ticket.ts): round 1 takes Turnstile + a visitor slot and returns a ticket; rounds 2-5 send X-Question-Ticket; ledger counts rounds per question; round 6 -> 429 round_limit; forged/expired/other-visitor/replayed tickets refused. Missing or different X-Catalogue-Version -> 409 app_updated before Turnstile or any slot. Ledger split answers into rounds and questions. Defaults per HD6: 3 questions/visitor/day, daily cap 10,000 neurons; MAX_OUTPUT_TOKENS 2,500 PROVISIONAL (reasoning-token accounting unverified); tool messages capped at 5,000 chars. firebase.json CSP stays Report-Only with challenges.cloudflare.com added to script-src, frame-src, connect-src (HD11) plus WORKER_HOST_PLACEHOLDER. worker-ci.yml now runs app build, scan-bundle, a planted-key negative step and gen-tools:check. Worker tests 33 pass (16 old + 6 gen-tools + 3 ticket + 8 v2); worker and app typecheck clean. Existing tests modified (none deleted): the ignores-browser-tools test, the usage test, the chat helper. UNVERIFIED (left to AX-13): multi-round tool use, reasoning tokens vs max output, prefix caching. OWNER STEPS, in order: (1) make app-data then cd worker && npm run gen-tools && npm test; (2) wrangler secret put TURNSTILE_SECRET, ADMIN_TOKEN, TICKET_SECRET, then wrangler deploy for the preview; (3) replace WORKER_HOST_PLACEHOLDER in firebase.json, firebase deploy --only hosting:app; (4) ./scripts/publish_cdn.sh --dry-run (must list assistant/) then make app-publish; (5) client sends X-Catalogue-Version and X-Question-Ticket (AX-10/AX-14), run the preview 3-round check and read /admin/usage. Not committed. RULINGS 2026-11-08 (status/rulings-2026-11-08.md, decision OR-AX-12): 1 forward finish_reason in worker/src/handler.ts (+ test); nothing else in the contract. 2 Origin stays strict; clients send --origin. 3 no 6th round. 4 keep 2,500 unless real-run finish_reason=length (or empty answer at cap) > 1% of rounds; then smallest multiple of 250 >= 1.25 x p99 completion, with peak prompt + cap <= 20,480; never below 2,500. 5 VISITOR_DAILY_LIMIT raised by --var for the eval only; default stays 3. Lane L2 runnable now (sonnet-5); LANDED needs the owner's preview deploy. | 2026-11-08 ruling 1 CODE DONE: worker/src/handler.ts forwards the Workers AI finish_reason in its JSON reply, with a test (worker npm test 34 pass). Nothing deployed: LANDED needs the owner's preview deploy and the 3-round check. | 2026-11-09 (sonnet): step 9 of wi/AX-12.md already satisfied: worker-ci.yml has the scan-bundle step and the planted-key negative step (the WI's 'CI step still owed' row is stale). Step 8 CSP stays OWNER: firebase.json keeps WORKER_HOST_PLACEHOLDER and needs the real Worker host from the preview deploy. CI app-perf.yml and Makefile (app-bundle help) now use `pnpm build --manifest` so the split assistant bundle budget has dist/.vite/manifest.json. AXW7 findings in _evidence/AX-12-axw7-2026-11-09.md: tool calls CONFIRMED on the model page; effort parameter shape and reasoning-token accounting against max_tokens UNCONFIRMED; config.ts MAX_OUTPUT_TOKENS is 2500 (the 800 in this note and the WI is stale), kept, AX-13 measures finish_reason and completion tokens. Stage stays MEASURED: LANDED needs the owner's preview deploy and the 3-round check. | 2026-11-16 re-plan: the assistant is PARKED by the owner (2026-11-09 history entry) pending the owner's external-harness tests; the board now records that as HD14, which this item waits on. Stage unchanged. Cards and query views were built from the Nov-8 export on the old Bronze: rebuild them after TX-15 and the next owner-approved re-export (watch AXW14). 2026-11-16 HD14 RESOLVED (owner): unparked, but only once the transform group is sorted; now depends on every live 0a-bronze-honesty and 1-transform item and on the new marts TX-23..TX-27. Stage unchanged; do not start before those land. | 2026-11-16: waits on TX-30 and on TX-23..TX-27; the absorbed TX-15..TX-22 waits are dropped (covered through TX-30). Stage unchanged. TX-09 kept: HD14's ruling (\"only once the transform group is sorted\") covers every live 1-transform item and TX-09 is one; whether that was meant is open as HD19. | 2026-11-16: HD19 RESOLVED (owner, \"3 no\"): TX-09 wait removed. Any assistant card that reads the degradation envelope is labelled stale until the TX-09 refit lands.",
       "blocked_by_decision": [
         "HD1",
         "HD6",
-        "HD11"
+        "HD11",
+        "HD14"
       ]
     },
     {
@@ -656,7 +686,15 @@
       "stage": "MEASURED",
       "depends_on": [
         "AX-10",
-        "AX-11"
+        "AX-11",
+        "AX-24",
+        "TX-29",
+        "TX-30",
+        "TX-23",
+        "TX-24",
+        "TX-25",
+        "TX-26",
+        "TX-27"
       ],
       "title": "Analyst eval v2: questions per class, grader, pass bar fixed before the first run, measured baseline",
       "sources": [
@@ -666,9 +704,10 @@
       "doc": "wi/AX-13.md",
       "cost": "3d",
       "model": "sonnet-5",
-      "note": "Replaces v1's AI-07. Held classes must be refused or hedged with the held reason. Records neurons per answer, which turns into answers per day (about 12-40 a day total on the free allowance: the design agent's arithmetic, not a measurement). Acceptance: bar recorded in the log first; the grader fails a planted wrong answer for every question type. 2026-11-08 lane V (opus), CUT OFF by the usage limit at the very end but PROVENANCE, bar and baseline were already saved; I re-ran app vitest src/assistant/eval: 66 pass / 6 skipped, app typecheck clean. Built: app/src/assistant/eval/ (questions.json 76 questions in groups a-e + 3 more = 79 runs-questions in the baseline, questions.ts with questionsHash, grade.ts, stubModel.ts, run.ts, report.ts + tests), app/scripts/assistant-eval.mjs (--record-bar, --stub, --endpoint, --resume, --human-read), bar.json written BEFORE any result (question-file hash 901ed60e..., recorded 2026-11-08T09:59:33Z). Grader proven to FAIL a planted wrong answer for every playbook type and all 8 acceptance wrong-answer kinds. STUB baseline (a scripted model: measures the harness, NOT a model): 395 runs over 79 questions x 5 repeats, 0 endpoint errors, grounded 100%, refusals correct 100%, right tool 100%, max 7,918 tokens in one run (bar 18,000); verdict INCOMPLETE because the human read of 10 answers is not applicable to a stub. system.md now carries the two sentences a teammate_race answer needs beside the gap (990 tokens by gen-tools chars/4, 1,132 by estimateTokens, slot 1,200); worker/src/generated/tools.ts regenerated from fixtures. Small additive edits to AX-10 core (types.ts raw_usage, modelClient.ts origin header). OPEN FINDINGS: (1) 'no run over 18,000 tokens' is defined on budget.total (prompt+completion summed over rounds), not peak context: confirm; (2) honesty-checker pass rate, expected_value and rules_fired are reported but not gating: recommend adding '100% honesty checker pass' to the AX-20 bar; (3) 5 repeats x 79 questions cannot run inside one day's 10,000 neurons: run over days with --resume or approve a paid day, and raise VISITOR_DAILY_LIMIT locally for the run only; (4) the model projection carries no display and no policy_fields so the model cannot see rating_trust_label, rank_separated_from_next, coverage_reason: option = add trust/rank fields to cards/project.ts (about 40 chars per card); (5) no tool path for 'how many races did X win' (actual_finish_position is a measure, not filterable or groupable; race.result cards are one per race > the 10-card cap): make it a dimension or add a season-wins card; (6) query_data allows at most 2 seasons per request even where the catalogue max_seasons is null; (7) the Worker refuses a request without an allowed Origin header and the AX-10 client sent none (origin option added); (8) the Worker does not forward finish_reason; (9) h-ml-band has no card kind until AX-17. Real run: see PROVENANCE OWNER RUN. Not committed. RULINGS 2026-11-08 (status/rulings-2026-11-08.md, decision OR-AX-13): 1 'no run over 18,000 tokens' is on budget.peak_context (largest single round), per design-ai-access.md:269 'Peak context ... Under AI-07's 18,000 bar'; budget.total reported, not gating; re-record bar.json with --amend and align grade.ts BEFORE the first real run (no real run yet, stub passes either way: intent restored, not tuned). 2 honesty-checker rate not added to the scored bar; non-scored line in AX-20's gate. 3 run over days with --resume on the free allowance; a paid day is the owner's (default no). 4/5 see OR-AX-07 (projection fields; season.results; point the two wins questions at it, same --amend). 6 validate.ts honours catalogue max_seasons; null on an unpartitioned view means no per-request season cap; partitioned null keeps 2. 7 h-ml-band graded as refuse with the ML held reason, no ML stub kind. 8 scored baseline via the Worker contract (wrangler dev remote binding or preview); Ollama unscored only. 9 the scored run uses the export AX-19 freezes. Prep is sonnet-5 (lane L1) and runnable now; the real run and human read need the owner. Model opus-5 -> sonnet-5: the open choices are ruled, so the method is written down. | 2026-11-08 bar re-recorded with --amend (peak-context ruling 1, win-count questions ruling 5): _evidence/AX-13-2026-11-08/bar.json questions_hash is now 7466b286db5c86a1b9d1cd7ba10a8e112818889c9cfd300a768b3040031d905b (amended_from keeps the earlier hashes). finish_reason recorded in core/modelClient.ts, core/types.ts, eval/run.ts; validate.ts honours the catalogue max_seasons. Real run and human read still owed by the owner. 2026-11-09: PARKED by owner (manual text-to-SQL baseline in f1-chat 03-new-exports first); real run still owed. See the 2026-11-09T03:00 history entry for the resume order.",
+      "note": "Replaces v1's AI-07. Held classes must be refused or hedged with the held reason. Records neurons per answer, which turns into answers per day (about 12-40 a day total on the free allowance: the design agent's arithmetic, not a measurement). Acceptance: bar recorded in the log first; the grader fails a planted wrong answer for every question type. 2026-11-08 lane V (opus), CUT OFF by the usage limit at the very end but PROVENANCE, bar and baseline were already saved; I re-ran app vitest src/assistant/eval: 66 pass / 6 skipped, app typecheck clean. Built: app/src/assistant/eval/ (questions.json 76 questions in groups a-e + 3 more = 79 runs-questions in the baseline, questions.ts with questionsHash, grade.ts, stubModel.ts, run.ts, report.ts + tests), app/scripts/assistant-eval.mjs (--record-bar, --stub, --endpoint, --resume, --human-read), bar.json written BEFORE any result (question-file hash 901ed60e..., recorded 2026-11-08T09:59:33Z). Grader proven to FAIL a planted wrong answer for every playbook type and all 8 acceptance wrong-answer kinds. STUB baseline (a scripted model: measures the harness, NOT a model): 395 runs over 79 questions x 5 repeats, 0 endpoint errors, grounded 100%, refusals correct 100%, right tool 100%, max 7,918 tokens in one run (bar 18,000); verdict INCOMPLETE because the human read of 10 answers is not applicable to a stub. system.md now carries the two sentences a teammate_race answer needs beside the gap (990 tokens by gen-tools chars/4, 1,132 by estimateTokens, slot 1,200); worker/src/generated/tools.ts regenerated from fixtures. Small additive edits to AX-10 core (types.ts raw_usage, modelClient.ts origin header). OPEN FINDINGS: (1) 'no run over 18,000 tokens' is defined on budget.total (prompt+completion summed over rounds), not peak context: confirm; (2) honesty-checker pass rate, expected_value and rules_fired are reported but not gating: recommend adding '100% honesty checker pass' to the AX-20 bar; (3) 5 repeats x 79 questions cannot run inside one day's 10,000 neurons: run over days with --resume or approve a paid day, and raise VISITOR_DAILY_LIMIT locally for the run only; (4) the model projection carries no display and no policy_fields so the model cannot see rating_trust_label, rank_separated_from_next, coverage_reason: option = add trust/rank fields to cards/project.ts (about 40 chars per card); (5) no tool path for 'how many races did X win' (actual_finish_position is a measure, not filterable or groupable; race.result cards are one per race > the 10-card cap): make it a dimension or add a season-wins card; (6) query_data allows at most 2 seasons per request even where the catalogue max_seasons is null; (7) the Worker refuses a request without an allowed Origin header and the AX-10 client sent none (origin option added); (8) the Worker does not forward finish_reason; (9) h-ml-band has no card kind until AX-17. Real run: see PROVENANCE OWNER RUN. Not committed. RULINGS 2026-11-08 (status/rulings-2026-11-08.md, decision OR-AX-13): 1 'no run over 18,000 tokens' is on budget.peak_context (largest single round), per design-ai-access.md:269 'Peak context ... Under AI-07's 18,000 bar'; budget.total reported, not gating; re-record bar.json with --amend and align grade.ts BEFORE the first real run (no real run yet, stub passes either way: intent restored, not tuned). 2 honesty-checker rate not added to the scored bar; non-scored line in AX-20's gate. 3 run over days with --resume on the free allowance; a paid day is the owner's (default no). 4/5 see OR-AX-07 (projection fields; season.results; point the two wins questions at it, same --amend). 6 validate.ts honours catalogue max_seasons; null on an unpartitioned view means no per-request season cap; partitioned null keeps 2. 7 h-ml-band graded as refuse with the ML held reason, no ML stub kind. 8 scored baseline via the Worker contract (wrangler dev remote binding or preview); Ollama unscored only. 9 the scored run uses the export AX-19 freezes. Prep is sonnet-5 (lane L1) and runnable now; the real run and human read need the owner. Model opus-5 -> sonnet-5: the open choices are ruled, so the method is written down. | 2026-11-08 bar re-recorded with --amend (peak-context ruling 1, win-count questions ruling 5): _evidence/AX-13-2026-11-08/bar.json questions_hash is now 7466b286db5c86a1b9d1cd7ba10a8e112818889c9cfd300a768b3040031d905b (amended_from keeps the earlier hashes). finish_reason recorded in core/modelClient.ts, core/types.ts, eval/run.ts; validate.ts honours the catalogue max_seasons. Real run and human read still owed by the owner. 2026-11-09: PARKED by owner (manual text-to-SQL baseline in f1-chat 03-new-exports first); real run still owed. See the 2026-11-09T03:00 history entry for the resume order. | 2026-11-16 re-plan: the assistant is PARKED by the owner (2026-11-09 history entry) pending the owner's external-harness tests; the board now records that as HD14, which this item waits on. Stage unchanged. Cards and query views were built from the Nov-8 export on the old Bronze: rebuild them after TX-15 and the next owner-approved re-export (watch AXW14). 2026-11-16 HD14 RESOLVED (owner): unparked, but only once the transform group is sorted; now depends on every live 0a-bronze-honesty and 1-transform item and on the new marts TX-23..TX-27. Stage unchanged; do not start before those land. | 2026-11-16: waits on TX-30 and on TX-23..TX-27; the absorbed TX-15..TX-22 waits are dropped (covered through TX-30). Stage unchanged. TX-09 kept: HD14's ruling (\"only once the transform group is sorted\") covers every live 1-transform item and TX-09 is one; whether that was meant is open as HD19. | 2026-11-16: HD19 RESOLVED (owner, \"3 no\"): TX-09 wait removed. Any assistant card that reads the degradation envelope is labelled stale until the TX-09 refit lands.",
       "blocked_by_decision": [
-        "HD1"
+        "HD1",
+        "HD14"
       ]
     },
     {
@@ -677,7 +716,15 @@
       "stage": "MEASURED",
       "depends_on": [
         "AX-10",
-        "AX-12"
+        "AX-12",
+        "AX-24",
+        "TX-29",
+        "TX-30",
+        "TX-23",
+        "TX-24",
+        "TX-25",
+        "TX-26",
+        "TX-27"
       ],
       "title": "Chat drawer with render-time grounding and measured / modelled / unavailable rendering, behind a flag (off)",
       "sources": [
@@ -688,9 +735,10 @@
       "doc": "wi/AX-14.md",
       "cost": "3d",
       "model": "sonnet-5",
-      "note": "Replaces v1's AI-08. Acceptance: phone width, keyboard, screen reader, reduced motion, proxy-down message; an unmatched number is struck and noted; e2e and the perf budget pass. 2026-11-08 lane W (sonnet): chat drawer in app/src/assistant/drawer/ (flag, runtime, useChat, AnswerView, NumberChip, Turnstile gate, ChatDrawer, AssistantLauncher + tests); AppShell mounts a lazy launcher ONLY when VITE_ASSISTANT_ENABLED === 'true' (default OFF); also VITE_ASSISTANT_WORKER_URL and VITE_TURNSTILE_SITE_KEY. Step-text progress, no streaming. Render-time grounding via findUngroundedNumbers: matched number -> chip linking to the card's page with a details panel (value, interval, n, label, versions); unmatched number STRUCK with 'this number is not backed by a card or a query result'; measured/computed plain, modelled/experimental hatched with the word, query numbers tagged 'plain count/average'; unavailable/held cards listed with a dash and their reason, never 0; rule notes in a visible box; distinct messages for network, 503 paused, 429 limit, 429 round_limit, 409 (Reload button), Turnstile failure, unconfigured Worker URL. Modal dialog with focus trap, Escape, focus return, aria-live log, reduced-motion. Small additive core edits: modelClient EndpointError.code and function-valued Turnstile token, loop AskResult.visibleResults, grounding exports numberMatches/sourceNumbersOfCard. Tests: drawer 31 pass; full app vitest 1246 pass / 2 pre-existing fail; Playwright (scratch config, mocked Worker only, real DuckDB reading the card parquet and real dispatcher/checker): flag-on 9 pass (two chips + one struck number, chip link lands on /tyre-strategy/pit-gantt?race_id=2024_1, ticket headers seen, keyboard-only, 320/390 px no horizontal scroll, reduced motion, proxy-down, 503/429/409 messages); flag-off build 9 pass (no launcher/dialog/assistant request + existing card-links 6 and smoke 2). Flag-off bundle: same 90 JS files, +5 bytes (3,273,573 vs 3,273,568), passes perf-budget.json, no assistant strings. OWNER-LEVEL: (1) the flag-ON build is over the perf budget (106 files, 3,600,742 bytes / 1,076,985 gz vs budgets 3,407,872 / 1,005,568): re-baseline in AX-20 or trim chunks; (2) worker/src/generated/tools.ts schemas stale (run gen-tools after the real export); (3) cold start loads every season's card parquet (about 64k cards) and boots DuckDB: consider per-season loading; (4) Turnstile widget never run against Cloudflare (no network calls); leave the site key empty only for a Worker with TURNSTILE_ENABLED=false; (5) no exact traffic-cost disclaimer wording yet (generic modelled note shown; wire when WC-06/AX-16 provide it); (6) driver selection only covered by the AX-03 card-links spec; (7) cosmetic: the minus sign shows outside the chip ('- 0.357'); (8) typecheck has one error in src/assistant/eval/grade.ts (CardScope cast) belonging to the AX-13 lane, still running. UI makes no multi-round or reasoning-token claims. Not committed. RULINGS 2026-11-08 (status/rulings-2026-11-08.md, decision OR-AX-14): 1 split the perf budget: assistant-only lazy chunks get their own limits (measured + 10%, rounded up to 10 KB) in perf-budget.json via the Vite manifest in check_bundle_size.mjs; the existing limits stay unchanged for everything else; flag-off must pass as before. 2 defer per-season card loading (payload about 0.4-0.8 MB, loaded on drawer open); revisit above 2 MB. 3 minus sign fixed in the drawer render only; grounding.ts unchanged. 4 add the driver-param assertion to assistant-drawer.e2e.ts. 5 no traffic-cost wording in v1. 6 empty Turnstile key only with TURNSTILE_ENABLED=false. Close-out sonnet-5 (lane L3, scratch --outDir) runnable now; LANDED after AX-20's real-Worker run. | 2026-11-08 close-out CODE DONE (lane L3): rulings 1-4 (split assistant-chunk perf budget in app/perf-budget.json + app/scripts/check_bundle_size.mjs, minus-sign chip fix, driver-param assertion in app/e2e/assistant-drawer.e2e.ts). e2e NOT run. LANDED after AX-20's run against the real Worker.",
+      "note": "Replaces v1's AI-08. Acceptance: phone width, keyboard, screen reader, reduced motion, proxy-down message; an unmatched number is struck and noted; e2e and the perf budget pass. 2026-11-08 lane W (sonnet): chat drawer in app/src/assistant/drawer/ (flag, runtime, useChat, AnswerView, NumberChip, Turnstile gate, ChatDrawer, AssistantLauncher + tests); AppShell mounts a lazy launcher ONLY when VITE_ASSISTANT_ENABLED === 'true' (default OFF); also VITE_ASSISTANT_WORKER_URL and VITE_TURNSTILE_SITE_KEY. Step-text progress, no streaming. Render-time grounding via findUngroundedNumbers: matched number -> chip linking to the card's page with a details panel (value, interval, n, label, versions); unmatched number STRUCK with 'this number is not backed by a card or a query result'; measured/computed plain, modelled/experimental hatched with the word, query numbers tagged 'plain count/average'; unavailable/held cards listed with a dash and their reason, never 0; rule notes in a visible box; distinct messages for network, 503 paused, 429 limit, 429 round_limit, 409 (Reload button), Turnstile failure, unconfigured Worker URL. Modal dialog with focus trap, Escape, focus return, aria-live log, reduced-motion. Small additive core edits: modelClient EndpointError.code and function-valued Turnstile token, loop AskResult.visibleResults, grounding exports numberMatches/sourceNumbersOfCard. Tests: drawer 31 pass; full app vitest 1246 pass / 2 pre-existing fail; Playwright (scratch config, mocked Worker only, real DuckDB reading the card parquet and real dispatcher/checker): flag-on 9 pass (two chips + one struck number, chip link lands on /tyre-strategy/pit-gantt?race_id=2024_1, ticket headers seen, keyboard-only, 320/390 px no horizontal scroll, reduced motion, proxy-down, 503/429/409 messages); flag-off build 9 pass (no launcher/dialog/assistant request + existing card-links 6 and smoke 2). Flag-off bundle: same 90 JS files, +5 bytes (3,273,573 vs 3,273,568), passes perf-budget.json, no assistant strings. OWNER-LEVEL: (1) the flag-ON build is over the perf budget (106 files, 3,600,742 bytes / 1,076,985 gz vs budgets 3,407,872 / 1,005,568): re-baseline in AX-20 or trim chunks; (2) worker/src/generated/tools.ts schemas stale (run gen-tools after the real export); (3) cold start loads every season's card parquet (about 64k cards) and boots DuckDB: consider per-season loading; (4) Turnstile widget never run against Cloudflare (no network calls); leave the site key empty only for a Worker with TURNSTILE_ENABLED=false; (5) no exact traffic-cost disclaimer wording yet (generic modelled note shown; wire when WC-06/AX-16 provide it); (6) driver selection only covered by the AX-03 card-links spec; (7) cosmetic: the minus sign shows outside the chip ('- 0.357'); (8) typecheck has one error in src/assistant/eval/grade.ts (CardScope cast) belonging to the AX-13 lane, still running. UI makes no multi-round or reasoning-token claims. Not committed. RULINGS 2026-11-08 (status/rulings-2026-11-08.md, decision OR-AX-14): 1 split the perf budget: assistant-only lazy chunks get their own limits (measured + 10%, rounded up to 10 KB) in perf-budget.json via the Vite manifest in check_bundle_size.mjs; the existing limits stay unchanged for everything else; flag-off must pass as before. 2 defer per-season card loading (payload about 0.4-0.8 MB, loaded on drawer open); revisit above 2 MB. 3 minus sign fixed in the drawer render only; grounding.ts unchanged. 4 add the driver-param assertion to assistant-drawer.e2e.ts. 5 no traffic-cost wording in v1. 6 empty Turnstile key only with TURNSTILE_ENABLED=false. Close-out sonnet-5 (lane L3, scratch --outDir) runnable now; LANDED after AX-20's real-Worker run. | 2026-11-08 close-out CODE DONE (lane L3): rulings 1-4 (split assistant-chunk perf budget in app/perf-budget.json + app/scripts/check_bundle_size.mjs, minus-sign chip fix, driver-param assertion in app/e2e/assistant-drawer.e2e.ts). e2e NOT run. LANDED after AX-20's run against the real Worker. | 2026-11-16 re-plan: the assistant is PARKED by the owner (2026-11-09 history entry) pending the owner's external-harness tests; the board now records that as HD14, which this item waits on. Stage unchanged. Cards and query views were built from the Nov-8 export on the old Bronze: rebuild them after TX-15 and the next owner-approved re-export (watch AXW14). 2026-11-16 HD14 RESOLVED (owner): unparked, but only once the transform group is sorted; now depends on every live 0a-bronze-honesty and 1-transform item and on the new marts TX-23..TX-27. Stage unchanged; do not start before those land. | 2026-11-16: waits on TX-30 and on TX-23..TX-27; the absorbed TX-15..TX-22 waits are dropped (covered through TX-30). Stage unchanged. TX-09 kept: HD14's ruling (\"only once the transform group is sorted\") covers every live 1-transform item and TX-09 is one; whether that was meant is open as HD19. | 2026-11-16: HD19 RESOLVED (owner, \"3 no\"): TX-09 wait removed. Any assistant card that reads the degradation envelope is labelled stale until the TX-09 refit lands.",
       "blocked_by_decision": [
-        "HD1"
+        "HD1",
+        "HD14"
       ]
     },
     {
@@ -716,7 +764,9 @@
       "group": "5-held-classes",
       "stage": "BLOCKED",
       "depends_on": [
-        "AX-15a"
+        "AX-15a",
+        "TX-17",
+        "TX-18"
       ],
       "title": "Make the dirty-air-dependent cards live once wake calibration is settled and the label is re-sealed if it moves",
       "sources": [
@@ -727,7 +777,7 @@
       "doc": "wi/AX-15b.md",
       "cost": "2-3d",
       "model": "opus-5",
-      "note": "Post-v1. Waits on wake calibration (XW). If wake calibration replaces the flat 0.331 x share tax the driver-skill residual moves and every rating, ghost-car and constructor card must be rebuilt on the new label.",
+      "note": "Post-v1. Waits on wake calibration (XW). If wake calibration replaces the flat 0.331 x share tax the driver-skill residual moves and every rating, ghost-car and constructor card must be rebuilt on the new label. | 2026-11-16 re-plan: also depends on TX-17 (stint dirty air 0 -> NULL) and TX-18 (ghost 0-fills): no dirty-air or ghost card is built on a mart with those fills open (rule 3).",
       "blocked_by_decision": [
         "XW"
       ]
@@ -1001,7 +1051,7 @@
     {
       "id": "AX-22",
       "group": "3-foundations",
-      "stage": "SPEC",
+      "stage": "CLOSED",
       "depends_on": [],
       "title": "Re-ingest race control with the corrected session clock (DEFERRED by owner)",
       "sources": [
@@ -1011,7 +1061,8 @@
       "doc": "wi/AX-22-race-control-reingest.md",
       "cost": "1d plus download",
       "model": "sonnet-5",
-      "note": "Deferred by the owner: re-ingest later, before any publish that joins race-control messages to laps. The clock fix (session_time_corrected_s) is in the working tree, uncommitted (experiments/12-race-control-clock-fix). Needs F1 credentials to re-download, and all 173 files rewritten together (or union_by_name on the dbt source). No current model reads the corrected column, so nothing published is wrong today."
+      "note": "Deferred by the owner: re-ingest later, before any publish that joins race-control messages to laps. The clock fix (session_time_corrected_s) is in the working tree, uncommitted (experiments/12-race-control-clock-fix). Needs F1 credentials to re-download, and all 173 files rewritten together (or union_by_name on the dbt source). No current model reads the corrected column, so nothing published is wrong today. | 2026-11-16 re-plan: CLOSED, superseded. The re-download it deferred happened in the owner's full 2018-2026 re-ingest: all 191 R and 193 Q race-control files in data/bronze carry session_time_corrected_s (69 of 18,290 R rows null or NaN; read-only check). Its remaining steps (join check on Monza 2024, Silverstone 2024, Austria 2022; dbt confirm) move to TX-26 step 1.",
+      "closed": "2026-11-16"
     },
     {
       "id": "AX-23",
@@ -1044,9 +1095,331 @@
       "note": "Decided in experiments/13-app-reliability-decisions/decisions.md. Implementation needs the owner's go."
     },
     {
+      "id": "TX-15",
+      "group": "0a-bronze-honesty",
+      "stage": "MEASURED",
+      "depends_on": [],
+      "title": "Rebuild on the 2026-11-16 Bronze in a scratch copy and diff against the published Nov-8 export (dropped races, row deltas, top movers)",
+      "sources": [
+        "app/public/data/_manifest.json",
+        "data/bronze/MANIFEST.json",
+        "ingestion/known_gaps.txt",
+        "transform/dbt_project.yml",
+        "scripts/export_app_data.py"
+      ],
+      "doc": "wi/TX-15-bronze-rebuild-parity.md",
+      "cost": "1d",
+      "model": "sonnet-5",
+      "note": "Data-use audit (read-only, 2026-11-16; relayed, no evidence file on disk); references re-checked by the 2026-11-16 re-planning session. Every published number (manifest e5b324bf3e6d07a6, 2026-11-08) was built on the old Bronze now in data/_archive-2026-11-14/. Scratch build only (rule 5); no published file changes. Expected finding: 2018_14 (Italian GP, 833 laps published) drops. Also records the baseline counts TX-17/18/19 measure against. | 2026-11-16: absorbed by TX-30 (transform honesty sweep). Stage and doc unchanged; TX-30 depends on this item, and downstream items wait on TX-30 instead of on it. 2026-11-16 fixall: scratch build /private/tmp/claude-501/-Users-justin-github-off-the-pace/2a4fcfbe-da29-45d9-a8d3-1e4bbaaf446a/scratchpad/fixall/base (98/98 models; tests 1360 pass/54 fail, mostly 2026 not in race_to_track); diff vs Nov-8 export in /private/tmp/claude-501/-Users-justin-github-off-the-pace/2a4fcfbe-da29-45d9-a8d3-1e4bbaaf446a/scratchpad/fixall/tx15_diff. 2018_14 dropped; NEW: 2020_1 leaves ghost marts (tyre QA now quarantined_race), 2021_12 gains 20 laps and fails the coverage test (OK, unrated), 2026 rows built into every mart. Excluded mart_degradation_history_envelope (no isotonic fit) and int_lap_physical_ahead+. Owner has not read it; evidence folder not written. | 2026-11-17 open issues for the owner's diff review (stays MEASURED): 2020_1 loses 74 laps (758 to 684); about ten races gain a few laps (2021_12, 2022_18 and others); 54 of 1,440 dbt tests fail (43 on 2026 rows, the race_to_track seed missing 2026, and six unclassified including assert_prior_season_labels_frozen); the car-FE fits were refitted with pyfixest 0.60 in a scratch venv and may not match the published fits."
+    },
+    {
+      "id": "TX-16",
+      "group": "0a-bronze-honesty",
+      "stage": "MEASURED",
+      "depends_on": [
+        "TX-15"
+      ],
+      "title": "2018 Italian GP: re-ingest, recorded gap shown as unavailable, or archived copy, as HD15 rules",
+      "sources": [
+        "ingestion/known_gaps.txt",
+        "scripts/export_app_data.py",
+        "app/src/features/data-quality-audit/",
+        "data/bronze/manifests/"
+      ],
+      "doc": "wi/TX-16-2018-italian-gp.md",
+      "cost": "0.5d",
+      "model": "sonnet-5",
+      "note": "Data-use audit (read-only, 2026-11-16; relayed, no evidence file on disk); references re-checked by the 2026-11-16 re-planning session. All 10 manifest runs for 2018 R italian_grand_prix are status=error; Q is fine; the race is already listed in known_gaps.txt, so the lock passes and a rebuild drops it silently. Any re-ingest is an owner make step (bronze-unlock/ingest/bronze-lock). PROBE 2026-11-16: no R file for 2018 Italian in data/bronze (12 empty R dirs; Q complete); archive bronze has no files (option C impossible as written); archived dev/ci.duckdb hold built 2018_14 rows; FastF1 cache data/cache/2018/2018-09-02_Italian_Grand_Prix/2018-09-02_Race/ has 11 .ff1pkl files. Blocked by missing data until HD15. | 2026-11-16: absorbed by TX-30 (transform honesty sweep). Stage and doc unchanged; TX-30 depends on this item, and downstream items wait on TX-30 instead of on it. 2026-11-16 fixall (HD15 B): mart_race_coverage SOURCE_UNAVAILABLE (n_bronze_lap_rows = 0, derived), coverage test fails if a race_to_track race loses its laps without a reason, data-quality page lists unavailable races with the reason. Scratch: 2018_14 SOURCE_UNAVAILABLE. Open: race pickers still unlabelled; assistant COVERAGE_TEXT lacks the reason (AX, untouched).",
+      "blocked_by_decision": [
+        "HD15"
+      ]
+    },
+    {
+      "id": "TX-17",
+      "group": "0a-bronze-honesty",
+      "stage": "MEASURED",
+      "depends_on": [
+        "TX-15"
+      ],
+      "title": "fct_stint_features: unmeasured dirty air becomes NULL with a reason, not 0",
+      "sources": [
+        "transform/models/marts/fct_stint_features.sql",
+        "transform/models/marts/schema.yml",
+        "scripts/assistant_query_views.py"
+      ],
+      "doc": "wi/TX-17-stint-dirty-air-null.md",
+      "cost": "1d",
+      "model": "opus-5",
+      "note": "Data-use audit (read-only, 2026-11-16; relayed, no evidence file on disk); references re-checked by the 2026-11-16 re-planning session. fct_stint_features.sql:226 COALESCE(cumulative_dirty_air_tax_s, 0.0); audit: 2,393 of 8,945 published stints at 0, all of 2018_1-3. TX-03 fixed the aggregates and left this mart. Query views already deny-list the column; no ml/src file reads it (grep 2026-11-16). Blocks any dirty-air card (AX-15b). | 2026-11-16: absorbed by TX-30 (transform honesty sweep). Stage and doc unchanged; TX-30 depends on this item, and downstream items wait on TX-30 instead of on it. 2026-11-16 fixall: COALESCE removed; NULL + dirty_air_unavailable_reason + n_dirty_air_measured_laps; test passes. Scratch diff vs TX-15: 1,134 of 8,895 stints (2018-2025) 0 -> NULL; nothing else moves. Owner reviews the diff; baselines re-taken by the owner."
+    },
+    {
+      "id": "TX-18",
+      "group": "0a-bronze-honesty",
+      "stage": "MEASURED",
+      "depends_on": [
+        "TX-15"
+      ],
+      "title": "Ghost marts: rule which 0-fills are a declared field-average prior (flag it) and which are missing (NULL); no SE filled with 0",
+      "sources": [
+        "transform/models/marts/fct_ghost_race_finish.sql",
+        "transform/models/marts/fct_ghost_car_pace.sql",
+        "transform/models/marts/schema.yml",
+        "app/src/features/hidden-performance/",
+        "scripts/mc_finish_order.py"
+      ],
+      "doc": "wi/TX-18-ghost-zero-fills.md",
+      "cost": "1d",
+      "model": "opus-5",
+      "note": "Data-use audit (read-only, 2026-11-16; relayed, no evidence file on disk); references re-checked by the 2026-11-16 re-planning session. fct_ghost_race_finish.sql:334 finish_pos_se 0 when missing (audit: 4 of 30,344); fct_ghost_car_pace.sql:206-221 constructor pace, its SE, interaction and both deg slopes 0 (audit: 1,135 and 82,298 of 1,384,558). The slope fill is commented as a deliberate field-average prior, so this is a ruling per column, hence opus. Blocks ghost-car cards (AX-15b). | 2026-11-16: absorbed by TX-30 (transform honesty sweep). Stage and doc unchanged; TX-30 depends on this item, and downstream items wait on TX-30 instead of on it. 2026-11-16 fixall: SE fills removed in both ghost marts (NULL + finish_pos_se_unavailable_reason), point-estimate 0 fills kept and flagged *_is_prior pending HD20; hidden-performance handles NULL. Scratch diff vs TX-15: finish_pos_se NULL on 8,178 of 30,054 rows, 354 more move > 0.01; tests 41/41.",
+      "blocked_by_decision": [
+        "HD20"
+      ]
+    },
+    {
+      "id": "TX-19",
+      "group": "0a-bronze-honesty",
+      "stage": "MEASURED",
+      "depends_on": [],
+      "title": "Measure what the 6,500 m telemetry distance clip removes, per circuit (Spa first), for HD16",
+      "sources": [
+        "transform/models/staging/stg_telemetry.sql",
+        "transform/models/reference/dim_corners.sql",
+        "transform/models/intermediate/int_corner_metrics.sql",
+        "transform/models/marts/mart_corner_skill_driver.sql"
+      ],
+      "doc": "wi/TX-19-spa-clip-measure.md",
+      "cost": "0.5d",
+      "model": "sonnet-5",
+      "note": "Data-use audit (read-only, 2026-11-16; relayed, no evidence file on disk); references re-checked by the 2026-11-16 re-planning session. stg_telemetry.sql:70-71 keeps distance_m > 0 AND < 6500; audit: about 10% of Spa samples clipped, Turns 17-19 thin. Measurement only; the ruling is HD16. 2026-11-16 measured on Bronze (read-only): clip confirmed at stg_telemetry.sql:70-71; only Spa genuinely exceeds 6,500 m (about 10.0-10.9% of race samples per season; Turns 18 and 19 lose 80-100% of window samples, so Turn 19 has none). Other circuits only have artefact laps. Output in scratch fix/tx19_*. NOT done: the 'rows that move' in int_corner_metrics and mart_corner_skill_driver under a new bound needs a scratch dbt run (not allowed this session); HD16 can be ruled on the Bronze numbers. | 2026-11-16: absorbed by TX-30 (transform honesty sweep). Stage and doc unchanged; TX-30 depends on this item, and downstream items wait on TX-30 instead of on it."
+    },
+    {
+      "id": "TX-20",
+      "group": "0a-bronze-honesty",
+      "stage": "MEASURED",
+      "depends_on": [
+        "TX-19"
+      ],
+      "title": "Change the telemetry distance clip as HD16 rules; diff the corner marts",
+      "sources": [
+        "transform/models/staging/stg_telemetry.sql",
+        "transform/models/staging/stg_circuit_info.sql",
+        "transform/models/marts/mart_corner_skill_driver.sql"
+      ],
+      "doc": "wi/TX-20-spa-clip-lift.md",
+      "cost": "0.5-1d",
+      "model": "opus-5",
+      "note": "Data-use audit (read-only, 2026-11-16; relayed, no evidence file on disk); references re-checked by the 2026-11-16 re-planning session. Moves published corner-skill numbers at the affected tracks: owner sees the diff and re-takes baselines. 2026-11-16 (sonnet): HD16 applied as 'fix all Spa laps'. stg_telemetry.sql now uses a per-circuit bound (published lap length x 1.10, floored at 6500 m; Spa 7704 m) instead of a fixed 6500 m; new test tests/assert_stg_telemetry_distance_bound.sql. Scratch dbt: only the 9 Spa race_ids move (+611,097 samples, 150,390,945 -> 151,002,042 rows); Turn_19 goes from 0 to 650-880 laps with data per season. Awaiting orchestrator re-check; owner re-takes model_hashes baselines (stg_telemetry and its downstream) and reviews the corner-mart diff. Docs page docs/reference/models/stg/stg_telemetry.mdx still says 6500 m (not edited). | 2026-11-16: absorbed by TX-30 (transform honesty sweep). Stage and doc unchanged; TX-30 depends on this item, and downstream items wait on TX-30 instead of on it.",
+      "blocked_by_decision": [
+        "HD16"
+      ]
+    },
+    {
+      "id": "TX-21",
+      "group": "0a-bronze-honesty",
+      "stage": "MEASURED",
+      "depends_on": [],
+      "title": "Doc fixes: track-status codes (5=red, 6/7=VSC), 2018 R (not Q) Bahrain empty channels, the 2024 race-control clock note",
+      "sources": [
+        "transform/models/staging/src_formula1.yml",
+        "ingestion/SCHEMA.md",
+        "ingestion/known_gaps.txt",
+        "transform/models/staging/stg_laps.sql"
+      ],
+      "doc": "wi/TX-21-doc-fixes-track-status-gaps.md",
+      "cost": "0.25d",
+      "model": "sonnet-5",
+      "note": "Data-use audit (read-only, 2026-11-16; relayed, no evidence file on disk); references re-checked by the 2026-11-16 re-planning session. src_formula1.yml:82 and SCHEMA.md:92 say 5=VSC, 7=red; stg_laps.sql:121-126 (ground-truthed) says 5=red, 6=VSC, 7=VSC ending. known_gaps.txt:10 says 2018 Q Bahrain; manifests say 2018 R Bahrain. SCHEMA.md:217 says session_time_s null for 2024; the new Bronze 2024 file checked has it (re-check across 2024). Docs only. 2026-11-16 edits: src_formula1.yml:82 and SCHEMA.md:92 now 5=red, 6=VSC deployed, 7=VSC ending; known_gaps.txt:10 now says 2018 R Bahrain (and 2018 R Australia); SCHEMA.md:217 and :248 now say session_time_s is time of day (UTC seconds), filled for 2024, and point to session_time_corrected_s (null only for 69 rows, 2018 Bahrain R). Left for the orchestrator: re-check the diff and promote to LANDED. | 2026-11-16: absorbed by TX-30 (transform honesty sweep). Stage and doc unchanged; TX-30 depends on this item, and downstream items wait on TX-30 instead of on it."
+    },
+    {
+      "id": "TX-22",
+      "group": "0a-bronze-honesty",
+      "stage": "LANDED",
+      "depends_on": [],
+      "title": "Ingest manifest: latest status per session (skip rows read as blank today), 2018 circuit_info failures recorded, events missing circuit markers named",
+      "sources": [
+        "ingestion/src/ingest.py",
+        "ingestion/verify_bronze.py",
+        "ingestion/known_gaps.txt",
+        "ingestion/tests/test_bronze_verification.py"
+      ],
+      "doc": "wi/TX-22-manifest-coverage.md",
+      "cost": "0.5-1d",
+      "model": "sonnet-5",
+      "note": "Data-use audit (read-only, 2026-11-16; relayed, no evidence file on disk); references re-checked by the 2026-11-16 re-planning session. Audit (g) said telemetry_full_status is blank for every Q row. Re-checked 2026-11-16: blank only on skip-on-rerun rows (1,737 Q, 1,540 R); all 193 Q sessions have a run with ok. Real gap: no latest-status-per-session reader. Audit (h): the 8 empty 2018 rows are 2 sessions x 4 runs (R Australia pos_data; R Bahrain both), circuit_info KeyError '3'/'77'. Unnamed: one 2020 event without circuit_markers, three 2026 events without circuit_info/markers. Offline code and tests only; no re-ingest. | 2026-11-16: absorbed by TX-30 (transform honesty sweep). Stage and doc unchanged; TX-30 depends on this item, and downstream items wait on TX-30 instead of on it. 2026-11-16 fixall: verify_bronze.py section 5 (latest writing-run status per session; skip rows inherit it), 2018 circuit_info failures and missing-marker events named in known_gaps.txt comments, 2 new tests; make test 160 passed offline. Q ok on all 193 sessions."
+    },
+    {
+      "id": "TX-23",
+      "group": "0b-new-data",
+      "stage": "SPEC",
+      "depends_on": [
+        "TX-30"
+      ],
+      "title": "Qualifying telemetry into a separate qualifying corner-skill mart (Q glob is missed today)",
+      "sources": [
+        "transform/models/staging/src_formula1.yml",
+        "transform/models/staging/stg_telemetry.sql",
+        "transform/models/intermediate/int_corner_metrics.sql",
+        "transform/models/marts/mart_corner_skill_driver.sql",
+        "transform/models/staging/stg_telemetry_qualifying.sql (new)"
+      ],
+      "doc": "wi/TX-23-quali-corner-skill.md",
+      "cost": "2-3d",
+      "model": "opus-5",
+      "note": "Data-use audit (read-only, 2026-11-16; relayed, no evidence file on disk); references re-checked by the 2026-11-16 re-planning session. Audit feature 1. src_formula1.yml:525 globs telemetry/*/*/*.parquet, which misses the 193 Q files under session=Q/. New measure (push-lap definition to rule in the doc), so opus. PROBE 2026-11-16: PRESENT. 193 Q merged-telemetry files (2018 21, 2019 21, 2020 17, 2021-23 22 each, 2024-25 24 each, 2026 20), 84.9M rows; Q laps, results and race_control also 193 each. | 2026-11-16: waits on TX-30 (new-data work runs after the transform honesty sweep; owner: \"after we fix the transform layer but before ai work\"). Absorbed TX-15..TX-22 waits dropped: covered through TX-30."
+    },
+    {
+      "id": "TX-24",
+      "group": "0b-new-data",
+      "stage": "LANDED",
+      "depends_on": [
+        "TX-30"
+      ],
+      "title": "Track-limits counts from DeletedReason (per driver, race, session, turn)",
+      "sources": [
+        "transform/models/staging/stg_laps.sql",
+        "transform/models/staging/stg_laps_qualifying.sql",
+        "ingestion/SCHEMA.md",
+        "transform/models/marts/fct_track_limits.sql (new)"
+      ],
+      "doc": "wi/TX-24-track-limits.md",
+      "cost": "0.5-1d",
+      "model": "sonnet-5",
+      "note": "Data-use audit (read-only, 2026-11-16; relayed, no evidence file on disk); references re-checked by the 2026-11-16 re-planning session. Audit feature 2: 2,010 R and 722 Q laps deleted; stg_laps.sql:93-99 keeps is_deleted and drops the reason. Plain counts. PROBE 2026-11-16: PRESENT for 2019-2026 (R 2,010 deleted laps, all with a reason, all track limits; Q 722 deleted, 691 track limits). 2018 has 0 deleted laps in R and Q (source carries none), so 2018 must show as unavailable, not zero. DeletedReason is '' (empty string) on non-deleted laps, not NULL: filter on Deleted. | 2026-11-16: waits on TX-30 (new-data work runs after the transform honesty sweep; owner: \"after we fix the transform layer but before ai work\"). Absorbed TX-15..TX-22 waits dropped: covered through TX-30. 2026-11-16 fixall: scratch-only marts fct_track_limits + fct_track_limits_driver_session (not exported); reconcile test passes (R 2,010, Q 722; 2018 NULL with SOURCE_HAS_NO_DELETION_DATA)."
+    },
+    {
+      "id": "TX-25",
+      "group": "0b-new-data",
+      "stage": "LANDED",
+      "depends_on": [
+        "TX-30"
+      ],
+      "title": "Speed-trap facts: measured top speed per driver, team and season, with n; missing stays NULL",
+      "sources": [
+        "transform/models/staging/stg_laps.sql",
+        "transform/models/marts/schema.yml",
+        "transform/models/marts/fct_speed_traps.sql (new)"
+      ],
+      "doc": "wi/TX-25-speed-traps.md",
+      "cost": "0.5-1d",
+      "model": "sonnet-5",
+      "note": "Data-use audit (read-only, 2026-11-16; relayed, no evidence file on disk); references re-checked by the 2026-11-16 re-planning session. Audit feature 3. stg_laps already casts SpeedST/FL; no mart publishes them. About 400 laps have no SpeedST. PROBE 2026-11-16: PRESENT. R null share 0.1-0.3% per season for SpeedST/I1/I2 (about 390 laps lack SpeedST), SpeedFL 2.8-4.0%; Q SpeedFL 27-32% null, SpeedST 1.5-2.9%. 2025 Las Vegas R has SpeedI2 100% null. | 2026-11-16: waits on TX-30 (new-data work runs after the transform honesty sweep; owner: \"after we fix the transform layer but before ai work\"). Absorbed TX-15..TX-22 waits dropped: covered through TX-30. 2026-11-16 fixall: scratch-only fct_speed_traps + fct_speed_traps_season (not exported); test passes; 400 race laps without SpeedST counted missing, none 0."
+    },
+    {
+      "id": "TX-26",
+      "group": "0b-new-data",
+      "stage": "SPEC",
+      "depends_on": [
+        "TX-30"
+      ],
+      "title": "Race-control detail (blue flags, investigations, sector yellows) joined to laps on the corrected clock and to circuit markers",
+      "sources": [
+        "transform/models/staging/stg_race_control.sql",
+        "transform/models/staging/src_formula1.yml",
+        "ingestion/src/ingest.py",
+        "transform/models/marts/fct_race_control_events.sql (new)"
+      ],
+      "doc": "wi/TX-26-race-control-detail.md",
+      "cost": "1-2d",
+      "model": "opus-5",
+      "note": "Data-use audit (read-only, 2026-11-16; relayed, no evidence file on disk); references re-checked by the 2026-11-16 re-planning session. Audit feature 4. Takes over AX-22's remaining step (the join check on Monza 2024, Silverstone 2024, Austria 2022); falls back to the Lap column if the corrected clock fails it. PROBE 2026-11-16: PRESENT. R and Q for all 9 seasons (R 191 files, Q 193). Blue flags in R every season (342-1,286 rows; none in Q); investigation messages R 56-189 and Q 8-83 per season; sector-scoped yellows R 120-403 and Q 58-320. session_time_s is non-null in every season (2024 included) but is wall-clock seconds of the day (12:20:01 -> 44401), not session time; SCHEMA.md (TIMESTAMP_NS, null for 2024) is stale. Use session_time_corrected_s: non-null 100% except 2018 R (95.7%, 69 rows). | 2026-11-16: waits on TX-30 (new-data work runs after the transform honesty sweep; owner: \"after we fix the transform layer but before ai work\"). Absorbed TX-15..TX-22 waits dropped: covered through TX-30."
+    },
+    {
+      "id": "TX-27",
+      "group": "0b-new-data",
+      "stage": "MEASURED",
+      "depends_on": [
+        "TX-30"
+      ],
+      "title": "Jolpica pit_stops as an independent cross-check of stg_pits, shown as a separate measured source",
+      "sources": [
+        "transform/models/staging/stg_pits.sql",
+        "transform/models/staging/stg_lap_tyre_qa.sql",
+        "ingestion/src/jolpica_client.py",
+        "transform/models/marts/fct_pit_stop_crosscheck.sql (new)"
+      ],
+      "doc": "wi/TX-27-jolpica-pit-crosscheck.md",
+      "cost": "1d",
+      "model": "sonnet-5",
+      "note": "Data-use audit (read-only, 2026-11-16; relayed, no evidence file on disk); references re-checked by the 2026-11-16 re-planning session. Audit feature 5. PROBE 2026-11-16: PRESENT in Bronze at data/bronze/reference/jolpica/pit_stops/season=*/round=*/ (192 rounds; 2021 lacks round 12 Belgium, which had no racing laps; 2026 has 20 rounds); not documented in ingestion/SCHEMA.md and read by no dbt source yet. constructor_standings (and driver_standings) hold ONE round per season (the final or latest standings, 10-11 rows), not per round. | 2026-11-16: waits on TX-30 (new-data work runs after the transform honesty sweep; owner: \"after we fix the transform layer but before ai work\"). Absorbed TX-15..TX-22 waits dropped: covered through TX-30. 2026-11-16 fixall: scratch-only fct_pit_stop_crosscheck (not exported); agreement 87-96% per season 2018-2025; 39 Jolpica rows do not map to a FastF1 driver (id map needs a check)."
+    },
+    {
+      "id": "TX-28",
+      "group": "0b-new-data",
+      "stage": "SPEC",
+      "depends_on": [
+        "TX-30",
+        "AX-24"
+      ],
+      "title": "Raw pos_data and car_data (telemetry_full) channels into staging, with per-session coverage; no mart until a consumer is ruled",
+      "sources": [
+        "transform/models/staging/stg_telemetry_position.sql",
+        "transform/models/intermediate/int_lap_proximity.sql",
+        "data/bronze/telemetry_full/",
+        "data/bronze/pos_data/"
+      ],
+      "doc": "wi/TX-28-raw-channels.md",
+      "cost": "2d+",
+      "model": "opus-5",
+      "note": "Data-use audit (read-only, 2026-11-16; relayed, no evidence file on disk); references re-checked by the 2026-11-16 re-planning session. Audit feature 6: about 65% more samples than merged telemetry; covers 2018 R Australia. Status is always OnTrack (no track-limits signal). Waits on AX-24 (no published number from DriverAhead). PROBE 2026-11-16: 2018 R Australia has telemetry_full (20 drivers) but no merged telemetry or pos_data; 2018 R Bahrain has neither merged telemetry, telemetry_full nor pos_data (known_gaps.txt comment calls it Q; TX-21 fixes the doc). | 2026-11-16: waits on TX-30 (new-data work runs after the transform honesty sweep; owner: \"after we fix the transform layer but before ai work\"). Absorbed TX-15..TX-22 waits dropped: covered through TX-30."
+    },
+    {
+      "id": "AP-09",
+      "group": "0b-new-data",
+      "stage": "SPEC",
+      "depends_on": [
+        "TX-23",
+        "TX-24",
+        "TX-25",
+        "TX-26",
+        "TX-27",
+        "TX-30"
+      ],
+      "title": "App pages for the new measured marts: qualifying corner skill, track limits, speed traps, race-control detail, pit cross-check",
+      "sources": [
+        "scripts/export_app_data.py",
+        "app/src/features/",
+        "app/src/nav/routes.ts",
+        "docs/app/"
+      ],
+      "doc": "wi/AP-09-new-data-pages.md",
+      "cost": "2-3d",
+      "model": "sonnet-5",
+      "note": "Data-use audit (read-only, 2026-11-16; relayed, no evidence file on disk); references re-checked by the 2026-11-16 re-planning session. Pages before cards (HD3 A: a card is the page's own code run headless). Scratch export only; re-exporting app/public/data needs the owner. | 2026-11-16: also waits on TX-30."
+    },
+    {
+      "id": "AX-28",
+      "group": "0b-new-data",
+      "stage": "SPEC",
+      "depends_on": [
+        "AP-09",
+        "AX-24",
+        "TX-29",
+        "TX-30",
+        "TX-23",
+        "TX-24",
+        "TX-25",
+        "TX-26",
+        "TX-27"
+      ],
+      "title": "Card kinds and qv_* query views for the new measured marts (transform class)",
+      "sources": [
+        "app/src/assistant/cards/kinds.ts",
+        "app/src/assistant/cards/registry.ts",
+        "scripts/assistant_query_views.py",
+        "app/src/assistant/cards/lineage.test.ts"
+      ],
+      "doc": "wi/AX-28-new-data-cards.md",
+      "cost": "2d",
+      "model": "opus-5",
+      "note": "Data-use audit (read-only, 2026-11-16; relayed, no evidence file on disk); references re-checked by the 2026-11-16 re-planning session. Rule 3: built only after the TX items for these marts land. Rule 4: transform class is live. Rule 9 does not bite (no dirty air, no chance line). No model calls; waits on HD14 because the assistant is parked (owner, 2026-11-09). 2026-11-16 HD14 RESOLVED (owner): unparked, but only once the transform group is sorted; now depends on every live 0a-bronze-honesty and 1-transform item and on the new marts TX-23..TX-27. Stage unchanged; do not start before those land. | 2026-11-16: waits on TX-30 and on TX-23..TX-27; the absorbed TX-15..TX-22 waits are dropped (covered through TX-30). Stage unchanged. TX-09 wait left in place and FLAGGED: HD19 asks whether TX-09 (BLOCKED on XM) should block the assistant. | 2026-11-16: HD19 RESOLVED (owner, \"3 no\"): TX-09 wait removed. Any assistant card that reads the degradation envelope is labelled stale until the TX-09 refit lands.",
+      "blocked_by_decision": [
+        "HD14"
+      ]
+    },
+    {
       "id": "AX-25",
       "group": "3-foundations",
-      "stage": "SPEC",
+      "stage": "CLOSED",
       "depends_on": [],
       "title": "Commit the race-control clock fix once a test covers the datetime branch (D3)",
       "sources": [
@@ -1055,7 +1428,8 @@
       "doc": "wi/AX-25-race-control-clock-commit.md",
       "cost": "0.5d",
       "model": "sonnet-5",
-      "note": "Decided in experiments/13-app-reliability-decisions/decisions.md. Implementation needs the owner's go."
+      "note": "Decided in experiments/13-app-reliability-decisions/decisions.md. Implementation needs the owner's go. | 2026-11-16 re-plan: CLOSED, done outside the board. The datetime-branch test exists (ingestion/tests/test_ingestion.py:472, test_race_control_datetime_column_corrected_clock) and the owner committed the fix with it in 8f23310 (git log -S session_time_corrected_s). Not re-run here: that the test fails on the pre-fix code.",
+      "closed": "2026-11-16"
     },
     {
       "id": "AX-26",
@@ -1085,6 +1459,60 @@
       "cost": "0d",
       "model": "sonnet-5",
       "note": "Decided in experiments/13-app-reliability-decisions/decisions.md. Implementation needs the owner's go."
+    },
+    {
+      "id": "TX-29",
+      "group": "1-transform",
+      "stage": "MEASURED",
+      "depends_on": [],
+      "title": "Move the holdout to 2025 across transform and ML (train strictly 2018-2024); guard test that no fit reads 2025 or 2026",
+      "sources": [
+        "transform/dbt_project.yml",
+        "ml/src/holdout_config.py",
+        "ml/src/features.py",
+        "transform/tasks/coefficients/fit_compound_cliff.py",
+        "transform/tasks/coefficients/fit_dirty_air_microsector.py",
+        "transform/tasks/wake_calibration/",
+        "ml/src/card.py"
+      ],
+      "doc": "wi/TX-29-holdout-2025.md",
+      "cost": "1-2d",
+      "model": "opus-5",
+      "note": "HD17 ruling (owner, 2026-11-16). SPEC only: nothing edited. Holdout pinned at 2026 in transform/dbt_project.yml:158 and ml/src/holdout_config.py:13; fits defaulting to 2018-2025 (must stop at 2024): fit_compound_cliff.py:714, fit_dirty_air_microsector.py:592, wake_calibration sidecar.py:465 / run_wc03.py:299,303 / build_pass_table.py:1121, fit_constructor_car_fe.py:109. Holdout readers: mart_build_provenance.sql:31, assert_build_provenance_one_row_matches_vars.sql, ml/src features.py, predict.py, card.py, flag_chance.py, schema.py, evaluate.py, tune.py, export_onnx.py; ml/models/manifest.json (holdout_season 2026, trained on 2018-2025). Caveat: 2025 was already used as a selection fold (card.py HOLDOUT_NOTE, 02c gate, 2026-09-23), so it becomes a holdout from now on, not a never-seen season. Full list in the doc. Refits of shipped models and seeds stay owner steps (PK1/XM). | 2026-11-16: stays separate from TX-30 and does not wait on it. Reason: the sweep changes no fit code and no fit window; the transform fits TX-29 edits read int_stint_geometry, int_lap_fuel_state, int_track_evolution, int_field_pace_curve and int_microsector_proximity, none of which the sweep changes except the 2026 race_to_track seed rows that the 2018-2024 window excludes. ML refits stay owner steps (PK1/XM). 2026-11-16 fixall: holdout 2025 in dbt_project.yml and holdout_config.py; card note reworded; holdout_guard.py + cliff fit refuses seasons after the holdout; guards pass (pytest 6, dbt test; planted holdout 2024 -> 64 rows fail). Cliff default kept (2025 cells read 2018-2024). Not changed: microsector DA-03F seasons, wake-calibration defaults (XW), car-FE. No refit; re-runs listed in the doc.",
+      "blocked_by_decision": [
+        "HD17"
+      ]
+    },
+    {
+      "id": "TX-30",
+      "group": "0a-bronze-honesty",
+      "stage": "SPEC",
+      "depends_on": [
+        "TX-15",
+        "TX-16",
+        "TX-17",
+        "TX-18",
+        "TX-19",
+        "TX-20",
+        "TX-21",
+        "TX-22"
+      ],
+      "title": "Transform honesty sweep: one scratch rebuild, one diff review",
+      "sources": [
+        "transform/models/intermediate/int_lap_residual_decomposed.sql",
+        "transform/models/marts/fct_stint_features.sql",
+        "transform/models/marts/fct_ghost_car_pace.sql",
+        "transform/models/marts/fct_ghost_race_finish.sql",
+        "transform/models/staging/stg_telemetry.sql",
+        "transform/tests/assert_stg_telemetry_distance_bound.sql",
+        "transform/seeds/race_to_track.csv",
+        "docs/reference/models/stg/stg_telemetry.mdx",
+        "transform/tests/model_hashes.baseline.json"
+      ],
+      "doc": "wi/TX-30-transform-honesty-sweep.md",
+      "cost": "3d",
+      "model": "opus-5",
+      "note": "Owner 2026-11-16: \"place them into items after we fix the transform layer but before ai work\". One sweep, in order: (a) TX-15 scratch rebuild on the 2026-11-16 Bronze, diff vs the Nov-8 export = the baseline; (b) TX-16 2018_14 recorded gap shown as unavailable (HD15 = B); (c) TX-17 stint dirty air NULL with a reason (fct_stint_features.sql:226); (d) TX-18 ghost-mart fills: declared prior flagged or NULL, no SE filled with 0; (e) NEW: int_lap_residual_decomposed.sql:254-255 rubber/ambient and :278-281 constructor pace/SE COALESCE to 0 (re-checked read-only on the Nov-8 export: rubber 0 on 47,558 of 161,040 laps = 29.5%, ambient 11,605, constructor pace and SE 7,757 = 4.8%; split filled from genuine 0 on the step-a build, then rule NULL+reason or declared prior+flag); (f) TX-19/TX-20 Spa per-circuit bound: VERIFY the working-tree fix and test, do not redo (HD16 = owner instruction, not a formal ruling; open); (g) NEW: 2026 missing from the race_to_track seed (14,625,196 stg_telemetry rows fail the relationships test in scratch): the seed is wrong, not the test; int_stint_geometry/int_lap_fuel_state join it; add 2026 rows (2026 stays unused per HD17); (h) TX-21 doc fixes re-verified read-only 2026-11-16; (i) NEW: docs/reference/models/stg/stg_telemetry.mdx:11,42 still say 6500 m; model_hashes*.baseline.json re-taken only after the step-k diff is accepted; (j) TX-22 manifest coverage (ingest-side, any time); (k) ONE owner diff review of all mart-level changes and ONE re-export decision (AXW14). Board mechanics: TX-30 depends on the absorbed items (so the pointer can sit on TX-15, its first runnable step); everything downstream waits on TX-30 instead of listing TX-15..TX-22. Not run this session: no dbt, nothing written under data/ or app/."
     }
   ],
   "decisions": [
@@ -1497,6 +1925,93 @@
       "recommendation": "Add 'not shown', drop 'provisional'.",
       "resolved": "2026-11-08",
       "resolution": "Done in app/src/assistant/honesty/policy.json: group 1 is now experimental | not shown; 'provisional' removed (the doc no longer supports it, and it implies the chance awaits scoring when it failed). Group 2 (failed its 2025 bar / 5 of 10 / 19.9) is unchanged, and CHANCE_LINE_QUOTABLE (EXCLUDE) is untouched, so no exclusion is weakened. Pass example reworded. npx vitest run src/assistant/honesty: 192 pass."
+    },
+    {
+      "id": "HD14",
+      "raised": "2026-11-16",
+      "blocking": [
+        "AX-10",
+        "AX-12",
+        "AX-13",
+        "AX-14",
+        "AX-28"
+      ],
+      "status": "RESOLVED",
+      "question": "Unpark the assistant? A: unpark now: AX-10/12/13/14 resume (Worker preview deploy, AX-13 real run) and AX-28 builds cards for the new marts. B: stay parked until your external-harness tests (f1-chat 03-new-exports) report, then rule again. C: partial: allow AX-28's card and query-view build (no model calls, no Worker, nothing deployed) once its marts land; keep AX-10/12/13/14 parked until the harness reports.",
+      "context": "Owner decision 2026-11-09 (history): AI work PARKED pending manual tests in an external text-to-SQL harness. HD1 (2026-11-07) had lifted PK1 for AX-01..14; the park was never recorded as a decision, so the board kept pointing at AX-10. Recorded here so the pointer can move. Nothing on the transform and app side (TX-15..28, AP-09) needs this ruling.",
+      "recommendation": "C (recommendation, not a ruling): the new card kinds are built from published files with no model calls, so they cost nothing to keep ready; the model-facing items wait for your harness results.",
+      "resolved": "2026-11-16",
+      "resolution": "Owner 2026-11-16 (ruling, not the recommendation): \"UNPARK the AI assistant work, BUT ONLY once the transform group is sorted.\" The assistant items (AX-10, AX-12, AX-13, AX-14, AX-28, and AX-19/AX-20 through them) wait on completion of the transform and honesty items: every live item in 0a-bronze-honesty and 1-transform, plus the 0b-new-data marts the cards depend on (TX-23..TX-27, and AP-09 for AX-28). Recorded as depends_on on each assistant item; nothing is unparked now. Note: 1-transform includes TX-09 (BLOCKED on XM), so as written the assistant also waits on the XM ruling."
+    },
+    {
+      "id": "HD15",
+      "raised": "2026-11-16",
+      "blocking": [
+        "TX-16"
+      ],
+      "status": "RESOLVED",
+      "question": "2018 Italian GP (2018_14): A: one targeted re-ingest attempt (you run bronze-unlock, a single-race ingest, bronze-lock, bronze-verify); if it fails again, B. B: accept it as a known gap: the rebuild drops it, every page that lists races shows it as unavailable with the reason, and the next export withdraws its Nov-8 numbers (you see the list first). C: copy the 2018 Italian R files from data/_archive-2026-11-14/bronze/ into Bronze, marked as an older ingest.",
+      "context": "Published Nov-8 export has the race with 833 laps. Every manifest run for 2018 R italian_grand_prix is status=error (10 runs); qualifying is fine. known_gaps.txt already lists it ('data not loaded yet' from Ergast lap timing), so bronze-lock passes and a rebuild drops it silently. The archive is the only local copy of the old files, which ties C to HD18. PROBE 2026-11-16 (read-only): data/bronze has the 12 2018 italian_grand_prix R directories but NO R file in any of them (laps, telemetry, telemetry_full, pos_data, results, race_control, circuit_info, weather, track_status, session_status, session_info, circuit_markers); Q is complete (all datasets). data/_archive-2026-11-14/bronze/ holds NO parquet at all (empty directories), so option C as written (copy archived Bronze files) is not possible. The archived dev.duckdb and ci.duckdb hold built rows for 2018_14 (fct_lap_residuals 833, int_lap_normalized_pace 927, int_lap_telemetry_aggregates 833; mart_race_coverage OK in dev). data/staging/ holds nothing for it. The FastF1 cache data/cache/2018/2018-09-02_Italian_Grand_Prix/2018-09-02_Race/ has 11 .ff1pkl files (timing, car, position, race control, weather), so option A may be able to load from cache.",
+      "recommendation": "A, falling back to B (recommendation). C mixes an older ingest into a verified Bronze; only if you want the race and A fails.",
+      "resolved": "2026-11-16",
+      "resolution": "Owner 2026-11-16: \"try it if it doesn't happen we've got a gap\". Outcome: resolved as B. The single targeted re-ingest (A) was tried on 2026-11-16 with a fresh FastF1 fetch into a new empty cache directory (FastF1 3.9.2, pin unchanged, dry run into a scratch Bronze, data/cache untouched). FastF1 again raised IndexError (list index out of range) in __fix_tyre_info (stint_brackets[n]) while loading lap timing, then 'data not loaded yet'; 0 sessions written. Bronze was never unlocked; make bronze-verify prints OK. The race stays a known gap with no Bronze files (ingestion/known_gaps.txt comment updated). Option C is not possible (archive has no Bronze files). OPEN QUESTION (not resolved here): FastF1 investigation 2026-11-16 found the failure is in FastF1's tyre-stint code (__fix_tyre_info) on one driver's feed; a scratch workaround that yields 927 laps exists but is UNVERIFIED (see the open Opus check). Until verified, the race stays a recorded gap."
+    },
+    {
+      "id": "HD16",
+      "raised": "2026-11-16",
+      "blocking": [
+        "TX-20"
+      ],
+      "status": "RESOLVED",
+      "question": "Telemetry distance clip (stg_telemetry.sql:70-71 drops distance_m >= 6500). A: replace it with a per-circuit bound (circuit length from circuit_info plus a margin). B: keep 6,500 m and label the affected corners (Spa Turns 17-19 and any others TX-19 names) as thin. C: drop the upper clip and rely on the lower bound and corner windows.",
+      "context": "Audit: about 10% of Spa samples clipped; Turns 17-19 thin. Lifting it moves published corner-skill numbers. TX-19 measures per circuit first; rule after reading it. PROBE 2026-11-16 (read-only): the data is in Bronze. Belgian GP merged telemetry beyond 6,500 m: 2024 R 72,901 of 703,858 samples (10.4%), on 841 of 841 driver-laps, max 7,067 m; 2024 Q 40,297 of 420,852 (9.6%), max 7,086 m; 2023 R 77,250 of 705,818 (10.9%), 815 of 816 laps, max 7,046 m; 2023 Q 40,250 of 440,452 (9.1%), max 7,182 m. The clip is only in staging (stg_telemetry.sql:71 and int_microsector_corner_class.sql); SCHEMA.md already calls it a bug. OWNER INSTRUCTION 2026-11-16 (relayed by the orchestrator; an instruction, NOT a formal ruling): \"fix all the spa laps\", read as option A (per-circuit bound). The TX-20 working-tree fix implements A (stg_telemetry.sql circuit_bound: published lap length x 1.10, floored at 6,500 m; new test assert_stg_telemetry_distance_bound.sql). TX-30 step f verifies it. Left OPEN for the owner to confirm A as the ruling at the TX-30 diff review.",
+      "recommendation": "Confirm A (the owner's instruction \"fix all the spa laps\", 2026-11-16) as the ruling once the TX-30 diff shows the Spa corner moves. Originally: A if TX-19 shows a material move; B if inside the existing intervals.",
+      "resolved": "2026-11-16",
+      "resolution": "Owner 2026-11-16: \"2 A\". Option A: a per-circuit distance bound (circuit length from the published lap lengths plus a 10% margin, floored at 6,500 m, plus a plausibility bound for runaway laps). Applies to the working-tree fix in transform/models/staging/stg_telemetry.sql (TX-20). The Spa corner moves are measured in the TX-15/TX-30 diffs. Working-tree fix: transform/models/staging/stg_telemetry.sql, test transform/tests/assert_stg_telemetry_distance_bound.sql."
+    },
+    {
+      "id": "HD17",
+      "raised": "2026-11-16",
+      "blocking": [
+        "TX-29"
+      ],
+      "status": "RESOLVED",
+      "question": "2026 data (WI-03 / FD4 holdout): A: no change: 2026 stays a holdout with no pages. B: measured-only 2026 pages (results, cautions, laps; no model output, no rating), with a lineage test that no fit or model reads 2026. C: decide when the 2026 season ends (rounds 1-20 of 23 are in Bronze; Bahrain R held back on TyreLife).",
+      "context": "dbt_project.yml:158 pins holdout_season: 2026 (FD4, 2026-09-28). The audit ranks 2026 measured-only pages high for fans. The risk of B is not leakage into a fit (a guard can prevent that) but people tuning models while looking at the holdout season's numbers. No board item is built for 2026 pages until this is ruled.",
+      "recommendation": "Your call. If B, the guard test lands before any 2026 page (recommendation).",
+      "resolved": "2026-11-16",
+      "resolution": "Owner 2026-11-16 (CHANGED from the question as asked): \"The holdout is 2025, not 2026. Models are trained strictly on 2018-2024 data. 2025 is held out.\" The 2026 season is not the holdout and is not yet defined for use (no pages, no fits, no evaluation). Supersedes FD4 / WI-03 (2026-09-28). Work: TX-29 (opus-5, SPEC) moves holdout_season (transform/dbt_project.yml:158, ml/src/holdout_config.py:13) and every fit window to stop at 2024, and adds a guard test that no fit reads 2025 or 2026. Probe 2026-11-16: 2025 is complete in Bronze (24/24 R and Q events for laps, merged telemetry, results, race_control)."
+    },
+    {
+      "id": "HD18",
+      "raised": "2026-11-16",
+      "blocking": [],
+      "status": "OPEN",
+      "question": "Delete old data: PENDING the owner's confirmation of WHAT to delete. Two reads of the instruction: (a) delete data/_archive-2026-11-14/ and data/staging/; (b) delete the old models the new ones replace (ml/models/ v14 boosters and ONNX, ml/artefacts/, any fits). Nothing is deleted until you say which.",
+      "context": "Probe 2026-11-16 (read-only). (a) data/_archive-2026-11-14/ is 3.5 GB: dev.duckdb 1.8 GB and ci.duckdb 1.7 GB (the warehouse the Nov-8 export was built from), bronze/ is 2,978 EMPTY directories with no parquet (12 KB; the earlier '11 GB old Bronze' is no longer true), plus a 94 KB FastF1 http cache. Loses: the only built copy of 2018_14 (Italian GP R): 833 rows in fct_lap_residuals and int_lap_telemetry_aggregates, 927 in int_lap_normalized_pace, 18 in mart_race_driver_summary, in both DBs; and the old warehouse TX-15 could diff against (TX-15 can still diff against app/public/data). data/staging/ is 92 KB: only fastf1_cache_reingest/fastf1_http_cache.sqlite (6 responses); its 3 manifests and 2 schedule files are already deleted in the working tree (git status D, tracked). Loses nothing any model reads. (b) ml/models/ is 74 MB (v14 cliff, degradation p10/p50/p90 and stint-life .bst/.onnx, best_params, encoders, manifest, optuna_studies, training_logs) and ml/artefacts/ 1.2 MB; data/fits/ is already empty (only .gitkeep; degradation_isotonic.parquet is not on disk). Loses: the shipped models and their metrics, which the app's ML pages read until a replacement trained on 2018-2024 (HD17) exists; they are git-tracked, so recoverable from history. The raw 2018 Italian race survives either way in the FastF1 cache data/cache/2018/2018-09-02_Italian_Grand_Prix/2018-09-02_Race/ (11 .ff1pkl files), which neither read deletes. OWNER POINT 2026-11-16: the 2018 Italian GP built rows are in the archived warehouse (data/_archive-2026-11-14/dev.duckdb), so do not delete the archive. The owner has not ruled; the recommendation was \"wait\" and the owner did not contradict it. Left OPEN.",
+      "recommendation": "Confirm which read (recommendation): if (a), wait until TX-15's parity report and HD15 are done, because the archived DBs hold the only built 2018_14 rows; if (b), wait until models retrained on 2018-2024 (TX-29) exist. No agent deletes data."
+    },
+    {
+      "id": "HD19",
+      "raised": "2026-11-16",
+      "blocking": [],
+      "status": "RESOLVED",
+      "question": "QUESTION, not a decision: should TX-09 (degradation isotonic refit, BLOCKED on XM, the ML track) block the assistant? A: yes, as HD14 is written (every live 1-transform item), so AX-10/12/13/14/28 also wait on the ML redo. B: no: drop TX-09 from the assistant waits; the refit only feeds the Simulator and held ML cards (its own note, DEFERRED 2026-11-07).",
+      "context": "HD14 (owner, 2026-11-16): \"UNPARK the AI assistant work, BUT ONLY once the transform group is sorted.\" The recording session noted that 1-transform includes TX-09, so as written the assistant also waits on XM; the owner has not said whether that was meant. TX-09 does not block the transform honesty sweep (TX-30) either way. Until ruled, the TX-09 wait stays on AX-10, AX-12, AX-13, AX-14 and AX-28.",
+      "recommendation": "Your call. B looks closer to the intent (TX-09 feeds no transform-class card) but would let the assistant start before the ML track lands.",
+      "resolved": "2026-11-16",
+      "resolution": "Owner 2026-11-16: \"3 no\". Option B: TX-09 does not hold back the AI work. TX-09 is dropped from the waits of AX-10, AX-12, AX-13, AX-14 and AX-28. Consequence: any assistant card that reads the degradation envelope must be labelled stale until the TX-09 refit lands (the envelope is built from the 2026-09-24 fit file)."
+    },
+    {
+      "id": "HD20",
+      "raised": "2026-11-16",
+      "blocking": [
+        "TX-18"
+      ],
+      "status": "OPEN",
+      "question": "Ghost-car 0 fills (TX-18): when a constructor has no pace cell (1,122 lap rows) or no degradation cell for a compound (about 77,000 lap rows each side), the ghost car uses 0, i.e. 'the same as the field average'. A: keep 0 as a declared prior, flagged per row (*_is_prior, already added) and named in the page method note. B: treat it as missing: those laps (or scenarios) get no ghost prediction (NULL with a reason). C: A for the degradation slopes (ego == host must cancel exactly), B for constructor pace.",
+      "context": "fct_ghost_car_pace.sql (TX-18). The SEs are already NULL, not 0 (done 2026-11-16, scratch diff in TX-18 doc). circuit_interaction_s has no fill in practice (0 flagged rows). Under B, scenarios with any missing cell leave the Ghost Standings / hidden-performance pages.",
+      "recommendation": "C (recommendation, not a ruling): the slope fill is a modelling choice the code documents (ego == host is exactly 0); a missing constructor pace is a missing car, which a 0 hides."
     }
   ],
   "history": [
@@ -2105,6 +2620,352 @@
         "board.py --write-order"
       ],
       "next_command": "TOMORROW (suggested order), AI work parked so all optional: (1) Optional coverage mapping of 02's 20 question types to card / query_data / deliberate refusal / unanswerable (no model calls). (2) Free local wiring test: `ollama serve`; from app/: `node scripts/build-cards.mjs --data public/data --out <scratch>`; then `node scripts/assistant-eval.mjs --endpoint http://127.0.0.1:11434/v1/chat/completions --protocol openai --model gpt-oss:20b --data public/data --cards <scratch>/cards.json --evidence ../_roadmap/_ai-integration/_evidence/AX-13-2026-11-08 --repeats 1 --ids oc-wins-VER-2023 --out-name local-smoke`, then the full set. This is a local-model measurement, NOT the official AX-13 baseline (which must run on the Worker/Workers AI; AXW7 reasoning-token question is Worker-specific). (3) Run 03-new-exports `make all` on the same model for the text-to-SQL baseline; compare only overlapping questions (27 vs 79). (4) When ready: owner Worker preview deploy (wrangler login; secrets TICKET_SECRET, ADMIN_TOKEN random hex, TURNSTILE_SECRET test 1x0000000000000000000000000000000AA; wrangler deploy; 3-round check; /admin/usage shows 1 question 3 rounds), then agents do firebase.json CSP with the host; ALLOWED_ORIGINS needs http://localhost:5173 for local drawer tests; frontend env in app/.env.local (git-ignored, created today: VITE_DATA_BASE=\"\", VITE_ASSISTANT_ENABLED=true; Worker URL and Turnstile site key 1x00000000000000000000AA still unset). (5) Then AX-13 real run (--repeats 1, then --repeats 5 --resume; owner Cloudflare login/billing), human read of 10 answers, AX-19 --write --ax13-real-pass, flag-on e2e, AX-20 launch run, switch-on (owner). Next runnable item by board: AX-10."
+    },
+    {
+      "date": "2026-11-14T12:00:00+04:00",
+      "session": "Ingestion fix: full-channel telemetry dict bug, silent-failure manifest column, overnight rate-limit cap (sonnet-5); no board item exists for ingestion; nothing staged or committed; ingest not started",
+      "landed": [
+        "ingestion/src/ingest.py: _write_telemetry_full and _write_pos_data now iterate FastF1 3.8.3 dict-shaped session.car_data / pos_data (driver number -> Telemetry), one parquet per driver at the same paths and columns. Before, every write failed with \"'dict' object has no attribute 'empty'\" and was logged as a warning, so runs reported success with telemetry_full/ and pos_data/ empty.",
+        "Not silent any more: new manifest columns telemetry_full_status (ok | empty | error; blank when --telemetry-full not requested) and telemetry_full_note; non-ok is logged at ERROR and shown in the end-of-run notes; the session still counts as ok. Documented in ingestion/SCHEMA.md.",
+        "MAX_RATE_LIMIT_WAITS 3 -> 24 (RATE_LIMIT_WAIT_S stays 3600, about 24 h of waits, enough for an overnight full run). Finished sessions are skipped on rerun, so a stopped run resumes.",
+        "4 new offline tests in ingestion/tests/test_ingest_hardening.py; make test 127 passed (was 123)."
+      ],
+      "verified": [
+        "make test: 127 passed, 0 failed (offline).",
+        "board.py --check run after this entry (see gates_run)."
+      ],
+      "assumed": [
+        "NOT verified (needs the network): that real FastF1 3.8.3 car_data/pos_data frames write cleanly through the new code (offline tests use small mock DataFrames), and that 24 waits covers a full run.",
+        "OPEN: data/_archive-2026-11-14/ holds the OLD Bronze data and is KEPT; its deletion is still pending verification of the fresh ingest and is an owner decision.",
+        "OPEN: data/bronze/ holds partial output from earlier fresh runs (11 race/quali lap sessions in 2018, 2021, 2022) written before this fix. Skip-existing keys on the laps file, so those sessions will not get full-channel data unless the owner clears data/bronze first (safe, old data is archived) or passes --force.",
+        "Owner commits; agents never stage or commit."
+      ],
+      "gates_run": [
+        "make test (127 passed)",
+        "board.py --check"
+      ],
+      "next_command": "OWNER, overnight: `make ingest-full`, then `make bronze-lock`, then `make bronze-verify`. Optionally clear data/bronze first (see assumed). Check manifests for telemetry_full_status != ok afterwards. Do not delete data/_archive-2026-11-14/ until bronze-verify passes and the owner has reviewed it."
+    },
+    {
+      "date": "2026-11-14T23:30:00+04:00",
+      "session": "Handoff record: ingestion restart from a clean slate (owner decision); nothing ingested in this session's final state; nothing staged or committed; owner commits",
+      "landed": [
+        "STATE: data/bronze/ and data/cache/ CLEARED on owner request (FastF1 HTTP cache included). Only the .gitkeep placeholders remain in both. A 2026-only ingest was started by mistake and stopped before writing any 2026 file. A full ingest (ingest.py 2018-2026, --session both --telemetry-full, PID 81646, started 21:16 from another session, logging to that session's scratchpad make_ingest_overnight.log) was running, hit the FastF1 500-calls/h limit, and was STOPPED on owner request. Nothing from it is kept.",
+        "KEPT, not touched: data/_archive-2026-11-14/ (11 GB, old Bronze; deletion is an owner call). data/staging/ (2026-11-10 re-ingest attempt: a FastF1 cache, 3 run manifests, 2 schedule parquet files; nothing reads it). data/fits/ (4 parquet files).",
+        "data/fits/tactical_hierarchical_posteriors.parquet: ORPHAN. Written by transform/tasks/coefficients/fit_tactical_hierarchical.py (needs data/dev.duckdb after a dbt build; no Makefile target). Nothing reads it in the repo (only the script and an evidence note). Safe to delete on owner say-so; rebuildable.",
+        "data/fits/degradation_isotonic.parquet: LIVE, KEEP. Served version. Read by mart_degradation_history_envelope via dbt source fits.degradation_isotonic (src_fits.yml). Producer: make deg-iso-fit (needs dev.duckdb). Refit is blocked on TX-09 / XM (external). Sonnet investigation report: do not replace before XM clears. Circular: envelope needs the file to build, and the file needs the envelope; a bootstrap needs a stand-in parquet (tracked fixtures in transform/tests/fixtures/fits/ probably serve this; untested).",
+        "Makefile ingest-full = ingest.py --start-season 2018 --end-season 2026 --session both --telemetry-full. Real FastF1 runs are rate-limited to 500 calls/h; MAX_RATE_LIMIT_WAITS 24 x 3600 s, so a full run is many hours and may need the owner to leave it overnight."
+      ],
+      "verified": [
+        "Post-clear check: find data outside the archive shows only .gitkeep in bronze/cache and the fits/staging/gold/silver/marts/intermediates files listed above; no ingest process running (pgrep ingest.py empty).",
+        "tactical_hierarchical_posteriors.parquet: 43 driver rows, 10 columns (read with pandas); no consumers found by grep."
+      ],
+      "assumed": [
+        "A fresh Bronze run is NOT yet verified against real FastF1 3.8.3 output (the 2026-11-14 ingestion fix was tested offline only; the partial 2018 run that did write data also predates the fix and was discarded).",
+        "2018-2026 is the Makefile's full range. Whether FastF1 offers data beyond that range was not checked; the owner asked for 'everything FastF1 can offer', so confirm the range before starting.",
+        "Owner commits; agents never stage or commit."
+      ],
+      "gates_run": [],
+      "next_command": "NEW CHAT, owner-initiated: (1) confirm the year range (default make ingest-full); (2) run make ingest-full, leaving it to run through rate-limit waits; check manifests for telemetry_full_status != ok; (3) make bronze-lock then make bronze-verify; (4) only after verify passes, the owner decides on deleting data/_archive-2026-11-14/ and data/staging/; (5) make dbt-dev-full. Do NOT replace data/fits/degradation_isotonic.parquet (TX-09 / XM). data/fits/tactical_hierarchical_posteriors.parquet may be deleted on owner say-so. To re-ingest over a locked Bronze, run make bronze-unlock first (deliberate rebuild only)."
+    },
+    {
+      "date": "2026-11-16T11:43:00+04:00",
+      "session": "Handoff record: owner reports the ingestion restart is DONE (ingest-full, bronze-lock, bronze-verify); AI work still parked on the board; pointer unchanged at AX-10; nothing staged or committed by the agent",
+      "landed": [
+        "STATE (owner-reported): ingestion restart complete: make ingest-full, make bronze-lock, make bronze-verify. The owner's clean-slate handoff of 2026-11-14 is closed.",
+        "Checked read-only this session: make bronze-verify returns OK for data/bronze. 10 run manifests, 3667 rows, seasons 2018-2026 all present (2018: 399 rows; 2026: 380).",
+        "Telemetry on ok or thin rows: telemetry_full_status ok 382, empty 8, blank 3277 (blank rows are skip-on-rerun rows and Q sessions with no telemetry field written). No telemetry_full_status ingest errors recorded on ok rows.",
+        "Pointer unchanged: AX-10 is the next runnable board item. The board is not affected by the ingestion restart."
+      ],
+      "verified": [
+        "make bronze-verify: OK /Users/justin/github/off-the-pace/data/bronze (exit 0).",
+        "Manifest read (pandas, read-only): telemetry_full_status crosstab against status: ok 382 ok-rows; empty 8, all 2018 R sessions (australian_grand_prix, bahrain_grand_prix) with 'no samples' notes; one status=error row (2018 italian_grand_prix R, reason 'error') not investigated.",
+        "No ingest.py process running at check time (pgrep)."
+      ],
+      "assumed": [
+        "The owner's 'done' covers the full 2018-2026 run with --telemetry-full. The manifests support this but were not compared against the Makefile range beyond season coverage.",
+        "The 8 empty telemetry sessions (2018 Australia and Bahrain races) are genuine FastF1 gaps and not a regression from the 2026-11-14 dict fix; not checked against FastF1 directly.",
+        "The 2018 Italian GP error row is a single failed session; not investigated.",
+        "data/_archive-2026-11-14/ (11 GB old Bronze) and data/staging/ are still kept; deletion is an owner call after bronze-verify and review. Not deleted this session.",
+        "data/fits/degradation_isotonic.parquet untouched (TX-09 / XM). data/fits/tactical_hierarchical_posteriors.parquet still an orphan; deletion is an owner say-so.",
+        "Owner commits; agents never stage or commit."
+      ],
+      "gates_run": [
+        "make bronze-verify (OK)",
+        "manifest read-only check (telemetry_full_status vs status, season coverage)",
+        "board.py --check (run again after this entry; see result below)"
+      ],
+      "next_command": "OWNER: (1) decide on deleting data/_archive-2026-11-14/ and data/staging/ now that bronze-verify passes; (2) optionally: investigate the 2018 Italian GP error row and the 8 empty 2018 telemetry sessions; (3) make dbt-dev-full, then the dbt build and make bronze-lock downstream checks as the owner wants. Then the board's pointer: AX-10 (Assistant core v2) once the owner is ready to start it."
+    },
+    {
+      "date": "2026-11-16T12:10:00+04:00",
+      "session": "Re-plan after the Bronze re-ingest and the 2026-11-16 data-use audit (opus-5, board only); pointer AX-10 -> TX-15; no code or data touched; nothing staged or committed",
+      "landed": [
+        "Board: groups 0a-bronze-honesty and 0b-new-data added. 14 TX items TX-15..TX-28, AP-09 and AX-28 added at SPEC, each with a new wi/ doc (16 docs).",
+        "Order: TX-15 (scratch rebuild on the new Bronze, parity diff against the Nov-8 export) first; honesty fixes TX-17/18 (0 written for missing values), TX-19/20 (6,500 m clip), TX-21 (docs), TX-22 (manifest), TX-16 (2018 Italian GP, after HD15); then marts TX-23..28, pages AP-09, cards AX-28 (after HD14).",
+        "Decisions opened (owner): HD14 unpark the assistant; HD15 2018 Italian GP; HD16 telemetry clip; HD17 2026 holdout pages; HD18 delete data/_archive-2026-11-14/ and data/staging/.",
+        "Existing items: AX-10/12/13/14 now wait on HD14 (the 2026-11-09 park recorded as a decision; stages unchanged). AX-15b also depends on TX-17 and TX-18. AX-22 and AX-25 CLOSED (re-ingest carries the corrected clock; fix and test committed in 8f23310). Watch AXW14 (stale export) added.",
+        "Not changed: no v2 file archived or moved; TX-09 and data/fits/ untouched; AX-23/24/26/27 kept as they were; status_summary and README.md not edited."
+      ],
+      "verified": [
+        "Audit line references re-read: fct_stint_features.sql:226, fct_ghost_race_finish.sql:334, fct_ghost_car_pace.sql:206-221, stg_telemetry.sql:70-71, src_formula1.yml:82 and :525, SCHEMA.md:92 and :217, stg_laps.sql:93-99 and :121-126, known_gaps.txt:10, ingest.py --session choices, dbt_project.yml holdout_season 2026.",
+        "Manifests (pandas, read-only): 2018 R italian_grand_prix status=error on all 10 runs; all 193 Q sessions have a telemetry_full_status=ok run (audit (g) restated as a skip-row reader gap); the 8 empty rows are 2018 R Australia and Bahrain x 4 runs, circuit_info KeyError '3'/'77'.",
+        "Race control (pyarrow, read-only): 191 R and 193 Q files all carry session_time_corrected_s; 69 of 18,290 R rows null or NaN. git log -S finds the fix in 8f23310; test at ingestion/tests/test_ingestion.py:472.",
+        "Bronze telemetry: 193 files under session=Q/ that the raw_telemetry glob misses; archive holds 2018 Italian R partitions. No ml/src file reads cumulative_dirty_air_tax_s.",
+        "board.py --check exit 0 and --write-order run after this entry."
+      ],
+      "assumed": [
+        "Audit counts (2,393/8,945 stints; 4/30,344 and 1,135/82,298 of 1,384,558 ghost rows; ~10% Spa samples; 2,010 R / 722 Q deleted laps; ~400 laps without SpeedST; ~65% more raw samples) were not re-counted: there is no warehouse built on the new Bronze yet. TX-15 records them on the rebuild.",
+        "Feature costs are the audit's estimates. TX-23's push-lap definition and TX-26's message classes are open inside their docs and must be written there before building.",
+        "Owner commits; agents never stage or commit. No make target was run."
+      ],
+      "gates_run": [
+        "board.py --check (exit 0, after this entry)",
+        "board.py --write-order",
+        "read-only manifest, race-control and glob checks listed under verified (no make target, no dbt)"
+      ],
+      "next_command": "TX-15 (sonnet-5): scratch dbt build on data/bronze (own folder, copy named dev.duckdb, 1 thread) and the parity diff against app/public/data; waits on no ruling. In parallel, OWNER: HD15 (2018 Italian GP) and HD18 (archive/staging deletion); HD14 before any AX item; HD16 after TX-19; HD17 whenever."
+    },
+    {
+      "date": "2026-11-16T15:00:00+04:00",
+      "session": "Bronze data probe for the new-data plan (read-only) and owner rulings HD14/HD17 recorded (opus, board only); no code or data touched; nothing staged or committed",
+      "landed": [
+        "HD14 RESOLVED (owner): assistant unparked only once the transform group is sorted. AX-10/12/13/14/28 now depend on every live 0a-bronze-honesty and 1-transform item (TX-09, TX-15..TX-22, AX-24, TX-29) and on TX-23..TX-27; stages unchanged.",
+        "HD17 RESOLVED (owner, changed): holdout is 2025; train strictly 2018-2024; 2026 not the holdout and not yet defined for use. New item TX-29 (opus-5, SPEC, group 1-transform) with wi/TX-29-holdout-2025.md listing the files that pin or read the holdout. dbt_project.yml and fits NOT edited.",
+        "HD18 left OPEN, reframed as pending which deletion is meant: (a) archive + staging or (b) old models; the context lists what each loses.",
+        "HD15 and HD16 context and TX-16, TX-23..TX-28 notes updated with the probe results."
+      ],
+      "verified": [
+        "make bronze-verify: OK data/bronze (read-only hash check).",
+        "Bronze counts (duckdb, read-only): R/Q event files per season for laps, telemetry, results, race_control: 2018 20/21, 2019 21/21, 2020 17/17, 2021-2023 22/22, 2024 24/24, 2025 24/24, 2026 19/20. Against the schedule only 2018 R italian_grand_prix and 2026 R bahrain_grand_prix are missing, matching known_gaps.txt; 2018 R merged telemetry also lacks Australia and Bahrain.",
+        "2025 complete: R laps 26,689 rows, telemetry 18.4M, results 479; Q laps 7,456, telemetry 10.4M, results 480; 24 events each.",
+        "Deleted laps 2019-2026: R 2,010, Q 722 (matches the audit); 2018 zero. Q telemetry 193 files, 84.9M rows.",
+        "2018 Italian R: no file in data/bronze; data/_archive-2026-11-14/bronze has no data files; archived dev.duckdb/ci.duckdb have 2018_14 built rows; FastF1 cache has the race pickles; data/staging has nothing for it.",
+        "Spa: 9-11% of merged-telemetry samples beyond 6,500 m in 2023 and 2024, R and Q.",
+        "Jolpica pit_stops and constructor_standings are under data/bronze/reference/jolpica/; standings are one round per season.",
+        "data/fits/ is empty (only .gitkeep).",
+        "board.py --check exit 0 and --write-order run after this entry."
+      ],
+      "assumed": [
+        "HD14 'transform group' read as every live item in 0a-bronze-honesty and 1-transform (which includes TX-09, blocked on XM, and AX-24) plus the card marts TX-23..TX-27; TX-28 left out because no card reads it. Owner can trim the list.",
+        "HD18's two reads are the board session's translation of the owner's words; which one is meant is unconfirmed.",
+        "race_control session_time_s read as seconds of the day from the sample shown (Belgium 2024); not checked on every race.",
+        "Owner commits; agents never stage or commit. No writing make target was run."
+      ],
+      "gates_run": [
+        "make bronze-verify (OK)",
+        "board.py --check (exit 0, after this entry)",
+        "board.py --write-order",
+        "read-only duckdb/glob probes of data/bronze, data/_archive-2026-11-14 (DBs opened read_only) and data/staging"
+      ],
+      "next_command": "TX-15 (sonnet-5): scratch dbt build on data/bronze (own folder, copy named dev.duckdb, 1 thread) and the parity diff against app/public/data; note data/fits/degradation_isotonic.parquet is absent. Then TX-29 (opus-5) for the 2025 holdout. OWNER: HD18 (which deletion), HD15 (2018 Italian GP; archive option C is gone), HD16 after TX-19."
+    },
+    {
+      "date": "2026-11-16T16:00:00+04:00",
+      "session": "HD15 attempt: 2018 Italian GP race re-ingest with a fresh FastF1 fetch into a new cache (sonnet); failed, recorded as a known gap; nothing staged or committed",
+      "landed": [
+        "HD15 RESOLVED as B (owner: \"try it if it doesn't happen we've got a gap\"). Dry run of ingest.py --season 2018 --round 14 --session R --telemetry-full with --cache-dir (new empty dir in scratch) and --bronze-dir (scratch): car, position, weather and race-control data fetched, but lap timing failed with the same FastF1 IndexError in __fix_tyre_info; 0 sessions written, manifest status error.",
+        "ingestion/known_gaps.txt: comment for 2018 R italian_grand_prix now records the 2026-11-16 retry and failure. The gap line itself is unchanged."
+      ],
+      "verified": [
+        "make bronze-verify: OK data/bronze (Bronze never unlocked).",
+        "Fetch took about 14 seconds; no FastF1 rate limit hit."
+      ],
+      "assumed": [
+        "The 2018 R Bahrain-style line in known_gaps.txt: only 2026 R bahrain_grand_prix is a gap line and its comment matches it; nothing to correct was found.",
+        "Owner commits; agents never stage or commit."
+      ],
+      "gates_run": [
+        "ingest.py dry run into scratch Bronze (failed as described)",
+        "make bronze-verify (OK)",
+        "board.py --check, --write-order"
+      ],
+      "next_command": "TX-15 (sonnet-5): scratch dbt build on data/bronze and the parity diff against app/public/data. TX-16 can now proceed on the gap route (HD15 resolved as B). OWNER: HD18 (which deletion), HD16 after TX-19."
+    },
+    {
+      "date": "2026-11-16T17:00:00+04:00",
+      "session": "TX-21 doc fixes and TX-19 Spa clip measure (sonnet); docs edited, Bronze read-only; nothing staged or committed",
+      "landed": [
+        "TX-21: track-status codes corrected in transform/models/staging/src_formula1.yml:82 and ingestion/SCHEMA.md:92 (5=red, 6=VSC deployed, 7=VSC ending, per stg_laps.sql:121-126); ingestion/known_gaps.txt:10 comment now 2018 R bahrain_grand_prix; ingestion/SCHEMA.md:217 and :248 corrected for session_time_s. Stage MEASURED, awaiting orchestrator re-check.",
+        "TX-19: measured. Spa (belgian_grand_prix) race samples at or above 6,500 m: 611,097 of 5,856,358 across 8 seasons (about 10.0-10.9% per season; 2024 R 72,901 of 703,858 = 10.36%). Turns 18 and 19 sit beyond 6,500 m (2024: 6,668 and 6,738 m); Turn 17 (about 6,140 m) is not affected. 2024 R: all 841 driver-laps lose samples in both corners; Turn 19 loses 100% of its window samples, Turn 18 87%. Outputs: /private/tmp/claude-501/-Users-justin-github-off-the-pace/2a4fcfbe-da29-45d9-a8d3-1e4bbaaf446a/scratchpad/fix/tx19_clip_by_session.csv, tx19_spa_corners_R.csv, tx19_summary.json. Stage MEASURED; rows-that-move under a new bound not computed."
+      ],
+      "verified": [
+        "Bronze race_control: session_time_s has 0 nulls in all seasons 2018-2026; session_time_corrected_s null only for 69 rows (2018 bahrain_grand_prix R).",
+        "Manifests: 2018 R bahrain_grand_prix car_data and pos_data have no samples; 2018 R australian_grand_prix pos_data has none.",
+        "ingest.py:338-356: session_time_s is time of day when Time is a datetime; session_time_corrected_s is seconds since t0_date.",
+        "src_formula1.yml raw_telemetry reads telemetry/*/*/*.parquet, so session=Q telemetry is not read by staging; only race files are clipped in the pipeline.",
+        "Outside Spa, race samples at or above 6,500 m total 25,693 across 72 laps (13 circuit-seasons), all runaway-distance artefact laps (e.g. 2020 Austria up to 25,815 m)."
+      ],
+      "assumed": [
+        "Corner windows reproduced from dim_corners.sql logic (apex minus 250 m to apex plus 150 m, clipped at neighbouring apexes, vars in dbt_project.yml) using Bronze circuit_info, not from a dbt build.",
+        "The SCHEMA.md column type for session_time_s still reads TIMESTAMP_NS in that table; I did not check or change the dtype.",
+        "Effect on int_corner_metrics and mart_corner_skill_driver follows from the INNER JOIN on the window; not run through dbt."
+      ],
+      "gates_run": [
+        "read-only duckdb queries on data/bronze (telemetry, circuit_info, race_control, manifests)",
+        "board.py --check, --write-order, --check"
+      ],
+      "next_command": "OWNER: HD16 (lift or keep the clip) using the TX-19 numbers; orchestrator re-checks the TX-21 diff and promotes it. A scratch dbt run would be needed to count the mart rows that move."
+    },
+    {
+      "date": "2026-11-16T18:00:00+04:00",
+      "session": "TX-20 Spa clip fix and silent-error audit (sonnet); transform/ edited, scratch dbt only; nothing staged or committed",
+      "landed": [
+        "TX-20: transform/models/staging/stg_telemetry.sql replaces the fixed distance_m < 6500 with a per-circuit bound (circuit_bound CTE: published lap length x 1.10, floored at 6500 m; belgian_grand_prix 7704, las_vegas 6821, saudi_arabian 6791, azerbaijan 6603). schema.yml descriptions updated (stg_telemetry lines 343, 379). New singular test transform/tests/assert_stg_telemetry_distance_bound.sql (spa_samples_dropped, runaway_retained, unlisted_long_circuit). Stage MEASURED, awaiting orchestrator re-check.",
+        "Scratch result: rows moved only in the 9 Spa race_ids (2018_13, 2019_13, 2020_7, 2021_12, 2022_14, 2023_12, 2024_14, 2025_13, 2026_10): +611,097 samples (+10.1 to +11.2% of each race), matching TX-19. No other circuit-season changed (189 race_ids compared). Turn_19 window samples 0 -> 41,118 (2018) ... 50,160 (2026); Turn_18 3,555 -> 43,417 (2018), 6,195 -> 48,202 (2024). int_corner_metrics Turn_19 rows 0 -> 690 (2018), 841 (2024); 2021 (wet) Turn_18 24 -> 60 rows, Turn_19 0 -> 51.",
+        "Silent-error audit (read-only, recommended fixes for owner review, none applied): see the final report of this session; summary in verified."
+      ],
+      "verified": [
+        "Bronze circuit_info has corner geometry only (index, X, Y, Number, Letter, Angle, Distance, race_id, season, race): no circuit length. Per-lap max distance per circuit from Bronze telemetry: Spa median 6,942, p99 7,009, max 7,164 (99.8% of Spa laps exceed 6,500); Las Vegas max 6,226; Saudi 6,161; Baku 6,071; all others median under 5,900.",
+        "Scratch dbt test: assert_stg_telemetry_distance_bound PASS, assert_corner_window_geometry PASS, unique/not_null on stg_telemetry and dim_corners PASS (24 pass). Runaway laps (up to 25,815 m at Austria) still excluded: no stg_telemetry sample at or above 7,704 m anywhere, none at or above 6,500 m outside the four listed circuits.",
+        "Audit 1 (fct_stint_features.sql:226 COALESCE dirty-air tax to 0): real. App parquet: 2,393 of 8,945 stints show 0 (all seasons 189-364 per season; 2018 is 364 of 947, not all). 734 stints have no laps in fct_lap_residuals and are all 0, and at least 372 more have no non-null lap tax, so about 1,106 zeros are unmeasured rather than measured clamp-to-0; the rest are genuine clean-air zeros. Changes a published number.",
+        "Audit 2 (fct_ghost_race_finish.sql:334 finish_pos_se 0): latent only. 4 of 30,344 published rows are 0 and they are genuine (HUL 2023, p_beats_next 1.0, predicted P1). No published impact.",
+        "Audit 3 (fct_ghost_car_pace.sql:206-221): real but small. host_constructor_pace_s = 0 with se = 0 on 1,135 of 1,384,558 laps (0.08%): 2021 Haas, 2021 Williams, 2025 Mercedes, one race each. Deg slope = 0 on 82,298 laps (5.9%) with the sd present, so not shown to be missing-fill.",
+        "Audit 4: partly wrong. stg_laps selects is_deleted but not DeletedReason (real, no effect: 2,010 deleted laps are dropped either way; reasons like TRACK LIMITS are unused). stg_weather does NOT drop wind: it selects wind_speed_ms and wind_direction (stg_weather.sql:40-41, 156-157, 200-201), but no model reads them downstream.",
+        "Audit 5: real, no published effect. speed_i1/fl/st_kph appear only in stg_laps, stg_laps_qualifying, stg_sector_times and schema.yml; no intermediate or mart reads them.",
+        "Audit 6: already handled in staging: stg_race_control.sql:56 exposes the column as message_time_s with the wall-clock caveat in the comment; nothing joins on it.",
+        "New finding: int_lap_residual_decomposed.sql:254-255 fills rubber and ambient components with 0 and :278-280 constructor pace and its SE with 0. Published fct_lap_residuals: rubber 0 on 47,558 of 161,040 laps (29.5%), ambient 0 on 11,605, constructor pace and SE both 0 on 7,757 (4.8%; 2018 2,003 laps, 2023 none). The constructor fill is documented in the SQL (rain laps, the term cancels in ML labels but not in residual levels).",
+        "New finding: in the scratch build the relationships test stg_telemetry.race_id -> race_to_track fails for 14,625,196 rows: all 19 2026 race_ids are missing from race_to_track (173 rows, 2018-2025). Not caused by this change."
+      ],
+      "assumed": [
+        "Published lap lengths (Spa 7,004 m, Las Vegas 6,201, Saudi 6,174, Baku 6,003) come from public circuit data, not from Bronze; they were cross-checked against Bronze per-lap max distance p99, not read from it.",
+        "Zero-tax stints counted from app/public/data parquets (published 2026-11-08 build), not from a fresh build; the split between unmeasured and genuine zero uses fct_lap_residuals stint membership and int_dirty_air_tax_component lap rows.",
+        "Downstream effect beyond int_corner_metrics (int_lap_telemetry_aggregates, mart_corner_skill_driver, model_hashes baselines) was not built or measured; only stg_telemetry, dim_corners and int_corner_metrics were built in scratch.",
+        "The 'before' counts for Turn_18/Turn_19 were computed by applying the old < 6500 cut to the new stg_telemetry, not from a second dbt build with the old SQL."
+      ],
+      "gates_run": [
+        "dbt build --select +int_corner_metrics into scratch /private/tmp/claude-501/-Users-justin-github-off-the-pace/07fd3d01-83ac-4ecd-a5f1-eb09fb15fd02/scratchpad/fix2/dev.duckdb (profiles-dir, target-path and log-path all in that folder): 13 pass, 12 error, 5 skip; the 12 errors and 5 skips are unrelated tests whose upstream models were not built in scratch; all 6 models built (stg_circuit_info, stg_telemetry, dim_circuits, stg_laps, dim_corners, int_corner_metrics).",
+        "dbt test --select stg_telemetry dim_corners assert_corner_window_geometry assert_corner_closure assert_stg_telemetry_distance_bound (scratch): 24 pass, 3 not passing for scratch reasons (relationships to dim_drivers: model not built; relationships to race_to_track: 2026 missing; assert_corner_closure: int_corner_skill_residuals not built).",
+        "read-only duckdb queries on data/bronze and app/public/data parquets; nothing written under data/ or app/; no git add, commit or push",
+        "board.py --check, --write-order, --check"
+      ],
+      "next_command": "OWNER: review the diff (git diff transform/models/staging/stg_telemetry.sql, transform/tests/assert_stg_telemetry_distance_bound.sql), decide the audit fixes (stint dirty-air tax NULL instead of 0, rubber/ambient/constructor 0 fills), then a full build to re-take model_hashes baselines and diff the corner marts. Orchestrator: re-run the TX-20 definition of done and promote to LANDED."
+    },
+    {
+      "date": "2026-11-16T19:00:00+04:00",
+      "session": "Board re-plan (opus): transform honesty work coalesced into TX-30; new-data and assistant items placed after it; board files only, no dbt; nothing staged or committed",
+      "landed": [
+        "TX-30 (new, 0a-bronze-honesty, SPEC, opus-5, 3d): 'Transform honesty sweep: one scratch rebuild, one diff review', doc wi/TX-30-transform-honesty-sweep.md. Steps a-k: TX-15 baseline, TX-16, TX-17, TX-18, NEW lap-residual zero-fills, TX-19/TX-20 verify, NEW race_to_track 2026, TX-21 verify, NEW stale docs and hash baselines, TX-22, one owner diff review and one re-export decision (AXW14).",
+        "TX-15..TX-22 marked 'absorbed by TX-30' in their notes; stages unchanged. TX-30 depends on them (so TX-15 stays runnable and the pointer can sit on it).",
+        "Waits re-pointed to TX-30: TX-23..TX-28, AP-09, AX-10, AX-12, AX-13, AX-14, AX-28; the assistant items also wait on TX-23..TX-27; absorbed TX-15..TX-22 waits dropped where TX-30 covers them.",
+        "HD16: owner instruction \"fix all the spa laps\" recorded as option A, marked as an instruction, not a formal ruling; still OPEN. HD19 (new, OPEN, blocks nothing): question whether TX-09 should block the assistant. AXW14 now also clears on TX-30.",
+        "Pointer: TX-15 (TX-30 step a)."
+      ],
+      "verified": [
+        "Lap-residual zero-fills re-counted read-only on the published Nov-8 app/public/data/facts/fct_lap_residuals: 161,040 laps; rubber 0 on 47,558; ambient 0 on 11,605; constructor pace and SE both 0 on 7,757. Matches the audit.",
+        "TX-21 doc fixes still in place (read-only): src_formula1.yml:82 and SCHEMA.md:92 decode 5=red, 6=VSC, 7=VSC ending as stg_laps.sql:121-126; known_gaps.txt:8-12 name 2018 R Australia and R Bahrain; SCHEMA.md:217,248 session_time_s notes.",
+        "race_to_track is a seed (transform/seeds/race_to_track.csv, 173 rows, 2018-2025, no 2026); int_stint_geometry.sql:56 and int_lap_fuel_state.sql:52 read it.",
+        "TX-20 working-tree files present: stg_telemetry.sql modified (+29/-2), transform/tests/assert_stg_telemetry_distance_bound.sql untracked. docs/reference/models/stg/stg_telemetry.mdx:11,42 still say 6500 m."
+      ],
+      "assumed": [
+        "The owner's words \"fix all the spa laps\" were relayed by the orchestrator, not read from a record; they are logged as an instruction, not a ruling.",
+        "TX-29 does not need the sweep: based on grep of the fit scripts' FROM/ref lines, not on a build.",
+        "Making TX-30 depend on its absorbed items (rather than the reverse) is the board mechanics for 'sub-steps of TX-30': the reverse would leave TX-15 not runnable while the pointer sits on it."
+      ],
+      "gates_run": [
+        "board.py --check, board.py --write-order, board.py --check (no dbt, no export, nothing written under data/ or app/; one read-only duckdb query on app/public/data parquets)"
+      ],
+      "next_action": "Owner: approve the start of TX-15 (TX-30 step a), the scratch rebuild and parity diff. Answer HD19 when convenient; confirm HD16 at the TX-30 diff review.",
+      "next_command": "OWNER: approve TX-15 start (scratch rebuild on the 2026-11-16 Bronze, diff vs the Nov-8 export; wi/TX-15-bronze-rebuild-parity.md), then: python3 _roadmap/_ai-integration/status/board.py"
+    },
+    {
+      "date": "2026-11-16T18:30:00+04:00",
+      "session": "fixall: every fix-plan item not gated by a ruling (opus); working tree and scratch only; nothing staged, committed, exported or published",
+      "landed": [
+        "TX-22 LANDED (ingest verifier and tests)",
+        "TX-24, TX-25 LANDED (scratch-only marts, tests pass, not exported)",
+        "TX-15, TX-16, TX-17, TX-18, TX-27, TX-29 MEASURED (see notes)",
+        "HD19 raised for the TX-18 priors"
+      ],
+      "verified": [
+        "make test: 160 passed",
+        "scratch base build 98/98; fix build 15/15 models, new tests pass (stint dirty-air, ghost SE 41/41, track limits, speed traps, holdout guard; planted holdout fails 64)",
+        "pytest test_holdout_guard + test_seed_param_provenance 40 passed",
+        "vitest data-quality-audit + hidden-performance 15 passed; tsc -p tsconfig.app.json clean"
+      ],
+      "assumed": [
+        "Car-FE fits re-fitted into scratch with pyfixest 0.60 in a scratch venv (.venv has 0.70, which breaks 24 coefficient tests and the fit)",
+        "mart_degradation_history_envelope and int_lap_physical_ahead+ excluded from the scratch build",
+        "A concurrent session edited stg_telemetry.sql, staging/schema.yml and added assert_stg_telemetry_distance_bound.sql (TX-20, HD16 not ruled); not touched here and kept out of the scratch builds"
+      ],
+      "gates_run": [
+        "make test",
+        "dbt run/test in scratch (base, fix)",
+        "diff_marts.py vs app/public/data and vs base",
+        "pytest holdout guard",
+        "vitest + tsc",
+        "board.py --check, --write-order, --check"
+      ],
+      "next_action": "Owner: read the TX-15 diff and the TX-17/18 diffs; rule HD19 and HD16; decide on the TX-20 working-tree edit made by another session.",
+      "next_command": "OWNER: review scratch reports; rule HD19 (TX-18 priors) and HD16."
+    },
+    {
+      "date": "2026-11-16T20:00:00+04:00",
+      "session": "2018 Italian GP last investigation (scratch only; no data/, app/ or package writes)",
+      "landed": [
+        "HD15 stays RESOLVED as B: 2018 R italian_grand_prix accepted as a gap; known_gaps.txt line updated with the finding"
+      ],
+      "verified": [
+        "FastF1 3.9.2 core.py: __fix_tyre_info indexes stint_brackets[n] (line 2249) for stints bunched at the first tyre timestamp; for driver 3 the tyre data has stints 0-3 at one timestamp but timing has 1 pit-in (3 brackets), so n=3 raises IndexError",
+        "Scratch-only monkeypatch (drop first-timestamp tyre messages whose stint number is beyond the brackets) loads the race: 927 laps, 20 drivers, with telemetry; not ingested; differs from the Nov-8 published 833 laps",
+        "Archive silver is empty and archive staging holds no 2018 files or parquet"
+      ],
+      "assumed": [
+        "The 927-lap result is unreviewed: Nov-8 published 833 laps came from a different path; owner has not authorised a library patch or re-ingest"
+      ],
+      "gates_run": [
+        "scratch FastF1 load (probe + guarded)",
+        "board.py --check, --write-order, --check"
+      ],
+      "next_action": "Owner: optionally rule whether to use the guarded-load workaround; otherwise the gap stands.",
+      "next_command": "OWNER: review known_gaps.txt entry; no further action needed for HD15."
+    },
+    {
+      "date": "2026-11-17T16:30:00+04:00",
+      "session": "TX-15 scratch rebuild and diff on the 2026-11-16 Bronze with the Spa clip fix (scratch only; no data/, app/public/data/ or git writes)",
+      "landed": [
+        "TX-15 scratch rebuild ran and the diff is ready for the owner's review; nothing published, no repo file changed except this entry. TX-15 stays MEASURED, not LANDED: the evidence folder _evidence/tx-15-bronze-parity/ is not written and the owner has not read the diff"
+      ],
+      "verified": [
+        "Scratch /private/tmp/claude-501/-Users-justin-github-off-the-pace/07fd3d01-83ac-4ecd-a5f1-eb09fb15fd02/scratchpad/tx15 (dev.duckdb, 1 thread, Bronze read-only). dbt build alone gave PASS 463 / ERROR 53 / SKIP 1050 of 1566 (failed relationships tests on 2026 rows block downstream models); dbt run PASS 104/104 (after refitting car-FE into scratch/fits with pyfixest 0.60); dbt test PASS 1386 / FAIL 54 of 1440",
+        "Excluded: mart_degradation_history_envelope (no degradation_isotonic.parquet) and int_lap_physical_ahead+ (feeds no exported table)",
+        "2018_14 drops everywhere (fct_lap_residuals 833 -> 0). Whole 2018-2025 fct_lap_residuals 161,040 -> 160,215 (-825) over 12 races",
+        "Spa (race_ids 2018_13..2025_13): stg_telemetry rows at or above 6,500 m are 10.1-11.3 percent of each race now kept; int_corner_metrics Turn_19 appears in every season (before 0 rows; after 690/783/766/51/790/814/841/878 for 2018-2025); Turn_18 row counts unchanged",
+        "Unexpected vs the brief: 2020_1 loses 74 laps, 2021_12 gains 20, 2022_18 +33 and 9 more races gain 1-7 laps; assert_prior_season_labels_frozen fails on 7 season_label_stats rows (2018 n 10,813 -> 11,282) so the label baseline moved on this Bronze"
+      ],
+      "assumed": [
+        "The 54 test failures are 2026 rows missing from the race_to_track seed and dim_constructors except the six listed in the report; not each one traced to a cause",
+        "Car-FE fits refitted in scratch with pyfixest 0.60 (the venv has 0.70); fits are not the published ones"
+      ],
+      "gates_run": [
+        "dbt parse",
+        "dbt build (scratch)",
+        "dbt run + dbt test (scratch)",
+        "row-count and per-race diff against app/public/data (read only)",
+        "board.py --check, --write-order, --check"
+      ],
+      "next_action": "Owner: read the diff, decide on assert_prior_season_labels_frozen (label baseline moved), 2020_1 and 2021_12 changes, and whether to write _evidence/tx-15-bronze-parity/ from the scratch report.",
+      "next_command": "OWNER: review /private/tmp/claude-501/-Users-justin-github-off-the-pace/07fd3d01-83ac-4ecd-a5f1-eb09fb15fd02/scratchpad/tx15/diff2.out"
+    },
+    {
+      "date": "2026-11-17T18:00:00+04:00",
+      "session": "Lock in owner decisions HD15, HD16, HD18, HD19 and TX-15 open issues (board edit only; no code, data or git writes)",
+      "landed": [
+        "Confirmed HD15 (resolved B, recorded gap), HD16 (resolved A, per-circuit bound), HD19 (resolved no; degradation cards stale until TX-09) with the owner's words quoted; HD18 confirmed OPEN with the archive-must-not-be-deleted note. Added: HD15 open workaround question (927-lap scratch workaround unverified), HD16 working-tree file names, TX-15 open issues. TX-15 stays MEASURED; TX-30 stage unchanged (SPEC), its first step is the owner's TX-15 diff review"
+      ],
+      "verified": [
+        "board.py --check, --write-order, --check (see the session report)"
+      ],
+      "assumed": [
+        "HD15 927-lap FastF1 workaround is unverified (open Opus check)",
+        "HD18 not ruled by the owner",
+        "TX-15: 2020_1 -74 laps and the ~10 races gaining laps are unexplained; 54 of 1,440 tests fail (43 on 2026 rows, six unclassified incl. assert_prior_season_labels_frozen); car-FE fits refitted with pyfixest 0.60 may not match published fits"
+      ],
+      "gates_run": [
+        "board.py --check"
+      ],
+      "next_action": "Owner: review the TX-15 diff, rule on the unexplained lap changes and failing tests, decide HD18.",
+      "next_command": "OWNER: review the TX-15 diff and rule on the unexplained lap changes and failing tests; decide HD18; the owner commits the working tree when ready. Nothing is committed by agents."
     }
   ],
   "watch_vocabulary": {
@@ -2310,6 +3171,35 @@
       },
       "resolved": "2026-11-08",
       "resolution": "Committed by the owner: HEAD fbb2b9f (with bf041a0) carries _roadmap/_archive/_ai-integration-v1/, the board, wi/ and _evidence/; git status was clean at the start of the 2026-11-08 decision pass."
+    },
+    {
+      "id": "AXW14",
+      "raised": "2026-11-16",
+      "kind": "stale-artifact",
+      "item": "TX-15",
+      "recommended_model": "sonnet",
+      "title": "The published export and every card were built on the old (pre-2026-11-14) Bronze",
+      "detail": "app/public/data (manifest e5b324bf3e6d07a6, 2026-11-08) and the card set come from the warehouse now in data/_archive-2026-11-14/. The new Bronze drops 2018_14 and changes telemetry coverage. Do not quote, freeze (AX-19) or publish from the old export as if current.",
+      "clears_when": "TX-15's parity report is read by the owner, TX-16/17/18 have landed, TX-30's single diff review is done (step k), and an owner-approved re-export and card rebuild on the new Bronze are recorded here.",
+      "trigger": {
+        "clear": {
+          "all": [
+            {
+              "item": "TX-15"
+            },
+            {
+              "item": "TX-17"
+            },
+            {
+              "item": "TX-18"
+            },
+            {
+              "item": "TX-30"
+            },
+            "manual"
+          ]
+        }
+      }
     }
   ],
   "status_summary": {

@@ -1,8 +1,10 @@
 -- stg_telemetry.sql · staging · grain: one row per telemetry sample (10 Hz)
 -- Renames Bronze telemetry columns to snake_case, casts Distance from int →
 -- double.
--- Source: raw_telemetry Bronze Parquet (race + qualifying sessions). No
+-- Source: raw_telemetry Bronze Parquet (race sessions only). No
 -- aggregations.
+-- Qualifying telemetry is excluded on purpose (the source glob matches race
+-- files only); TX-23 handles it as stg_telemetry_qualifying.
 -- Projects the powertrain channels (rpm / n_gear / drs_active) needed by the
 -- per-lap
 -- telemetry aggregates (int_lap_telemetry_aggregates). FastF1 DRS
@@ -62,13 +64,13 @@ renamed AS (
 
         CAST(distance_m AS DOUBLE) AS distance_m,
         -- Sample clock. distance_m alone is NOT a total order within a lap:
-        -- 982,303 car-channel samples (1.6%) share a
+        -- 1,073,311 car-channel samples (1.4% of 75.4M) share a
         -- (race, driver, lap, distance) key, because a stationary or crawling
         -- car keeps sampling at 10 Hz while distance does not advance. Any
         -- LAG/LEAD ordered on distance alone therefore picks an arbitrary
         -- neighbour, and the choice moves with DuckDB's scan parallelism.
         -- Adding this column makes (distance_m, session_time_s) unique across
-        -- all 59.5M rows, with zero NULLs.
+        -- all 151.0M race rows (all source channels), with zero NULLs.
         CAST(sessiontime AS DOUBLE) / 1e9 AS session_time_s,
         CAST(speed_kph AS DOUBLE) AS speed_kph,
         CAST(throttle_pct AS DOUBLE) AS throttle_pct,

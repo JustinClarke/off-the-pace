@@ -472,6 +472,12 @@ models:
       - name: sector_time_s
         description: Time spent in the sector (seconds).
         data_type: double
+      - name: sector_time_missing
+        description: >
+          TRUE when the source has no time for this sector (sector_time_s NULL). The row is kept, so
+          each lap has three rows; consumers filter on it.
+        data_type: boolean
+        tests: [not_null]
       - name: sector_session_time_s
         description: Session clock (s) at the sector split.
         data_type: double
@@ -707,9 +713,11 @@ models:
       - name: rainfall_flag
         description: >
           WET-CONDITIONS flag, the one every consumer filters on (WI-05, F26). Not bronze
-          Rainfall: TRUE when at least two of three independent signals say wet -- bronze
-          Rainfall, humidity_pct >= var('wet_humidity_min_pct'), and field_wet_tyre_share >=
-          var('wet_field_tyre_share_min'). Bronze Rainfall alone read the dry 2018 Spanish and
+          Rainfall: TRUE only when the field tyre vote (field_wet_tyre_share >=
+          var('wet_field_tyre_share_min')) is 1 AND bronze Rainfall or humidity_pct >=
+          var('wet_humidity_min_pct') is 1. Tyres alone never decide wet. Where
+          field_wet_tyre_share is NULL (no recorded compound) tyres abstain and the verdict is
+          the majority of the rain and humidity votes, bronze Rainfall breaking a tie. Bronze Rainfall alone read the dry 2018 Spanish and
           2019 Monaco GPs as 83% raining and never fired at the fully wet 2020/2021 Turkish
           GPs. Raw value in rainfall_flag_bronze.
         data_type: boolean
@@ -727,12 +735,21 @@ models:
           INTERMEDIATE or WET tyres (bronze compound). NULL when no car has one.
         data_type: double
       - name: wet_signal_votes
-        description: How many of the three wet signals fired on this lap (0-3); rainfall_flag is votes >= 2.
+        description: How many of the wet signals voted wet on this lap (0-3). A NULL signal abstains and does not count as a vote. Informational, since rainfall_flag is not a plain count of these (tyres are required when available).
         data_type: integer
+      - name: wet_signal_available
+        description: How many of the three wet signals had a value on this lap (2 when the field tyre share is NULL). Context for rainfall_flag, which is tyres AND (rain OR humidity) when the tyre vote exists; otherwise a majority of the two that voted, bronze Rainfall breaking a tie.
+        data_type: integer
+      - name: weather_sample_age_s
+        description: Lap start minus the weather sample time. Negative where the lap starts before the first weather sample (fallback match; about 20 laps).
+        data_type: double
+      - name: weather_sample_stale
+        description: TRUE where the weather sample is more than var('wet_stale_sample_s') (120 s) older than lap start. A flag only; it does not change rainfall_flag.
+        data_type: boolean
       - name: rain_signal_disagreement
         description: >
-          TRUE where bronze Rainfall and the two-of-three verdict differ -- the laps the
-          F26 correction changed, kept so it stays auditable.
+          TRUE where bronze Rainfall and the wet verdict (rainfall_flag) differ, kept so the
+          correction stays auditable.
         data_type: boolean
       - name: wind_speed_ms
         description: Wind speed (m/s).
@@ -941,11 +958,27 @@ models:
         tests: [not_null]
       - name: relative_distance
         description: >
-          Lap fraction in [0, 1). Clamped rather than filtered - FastF1 emits a
-          handful of samples at -3e-6 and 1.0000004 from float error at the lap
-          boundary, and dropping them would punch a hole in exactly the bin (the
-          start/finish line) where the gap matters most.
+          Lap fraction in [0, 1). FastF1 RelativeDistance, or derived from distance_m over the
+          lap's max distance where FastF1 left it NULL (see relative_distance_source). Clamped
+          rather than filtered, so the start/finish bin keeps its samples; relative_clamp flags
+          the clamped rows.
         data_type: double
+      - name: relative_distance_source
+        description: "'fastf1' when FastF1 supplied RelativeDistance; 'derived_from_distance_m' otherwise (16,708 rows)."
+        data_type: varchar
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['fastf1', 'derived_from_distance_m']
+      - name: relative_clamp
+        description: "'low' when FastF1 RelativeDistance was below 0 (25,526 rows); 'high' when at or above 1 (158,831 rows); NULL otherwise."
+        data_type: varchar
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['low', 'high']
+              config:
+                where: "relative_clamp IS NOT NULL"
       - name: pos_x
         description: Track-frame X coordinate (1/10 m). Carried for racing-line deviation; no current consumer.
         data_type: double
@@ -1286,6 +1319,17 @@ models:
           at all.
         data_type: varchar
         tests: [not_null]
+      - name: segment_source
+        description: >
+          'missing_from_feed' when the feed has no segment time for any driver in the race, so
+          'none' above means unknown, not eliminated (2025 Miami). 'official' otherwise. Derived
+          per race_id.
+        data_type: varchar
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['official', 'missing_from_feed']
 
   - name: stg_circuit_info
     description: >

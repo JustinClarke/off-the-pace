@@ -2,7 +2,8 @@
 --
 -- Returns one row per violation. Checks:
 --   * per-season race count equals the declared count (2019-2024 = every ingested race;
---     2025 = 23, Miami absent -- a 2025 row added or dropped must change this list on purpose);
+--     2025 = 24, all ingested races; 2025_6 Miami is a carried_from_2024 row, see the seed
+--     description -- a 2025 row added or dropped must change this list on purpose);
 --   * no season outside 2019-2025 (W50: 2018 rows are never allowed, 2018 identity comes from
 --     the lap name);
 --   * stg_tyre_allocations holds exactly three rows per (race_year, circuit_key), one per
@@ -10,7 +11,7 @@
 --   * codes step strictly harder -> softer (hard < medium < soft), which every row of the
 --     seed satisfies (2022 Australia C2/C3/C5 skips a code but still increases).
 WITH expected(race_year, n_races) AS (
-    VALUES (2019, 21), (2020, 17), (2021, 22), (2022, 22), (2023, 22), (2024, 24), (2025, 23)
+    VALUES (2019, 21), (2020, 17), (2021, 22), (2022, 22), (2023, 22), (2024, 24), (2025, 24)
 ),
 
 seed_counts AS (

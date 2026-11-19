@@ -6,7 +6,7 @@
 -- 'pos' (the true positional-channel cadence) and 'interpolation' (a handful
 -- of synthesised joins). `stg_telemetry` projects all three un-filtered and
 -- `int_lap_telemetry_aggregates` then filters to 'car', which is why the 'pos'
--- rows have never had a consumer despite being 58.8M of the 118.7M rows.
+-- rows had no consumer for a long time: 75.2M 'pos' rows of 233.8M in the file.
 -- This model is that consumer: it is the ONLY place the 'pos' channel is
 -- read, and it projects the positional columns (relative_distance, x, y) that
 -- the car-channel path does not use at all.
@@ -33,6 +33,19 @@ WITH source AS (
     WHERE source = 'pos'
 ),
 
+-- Lap length in metres, per driver-lap, from the position samples' own
+-- distance_m. Used only where FastF1 left RelativeDistance NULL (16,708 rows,
+-- all with distance_m). On rows where both exist, distance_m / this max differs
+-- from RelativeDistance by 0.002 on average (p99 0.008); treat derived values as
+-- approximate and filter on relative_distance_source if precision matters.
+lap_extent AS (
+    SELECT
+        season, race_id, driver_id, lap_number,
+        MAX(CAST(distance_m AS DOUBLE)) AS lap_max_distance_m
+    FROM source
+    GROUP BY season, race_id, driver_id, lap_number
+),
+
 renamed AS (
     SELECT
         CAST(season AS INTEGER) AS race_year,
@@ -46,13 +59,33 @@ renamed AS (
         -- difference of two distances.
         CAST(sessiontime AS DOUBLE) / 1e9 AS session_time_s,
 
-        -- Lap fraction in [0, 1). Clamped rather than filtered: FastF1 emits a
-        -- handful of samples at -3e-6 and at 1.0000004 from floating-point
-        -- error at the lap boundary, and dropping them would punch a hole in
-        -- exactly the bin (the start/finish line) where the gap matters most.
+        -- Lap fraction in [0, 1). Where FastF1 left RelativeDistance NULL, it is
+        -- derived from distance_m over the lap's own max distance (flagged below).
+        -- Out-of-range FastF1 values are clamped, not dropped, so the start/finish
+        -- bin keeps its samples; relative_clamp says which ones were clamped.
         LEAST(
-            GREATEST(CAST(relativedistance AS DOUBLE), 0.0), 0.999999
+            GREATEST(
+                COALESCE(
+                    CAST(relativedistance AS DOUBLE),
+                    CAST(source.distance_m AS DOUBLE) / NULLIF(lap_extent.lap_max_distance_m, 0)
+                ),
+                0.0
+            ),
+            0.999999
         ) AS relative_distance,
+
+        CASE
+            WHEN relativedistance IS NOT NULL THEN 'fastf1'
+            ELSE 'derived_from_distance_m'
+        END AS relative_distance_source,
+
+        -- Clamp flags. FastF1 has 25,526 samples below 0 and 158,831 at or above 1
+        -- (not a handful: about 0.3% of pos rows). Samples at the boundary sit in the
+        -- first or last bin, so consumers can exclude them.
+        CASE
+            WHEN CAST(relativedistance AS DOUBLE) < 0 THEN 'low'
+            WHEN CAST(relativedistance AS DOUBLE) >= 1 THEN 'high'
+        END AS relative_clamp,
 
         CAST(x AS DOUBLE) AS pos_x,
         CAST(y AS DOUBLE) AS pos_y,
@@ -88,7 +121,9 @@ renamed AS (
             WHEN drs IS NOT NULL THEN 'unknown'
         END AS drs_state
     FROM source
-    WHERE relativedistance IS NOT NULL
+    LEFT JOIN lap_extent USING (season, race_id, driver_id, lap_number)
+    -- Keep a row when either position measure exists. Both NULL is 0 rows today.
+    WHERE relativedistance IS NOT NULL OR source.distance_m IS NOT NULL
 )
 
 SELECT * FROM renamed

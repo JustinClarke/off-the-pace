@@ -47,5 +47,16 @@ SELECT
         WHEN q2 IS NOT NULL THEN 'Q2'
         WHEN q1 IS NOT NULL THEN 'Q1'
         ELSE 'none'
-    END AS final_segment_reached
+    END AS final_segment_reached,
+
+    -- 'missing_from_feed' when the feed carries no segment time for any driver in
+    -- the race (2025 Miami: all 20 drivers have a position and timed laps, but
+    -- Q1/Q2/Q3 are null for everyone). Derived per race, not a hand list. 'official'
+    -- otherwise. Consumers that need the segments should skip the race rather than
+    -- read 'none' as elimination.
+    CASE
+        WHEN COUNT(*) FILTER (WHERE q1 IS NOT NULL OR q2 IS NOT NULL OR q3 IS NOT NULL)
+            OVER (PARTITION BY race_id) = 0 THEN 'missing_from_feed'
+        ELSE 'official'
+    END AS segment_source
 FROM source

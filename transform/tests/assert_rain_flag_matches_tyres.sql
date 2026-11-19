@@ -30,7 +30,7 @@ SELECT
     race_id || ': wet flag ' || ROUND(wet_flag_share, 3) || ', wet tyres '
     || ROUND(wet_tyre_share, 3) AS detail
 FROM per_race
-WHERE wet_flag_share > 0.5 AND COALESCE(wet_tyre_share, 0.0) < 0.05
+WHERE wet_flag_share > 0.5 AND wet_tyre_share < 0.05
 
 UNION ALL
 

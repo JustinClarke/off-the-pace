@@ -53,6 +53,17 @@
 -- on every row. assert_stint_boundaries_match_pits (T19) and
 -- assert_stint1_includes_lap1 (T20) re-derive both rules independently from
 -- int_stint_geometry and stg_pits.
+--
+-- KNOWN LIMIT, 2025 Miami (race_id 2025_6): quarantined_race on all 1,005 laps.
+-- Source-side, not a QA defect. FastF1 bronze Stint/Compound/TyreLife are
+-- null on laps 1-23 (354 null-compound laps) and stamped 4-8 laps after each
+-- physical stop for the 12 late stoppers (12 unexplained stint changes; 12 of 18
+-- racing stops unmatched). Jolpica pit stops match stg_pits, so the pit record
+-- is the trusted side. Stale or missing bronze compounds are not served; the
+-- race stays quarantined and its lap-level compounds stay NULL. The 2025 Miami
+-- allocation metadata (carried_from_2024) is separate and does not supply
+-- lap-level compounds. Pinned by tests/assert_miami_2025_*.sql and
+-- tests/assert_quarantined_laps_serve_no_compound.sql.
 {{ config(materialized='view') }}
 
 WITH laps AS (

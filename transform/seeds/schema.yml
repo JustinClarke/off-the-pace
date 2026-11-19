@@ -115,9 +115,11 @@ seeds:
 
   - name: tyre_allocations
     description: >
-      Pirelli weekend compound nominations, 2019-2025, one row per race (151 rows: 128 for
-      2019-2024, covering every ingested race in that span, plus 23 for 2025, which covers 23 of the
-      24 ingested 2025 races; Miami is absent, so 2025_6 has no compound_code). Maps the relative hard/medium/soft badging back to the
+      Pirelli weekend compound nominations, 2019-2025, one row per race (152 rows: 128 for
+      2019-2024, covering every ingested race in that span, plus 24 for 2025, covering all 24
+      ingested 2025 races. 2025_6 Miami is a carried_from_2024 row, C2/C3/C4, added so that its
+      allocation metadata exists; it is NOT evidence of the 2025 Miami lap-level compounds, which
+      stay unavailable, see stg_lap_tyre_qa). Maps the relative hard/medium/soft badging back to the
       absolute C1-C5 scale, which compound_label alone cannot express since Pirelli picks 3 of 5
       physical compounds per weekend.
 

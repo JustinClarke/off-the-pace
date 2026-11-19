@@ -74,6 +74,7 @@ sector2_speed AS (
     FROM {{ ref('stg_sector_times') }}
     WHERE
         sector = 2
+        AND NOT sector_time_missing  -- unchanged rows: S2 with no time was never here
         AND speed_trap_kph IS NOT NULL
         AND speed_trap_kph > 0
 ),

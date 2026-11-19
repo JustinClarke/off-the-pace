@@ -1,6 +1,10 @@
 -- Extract per-sector timing from the laps parquet.
 -- One row per lap × sector (3 rows per lap).
 -- SpeedI2 trap is associated with S2 exit; SpeedST with the main straight.
+-- Flag, do not drop: a sector with no time keeps its row, with sector_time_s NULL
+-- and sector_time_missing TRUE, so the 3-rows-per-lap grain holds and the speed
+-- trap reading is not lost. Consumers that need a time filter on the flag or on
+-- sector_time_s (both already do).
 {{ config(materialized='view') }}
 
 WITH laps AS (
@@ -33,7 +37,6 @@ unpivoted AS (
         speed_i1_kph AS speed_trap_kph,
         is_valid_lap
     FROM laps
-    WHERE sector1_time_s IS NOT NULL
 
     UNION ALL
 
@@ -45,7 +48,6 @@ unpivoted AS (
         speed_i2_kph,
         is_valid_lap
     FROM laps
-    WHERE sector2_time_s IS NOT NULL
 
     UNION ALL
 
@@ -57,7 +59,6 @@ unpivoted AS (
         speed_fl_kph,   -- FL trap is S3 exit
         is_valid_lap
     FROM laps
-    WHERE sector3_time_s IS NOT NULL
 )
 
 SELECT
@@ -69,6 +70,7 @@ SELECT
     lap_number,
     sector,
     sector_time_s,
+    sector_time_s IS NULL AS sector_time_missing,
     sector_session_time_s,
     speed_trap_kph,
     is_valid_lap

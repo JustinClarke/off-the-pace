@@ -201,6 +201,8 @@ vars:
   # cannot flip a lap on its own.
   wet_humidity_min_pct: 70.0
   wet_field_tyre_share_min: 0.5
+  # stg_weather: a weather sample older than this at lap start is flagged weather_sample_stale.
+  wet_stale_sample_s: 120.0
   # stg_lap_tyre_qa (WI-05: F24, F25): bronze stint numbering cross-checked
   # against the pit record.
   # - A bronze stint change counts as explained if an in-lap sits within this many

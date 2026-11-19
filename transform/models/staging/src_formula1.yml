@@ -520,6 +520,17 @@ sources:
             tests:
               - not_null
 
+      - name: raw_circuit_info_quali
+        meta:
+          # Qualifying corner files (session=Q). Only used by stg_circuit_info for
+          # races that have no race-session file (2018 Australia, Bahrain, Italy;
+          # 2026 Monaco). The race file always wins where both exist.
+          external_location: "read_parquet('{{ var('bronze_base', '../data/bronze') }}/circuit_info/*/*/session=Q/circuit_info.parquet', union_by_name=true)"
+        description: >
+          FastF1 circuit_info.corners from the qualifying session, written as
+          circuit_info/season=YYYY/race=<slug>/session=Q/circuit_info.parquet. Fallback
+          source for races whose race-session corner file is missing.
+
       - name: raw_telemetry
         meta:
           external_location: "{{ var('bronze_base', '../data/bronze') }}/telemetry/*/*/*.parquet"

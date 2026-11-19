@@ -1,7 +1,7 @@
 {
   "schema_version": 2,
   "project": "off the pace AI integration v2 (assistant data access)",
-  "updated": "2026-11-18T23:59:00+04:00",
+  "updated": "2026-11-19T12:59:00+04:00",
   "pointer": "TX-15",
   "stage_vocabulary": {
     "SPEC": "Reverified and specced in its WI doc. Nothing run.",
@@ -2151,6 +2151,25 @@
         "HD33",
         "HD34"
       ]
+    },
+    {
+      "id": "AP-11",
+      "group": "2-app-fixes",
+      "stage": "SPEC",
+      "depends_on": [
+        "TX-30"
+      ],
+      "title": "Qualifying segments flag in the app: say 'not available' for races the feed carried no segment times for (2025 Miami)",
+      "sources": [
+        "transform/models/staging/stg_results_qualifying.sql",
+        "transform/models/marts/mart_race_coverage.sql",
+        "app/src/features/data-quality-audit/queries.ts",
+        "app/src/features/data-quality-audit/transform.ts"
+      ],
+      "doc": "wi/AP-11-quali-segment-flag.md",
+      "cost": "0.5d",
+      "model": "sonnet-5",
+      "note": "Added 2026-11-19. Transform side done (stg_results_qualifying.segment_source, scratch build). App side needs a new qualifying column on mart_race_coverage (changes its hash baseline) and an app/public/data re-export, both owner calls."
     }
   ],
   "decisions": [
@@ -4312,6 +4331,61 @@
         "Revert or keep the two NULL changes (int_lap_residual_decomposed constructor term; int_compound_cliff_predicted compound term). They drop about 6,400 laps from race skill. Owner ruling under HD25.",
         "Downstream readers still on is_dnf: fct_ghost_race_finish and mart_race_driver_summary. Switch to is_retired needs a go-ahead (app-visible).",
         "Owner rulings: 2021 Belgian GP tyre data gap; Miami 2025 compound source; wet-flag rule; qualifying telemetry scope."
+      ]
+    },
+    {
+      "date": "2026-11-19T12:59:00+04:00",
+      "session": "Staging pass (stg_lap_tyre_qa, stg_tyre_allocations, stg_weather). Working tree only, nothing committed. Handoff for the next chat: start at roadmap line 81, stg_circuit_info.",
+      "landed": [
+        "stg_lap_tyre_qa: lap-1 pit no longer gives stint 0 (stint shift when bronze first stint is 1); driver-races with unassigned laps are quarantined, not served ok with NULL stint. Roadmap line 77 ticked.",
+        "stg_tyre_allocations: 2025 Miami row added (miami_grand_prix C2/C3/C4, source_url carried_from_2024). Seed 152 rows, 24 for 2025; per-season test, seed and model docs updated. Labelled carry-forward, not a Pirelli 2025 nomination. Roadmap line 78 ticked.",
+        "stg_lap_tyre_qa: KNOWN LIMIT note for 2025 Miami (2025_6). Thresholds unchanged (window 3, boundaries min 5, unmatched share 0.3). Miami stays quarantined_race: FastF1 stint/compound data is stale at source (laps 1-23 missing, late stamps 4-8 laps after each stop); Jolpica pit stops match stg_pits.",
+        "stg_weather: wet vote changed. Wet needs the field tyre vote AND (rain OR humidity). NULL tyre share abstains; with no tyre data the old rain/humidity majority applies, Rainfall breaking ties. 963 laps changed, all wet to dry; the 870 laps wet with under 10% on wets are now dry. The 430 laps with at least half the field on wets, no rain and humidity under 70% stay dry by design (owner ruled). Stale flag added: weather_sample_age_s and weather_sample_stale (over var wet_stale_sample_s = 120 s); wet_signal_available added. Roadmap line 79 ticked.",
+        "assert_rain_flag_matches_tyres: no longer treats a NULL tyre share as zero (was failing on 2021_12, which has no compound data).",
+        "New singular tests: assert_miami_2025_stays_quarantined, assert_miami_2025_pit_stops_match_jolpica, assert_miami_2025_allocation_carried, assert_quarantined_laps_serve_no_compound, assert_tyre_qa_thresholds_unchanged, assert_ok_null_compound_is_source_gap, assert_null_compound_ok_laps_pinned (nine races), assert_weather_null_signal_abstains, assert_weather_stale_flag, assert_weather_tyres_alone_not_wet, assert_weather_tyre_required_when_available.",
+        "2025_13 (Round 13): 57 NULL-compound ok laps are a source gap, not a transform defect. FastF1 reports compound None on the third stint of ALO, ANT, COL and HUL. The same pattern is in 2018_5, 2018_13, 2018_18, 2021_12, 2022_7, 2022_11, 2023_8 and 2026_11. Every NULL has a NULL bronze compound."
+      ],
+      "verified": [
+        "Bronze-backed scratch build only: scratchpad/bronze_build with a profile pointing at it, run with --vars bronze_base set to data/bronze. Not data/dev.duckdb (not present) and not the archive.",
+        "stg_lap_tyre_qa on bronze: 0 served NULL or sub-1 stints across 2018-2026; the five named bug driver-races are fixed; the new stint-valid test passes.",
+        "Allocation and Miami tests pass; assert_tyre_allocations_rows_per_season passes at 24 for 2025.",
+        "stg_weather: all weather tests that ran pass, including assert_rain_flag_matches_tyres. The 870 group is 0 and the 430 group is unchanged.",
+        "Not verified: downstream models not rebuilt, so consumers of rainfall_flag, tyre compound and allocation are untested. Tests that error for missing upstream tables in the scratch build: relationships to dim_drivers, assert_field_base_drift_tracks_observed (int_lap_fuel_state), assert_field_pace_honest_range and assert_track_evolution_monotone_* (int_field_pace_curve). Four int_stint_geometry tests not run: assert_hardness_rank_2018_from_lap_name, assert_pit_not_taken_from_joined_boundary, assert_stint_boundaries_match_pits, assert_tyre_run_key."
+      ],
+      "open": [
+        "Next: roadmap line 81, stg_circuit_info. File pattern skips qualifying-session files, so 2018 Australia and Bahrain lose corners (1,938 race laps). Reaches dim_corners.",
+        "int_power_law_lap.sql line 30 comment still says 23 of 24 races; it is now 24 of 24.",
+        "race_to_track seed has no 2026 races, so the stg_weather race_id relationship test fails on 22,178 rows. Seed or ingest gap.",
+        "20 laps have a weather sample from after lap start (fallback match, age about -20 s). Not flagged as stale; documented in the column description.",
+        "2025_13 null-compound races are not in ingestion KNOWN_THIN (ingestion/src/bronze_checks.py). Owner decision whether to accept them there.",
+        "Downstream rebuild of int_stint_geometry, int_compound_cliff_predicted, int_pit_strategy_cost_curve and int_track_evolution has not been run."
+      ]
+    },
+    {
+      "date": "2026-11-19",
+      "session": "stg_telemetry closed (race-only, header fixed). stg_results_qualifying segment flag. AP-11 added for the app side. Working tree only, nothing committed.",
+      "landed": [
+        "stg_results_qualifying: new column segment_source. 'missing_from_feed' when no driver in the race has any Q1/Q2/Q3 time (derived per race_id with a window, not a hand list); 'official' otherwise. Schema entry and accepted_values test added. Roadmap line 83 ticked.",
+        "stg_telemetry: header now says race sessions only; qualifying deferred to TX-23. Sample-clock comment numbers replaced with measured values (151.0M race rows, 1,073,311 car-channel duplicate samples). Roadmap line 82 ticked.",
+        "AP-11 added to build-log (group 2-app-fixes, depends on TX-30) with wi/AP-11-quali-segment-flag.md. App message on the data-quality audit page needs an owner ruling (mart_race_coverage column changes its hash baseline; app/public/data re-export is owner-only)."
+      ],
+      "verified": [
+        "dbt build of stg_results_qualifying in a scratch copy of dev.duckdb: view builds; not_null and accepted_values pass; unique passes. Relationships tests and assert_quali_segment_matches_official error only because dim_drivers, dim_constructors, race_to_track and int_qualifying_push_laps are absent from the scratch copy.",
+        "Flag output: only 2025 miami_grand_prix (20 rows) is missing_from_feed; 3,879 rows across 192 races are official."
+      ],
+      "assumed": [
+        "Segment is not derived from finishing position: checked against official times, it disagreed in about 150 of roughly 3,900 rows, so the flag is based on missing times only.",
+        "Miami 2025 is treated as unknown, not eliminated, per the owner's choice of flag over derivation."
+      ],
+      "gates_run": [
+        "dbt build --select stg_results_qualifying (scratch copy, own profiles)",
+        "board.py --check before edits: 4 failures (stale BUILD-ORDER, missing handoff fields on the earlier history entry); this entry supplies the handoff fields"
+      ],
+      "next_command": "python3 _roadmap/_ai-integration/status/board.py --check",
+      "open": [
+        "AP-11 app side: owner ruling on a qualifying column in mart_race_coverage (hash baseline) and on the app/public/data re-export.",
+        "stg_session_status_qualifying and the remaining staging items on roadmap lines 84-86.",
+        "dim_corners full rebuild from a complete run (still unverified)."
       ]
     }
   ],

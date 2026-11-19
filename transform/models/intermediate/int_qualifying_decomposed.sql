@@ -142,8 +142,10 @@ SELECT
     qs.quali_skill_session_avg_s,
     qs.quali_segments_contested_n,
     -- Quali vs race differential (positive = single-lap pace specialist)
-    qs.quali_skill_session_avg_s
-    - COALESCE(rd.race_skill_race_avg_s, 0.0)
+    -- Residuals are positive = slower, so race minus quali is positive when the
+    -- driver is relatively quicker in quali.
+    COALESCE(rd.race_skill_race_avg_s, 0.0)
+    - qs.quali_skill_session_avg_s
         AS quali_vs_race_skill_delta_s,
     q.track_unexplained_s,
     q.track_temp_c,

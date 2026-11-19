@@ -19,10 +19,14 @@
 --                         (ingestion/known_gaps.txt; HD15 option B, TX-16:
 --                         2018_14 Italian GP). Shown as unavailable with this
 --                         reason, never as zero laps.
---   NO_RACING_LAPS        no fct_lap_residuals rows. 2021_12 (Spa): of its 60
---                         stg_laps rows only lap 1 has a lap time, and
---                         stg_laps.is_valid_lap excludes lap 1, so
---                         int_lap_fuel_state (is_valid_lap = TRUE) is empty.
+--   NO_RACING_LAPS        no fct_lap_residuals rows at all.
+--   NO_USABLE_LAPS        lap rows exist but none is ml_eligible and none
+--                         carries a driver_skill_residual_s, so nothing can be
+--                         rated. Never labelled OK. 2021_12 (Spa) is the
+--                         example: it has 20 fct_lap_residuals rows (60
+--                         stg_laps rows, only lap 1 has a lap time, and
+--                         stg_laps.is_valid_lap excludes lap 1), 0 ml-eligible
+--                         laps and 0 residuals.
 --   ALL_WET_NO_DRY_PAIRS  no rating and a majority of laps under rainfall:
 --                         the rating's clean panel drops rain laps (2021_16).
 --                         Other wet races that still have a rating are OK.
@@ -138,6 +142,8 @@ SELECT
     CASE
         WHEN n_bronze_lap_rows = 0 THEN 'SOURCE_UNAVAILABLE'
         WHEN n_lap_rows = 0 THEN 'NO_RACING_LAPS'
+        WHEN n_ml_eligible_laps = 0 AND COALESCE(residual_measured_share, 0) = 0
+            THEN 'NO_USABLE_LAPS'
         WHEN NOT has_rating AND rain_lap_share > 0.5
             THEN 'ALL_WET_NO_DRY_PAIRS'
         WHEN NOT has_telemetry THEN 'NO_TELEMETRY'

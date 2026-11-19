@@ -8,8 +8,8 @@
 -- The season mart keeps its teammate_gap_rank. positions_gained is NULL for a
 -- pit-lane start (grid_position = 0), which is not a grid slot (CO-01/T5).
 -- ci_low/high (TX-01): a distribution-free 95% CI for the median that
--- rating_s is, built from the same paired lap gaps
--- (int_driver_race_paired_laps): the order statistics [x_j, x_{n-j+1}] of the
+-- rating_s is, built from the same paired lap gaps, all pairs, tyre-adjusted
+-- (int_driver_race_paired_laps.adjusted_paired_delta_s): the order statistics [x_j, x_{n-j+1}] of the
 -- n = paired_lap_count sorted gaps, j from macro median_ci_order_rank
 -- (coverage >= 95%). NULL when n < 6 (no such interval exists). Not centred
 -- on rating_s; for a two-driver car the teammate's CI is the exact mirror.
@@ -87,12 +87,14 @@ paired AS (
     SELECT
         race_id,
         driver_id,
-        paired_delta_s,
+        adjusted_paired_delta_s AS paired_delta_s,
         COUNT(*) OVER (PARTITION BY race_id, driver_id) AS n,
         ROW_NUMBER() OVER (
-            PARTITION BY race_id, driver_id ORDER BY paired_delta_s
+            PARTITION BY race_id, driver_id ORDER BY adjusted_paired_delta_s
         ) AS delta_rank
     FROM {{ ref('int_driver_race_paired_laps') }}
+    -- All pairs, tyre-adjusted (same basis as int_driver_race_skill_loro).
+    WHERE adjusted_paired_delta_s IS NOT NULL
 ),
 
 paired_n AS (

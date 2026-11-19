@@ -1,5 +1,6 @@
 -- TX-01. mart_race_driver_summary's CI is the order-statistic CI of the
--- median paired gap, built from int_driver_race_paired_laps. Checks:
+-- median tyre-adjusted paired gap (all pairs, adjusted_paired_delta_s), built
+-- from int_driver_race_paired_laps. Checks:
 --   1. ci_low <= rating_s <= ci_high wherever the CI exists;
 --   2. CI NULL <=> paired_lap_count < 6 (both bounds together);
 --   3. two-driver cars: ci_low(A) = -ci_high(B) within 1e-9 (the teammate's
@@ -24,8 +25,9 @@ pairs AS (
         race_id,
         driver_id,
         COUNT(*) AS n,
-        MEDIAN(paired_delta_s) AS median_s
+        MEDIAN(adjusted_paired_delta_s) AS median_s
     FROM {{ ref('int_driver_race_paired_laps') }}
+    WHERE adjusted_paired_delta_s IS NOT NULL
     GROUP BY race_id, driver_id
 ),
 

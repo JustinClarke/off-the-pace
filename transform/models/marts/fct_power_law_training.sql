@@ -57,7 +57,10 @@ laps AS (
         track_temp_c,
         constructor_pace_s
     FROM {{ ref('int_power_law_lap') }}
-    WHERE compound_hardness_rank IS NOT NULL
+    -- G2: fit seasons only (var('power_law_fit_seasons'), default 2018-2024).
+    WHERE
+        compound_hardness_rank IS NOT NULL
+        AND race_year IN ({{ var('power_law_fit_seasons') | join(', ') }})
 ),
 
 -- The stints the cell fit used: >= 5 laps over >= 2 distinct ages

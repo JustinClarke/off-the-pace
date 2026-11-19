@@ -7,7 +7,12 @@
 --   WI-14b (F40, FD5 ruled option C, 2026-09-28): the median of the
 --   LAP-BY-LAP gap to the teammate. Own and teammate clean laps are paired on
 --   (race, car, lap_number) and the rating is
---       MEDIAN(own lap_time_s - teammate lap_time_s)  over laps both ran clean.
+--       MEDIAN(own lap_time_s - teammate lap_time_s)  over laps both ran clean
+--   and, since the tyre adjustment (owner option 2), over ALL such pairs with
+--   each gap net of the tyre difference: own lap_time_s - teammate lap_time_s
+--   - (own tyre component - teammate tyre component), where the tyre component
+--   is int_lap_residual_decomposed.compound_component_s. See
+--   int_driver_race_paired_laps for the method and its assumption.
 --   Both drivers on one lap number carry the same modelled fuel load and see
 --   the same field pace, so the fuel and field terms cancel inside each pair
 --   without being subtracted, and the statistic never reads
@@ -174,15 +179,23 @@ driver_race_agg AS (
 -- F40 / FD5 option C. Every clean lap paired with each same-car teammate's
 -- clean lap on the SAME lap number. TX-01: the pairing lives in
 -- int_driver_race_paired_laps (same clean filter as clean_panel above), so
--- the race mart can build the CI for this median from the same rows.
+-- the race mart can build the CI for this median from the same rows. Every
+-- pair counts, with the gap adjusted for the tyre difference between the two
+-- laps (adjusted_paired_delta_s); pairs with an unknown tyre component are out.
 paired_laps AS (
     SELECT
         race_year,
         race_id,
         constructor_id,
         driver_id,
-        paired_delta_s
+        -- Tyre-adjusted gap (owner option 2): paired_delta_s minus the
+        -- own-minus-teammate tyre component. Kept under the old alias so the
+        -- median logic below is unchanged.
+        adjusted_paired_delta_s AS paired_delta_s
     FROM {{ ref('int_driver_race_paired_laps') }}
+    -- All pairs are rated, whatever the compounds and tyre ages; only pairs
+    -- whose tyre component is unknown (NULL adjusted delta) drop out.
+    WHERE adjusted_paired_delta_s IS NOT NULL
 ),
 
 paired_agg AS (

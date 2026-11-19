@@ -1,7 +1,7 @@
 {
   "schema_version": 2,
   "project": "off the pace AI integration v2 (assistant data access)",
-  "updated": "2026-11-18T23:55:00+04:00",
+  "updated": "2026-11-18T23:59:00+04:00",
   "pointer": "TX-15",
   "stage_vocabulary": {
     "SPEC": "Reverified and specced in its WI doc. Nothing run.",
@@ -2112,6 +2112,45 @@
       "cost": "0.25d",
       "model": "sonnet-5",
       "note": "AUD-00 triage, 2026-11-18 (read-only; no dbt run). FIX group, fixes held: DM-06 (drift and power-law zeros, after AX-20/HD23) and TX-09 (XM) for mart_degradation_history_envelope, whose 1.0 / 8 C / 0.010 defaults the degradation-simulator page reads (HD26). Count and record only; gates DM-06. Not a TX-30 gate. Scratch only (rule 5); counts on the TX-15 scratch build once TX-15's owner review is done; never data/dev.duckdb or app/public/data."
+    },
+    {
+      "id": "TX-32",
+      "group": "1-transform",
+      "stage": "SPEC",
+      "depends_on": [
+        "TX-30",
+        "TX-29",
+        "DM-05"
+      ],
+      "title": "Constructor cliff onset: split cliff_onset_shift_laps into timing in laps (survival AFT, shrunk, posterior sd) and post-cliff cost as a rate; fix the ghost exposures",
+      "sources": [
+        "transform/models/intermediate/int_constructor_deg_sensitivity.sql",
+        "transform/models/marts/fct_ghost_car_pace.sql",
+        "transform/models/marts/fct_ghost_race_finish.sql",
+        "transform/tasks/coefficients/survival.py",
+        "transform/tasks/coefficients/fit_compound_cliff.py",
+        "transform/tasks/coefficients/holdout_guard.py",
+        "transform/macros/compound_cliff_wear.sql",
+        "transform/models/intermediate/schema.yml",
+        "transform/models/marts/schema.yml",
+        "transform/tests/assert_cliff_hinge_centering.sql",
+        "transform/tests/assert_low_sample_cliff_cells_unshifted.sql",
+        "ml/src/survival.py",
+        "ml/src/schema.py",
+        "_evidence/cliff-onset-downstream.md"
+      ],
+      "doc": "wi/TX-32-cliff-onset-two-part.md",
+      "cost": "6.5d",
+      "model": "sonnet-5",
+      "note": "Added 2026-11-18 from the Opus review _evidence/cliff-onset-downstream.md. Today's value is unit-less (1/2.5 of laps: seconds over a step height in seconds) and the wrong shape (a post-onset slope mapped to an onset shift on a saturating ramp, where the matching rule has no solution); the SE exposure counts plateau laps. Plan: A = cliff timing in laps by log-normal AFT on stints with censoring, season x compound and circuit fixed effects, two-stage DL shrinkage, posterior sd; B = hinge deviation published as a rate, divisor deleted, exposure capped at H; ghost marts get two exposures in place of *_cliff_active. Depends on TX-30 (accepted baseline build), TX-29 (holdout guard the fitter must pass) and DM-05 (same ghost lines and HD20's missing-cell rule). Recommended first step: step 0 read-only count of events per cell on the TX-30 build. Moves published ghost numbers (fct_ghost_car_pace, fct_ghost_race_finish, hidden-performance, counterfactual-championship). The ML as-of feature (HD33) and the app pictures are follow-up items, not this one. Scratch only; nothing exported without the owner's yes.",
+      "blocked_by_decision": [
+        "HD29",
+        "HD30",
+        "HD31",
+        "HD32",
+        "HD33",
+        "HD34"
+      ]
     }
   ],
   "decisions": [
@@ -2730,6 +2769,109 @@
       "context": "AUD-00 triage. Rule 10 gives logic choices to the owner, so DM-01's open choice is raised here. AUD-06 recounts on the TX-15 build. DM-01's own blocked_by_decision is unchanged; add it if you agree.",
       "recommendation": "None.",
       "option": "A NULL + flag / B raw + clamped",
+      "resolved": null,
+      "resolution": null
+    },
+    {
+      "id": "DQ-01",
+      "raised": "2026-11-18",
+      "blocking": [],
+      "status": "RESOLVED",
+      "title": "Stint 0 on three pre-stop laps: accepted as a known data-quality issue",
+      "question": "Three laps in Bronze have no tyre stint (2018_5 HAR and SIR, 2018_13 VER, lap 1). The car pitted inside the lap-1 gap, so the repair in stg_lap_tyre_qa labels those laps stint 0 with a NULL compound. Renumber, or keep 0?",
+      "context": "Bronze has no stint on lap 1 for 291 driver-races; only these three pitted in the gap, so only they get stint 0. Affects 3 laps in int_stint_geometry and 3 stint_ids in fct_stint_features. Compound is NULL, so they do not enter compound-keyed fits. Renumbering would disagree with Bronze's own stint numbering and with stg_pits.",
+      "recommendation": "Keep 0, document it, add a test that stint 0 only appears with a NULL compound.",
+      "option": "keep stint 0 as a known issue, ignored for now",
+      "resolved": "2026-11-18",
+      "resolution": "Owner 2026-11-18: note it as a data-quality issue and ignore it. No repair, no renumbering. Rows stay as the repair writes them (stint 0, NULL compound). The stint-0 test is recommended but not yet written."
+    },
+    {
+      "id": "HD29",
+      "raised": "2026-11-18",
+      "blocking": [
+        "TX-32"
+      ],
+      "status": "OPEN",
+      "title": "Cliff event for constructor cliff timing (TX-32 method A)",
+      "question": "Which per-stint cliff event should method A's survival model use? A: fct_stint_features.cliff_lap_in_stint (first cliff_candidate_flag lap; keyed on lap_in_stint; pruned as an ML feature in 08j, quality as an event unmeasured). B: the field's own detector, transform/tasks/coefficients/survival.py::detect_cliff_lap (lap time above the trailing 5-lap median by the threshold for 2+ laps, keyed on age_in_stint, tyre-failure DNF counts as an event) -- the event the field KM onset compound_cliff_onset_laps is fitted from. C: a new event, e.g. the residual crossing the field plateau.",
+      "context": "Raised by the TX-32 plan (wi/TX-32-cliff-onset-two-part.md) from the Opus read-only review _evidence/cliff-onset-downstream.md (section 6). Rule 10: logic goes to the owner.",
+      "recommendation": "B (recommendation, not a ruling): 'relative to the field' only means something if the constructor event and the field event are the same definition on the same odometer (age_in_stint). Confirm with TX-32 step 0, which measures agreement between A and B and event counts per cell.",
+      "option": "A cliff_candidate_flag / B detect_cliff_lap (same as field onset) / C new event",
+      "resolved": null,
+      "resolution": null
+    },
+    {
+      "id": "HD30",
+      "raised": "2026-11-18",
+      "blocking": [
+        "TX-32"
+      ],
+      "status": "OPEN",
+      "title": "Cliff onset: two estimands now, or the x2.5 stopgap first",
+      "question": "A/B (timing in laps via survival, post-cliff cost as a rate) as the fix, and should the minimal x2.5 units stopgap ship first? A: A/B only, no stopgap; method note says the cliff-timing term is interim until then. B: stopgap inside TX-30's single diff (divide by plateau/2.5, and change the fct_ghost_race_finish cliff variance term from mean_severity to mean(plateau)/2.5 so the finish SE does not grow 2.5x), then A/B in TX-32. C: stopgap only, A/B parked.",
+      "context": "Raised by the TX-32 plan (wi/TX-32-cliff-onset-two-part.md) from the Opus read-only review _evidence/cliff-onset-downstream.md (section 6). Rule 10: logic goes to the owner.",
+      "recommendation": "A (recommendation, not a ruling): the stopgap keeps the shape error (a slope presented as a timing, no fitted ramp-window basis), still counts plateau laps in the exposure, and moves published numbers twice; the term is small (mean |cliff_interaction_s| 0.089 s on 5.1% of ghost lap rows). If B is chosen it belongs in TX-30 step k so there is still one re-export.",
+      "option": "A A/B only / B stopgap in TX-30 then A/B / C stopgap only",
+      "resolved": null,
+      "resolution": null
+    },
+    {
+      "id": "HD31",
+      "raised": "2026-11-18",
+      "blocking": [
+        "TX-32"
+      ],
+      "status": "OPEN",
+      "title": "Cliff thin-cell uncertainty: prior sd tau or NULL",
+      "question": "For a constructor-compound-season cell below the minimum sample, the point is 0 (field-timed by prior). What is its uncertainty? A: prior sd tau, flagged is_low_sample_cliff (the convention deg_slope_posterior_sd_s_per_lap already uses). B: NULL, as cliff_onset_shift_se_laps does today. Under B, fct_ghost_race_finish's AVG skips NULL laps and an all-NULL scenario blanks sd_diff, p_beats_next and finish_pos_se for the whole scenario.",
+      "context": "Raised by the TX-32 plan (wi/TX-32-cliff-onset-two-part.md) from the Opus read-only review _evidence/cliff-onset-downstream.md (section 6). Rule 10: logic goes to the owner.",
+      "recommendation": "A (recommendation, not a ruling): a thin cell is 'uncertain, shrunk to the field', not 'unknown'; tau says that honestly and keeps finish_pos_se defined. Missing cells (no cell at all) stay under HD20. Related to HD27 (zeros inside an uncertainty).",
+      "option": "A tau + flag / B NULL",
+      "resolved": null,
+      "resolution": null
+    },
+    {
+      "id": "HD32",
+      "raised": "2026-11-18",
+      "blocking": [
+        "TX-32"
+      ],
+      "status": "OPEN",
+      "title": "Cliff onset +/-3 lap clip (and the +/-2 s interaction clip): remove or keep",
+      "question": "cliff_onset_shift_laps is clipped to +/-3 laps; the published range is -0.68 to +1.12, so it never binds (max 2.8 even at x2.5). cliff_interaction_s has an inert +/-2 s clip. A: remove both clips; shrinkage is the regulariser; keep schema range tests as alarms (shift +/-8 laps, interaction never at +/-2 s). B: keep both as guardrails plus a test that counts how often they bind.",
+      "context": "Raised by the TX-32 plan (wi/TX-32-cliff-onset-two-part.md) from the Opus read-only review _evidence/cliff-onset-downstream.md (section 6). Rule 10: logic goes to the owner.",
+      "recommendation": "A (recommendation, not a ruling): a clip that binds would hide a real extreme team instead of flagging it; an alarm test makes it visible.",
+      "option": "A remove, alarm tests / B keep as guardrails",
+      "resolved": null,
+      "resolution": null
+    },
+    {
+      "id": "HD33",
+      "raised": "2026-11-18",
+      "blocking": [
+        "TX-32"
+      ],
+      "status": "OPEN",
+      "title": "ML: as-of constructor cliff timing as a cliff_classifier candidate feature",
+      "question": "Admit an as-of version of method A (fitted only on races strictly before the predicted race, passes holdout_guard) as a candidate feature for cliff_classifier (laps_until_cliff_class), as two columns (point in laps, sd) plus the thin flag, under the usual ablation gate? The in-season version must never be used: it is fitted on the post-onset laps of the stints being predicted (target leakage). A: yes, as a candidate after ML-01, ablation-gated. B: no ML use; transform and app only.",
+      "context": "Raised by the TX-32 plan (wi/TX-32-cliff-onset-two-part.md) from the Opus read-only review _evidence/cliff-onset-downstream.md (section 6). Rule 10: logic goes to the owner.",
+      "recommendation": "A (recommendation, not a ruling): the classifier only sees the field onset today; a per-team timing in laps combines directly with laps_past_cliff. Work is ML-track, after ML-01 (held behind AX-20); TX-32 only makes the fitter's as_of_race cut-off a parameter.",
+      "option": "A as-of candidate, ablation-gated, after ML-01 / B no ML use",
+      "resolved": null,
+      "resolution": null
+    },
+    {
+      "id": "HD34",
+      "raised": "2026-11-18",
+      "blocking": [
+        "TX-32"
+      ],
+      "status": "OPEN",
+      "title": "Cap H for the post-cliff cost exposure (TX-32 method B)",
+      "question": "Method B's ghost term is (B_host - B_ego) * LEAST(laps_past_onset, H). Which H? A: 5 laps, the existing compound_wear_hold_after_onset_laps var (dbt_project.yml:134). B: ref_depth, the per-(compound, season) mean laps past onset on post-onset clean laps (about 5 to 8). C: another fixed value.",
+      "context": "Raised by the TX-32 plan (wi/TX-32-cliff-onset-two-part.md) from the Opus read-only review _evidence/cliff-onset-downstream.md (section 6). Rule 10: logic goes to the owner.",
+      "recommendation": "A (recommendation, not a ruling): one declared var already used by the wear hold, not a fitted quantity that moves with the data and couples the exposure to the sample.",
+      "option": "A 5 laps (existing var) / B ref_depth / C other",
       "resolved": null,
       "resolution": null
     }
@@ -3981,6 +4123,195 @@
         "Proposals in AUD-00: merge DM-07 into AUD-10; move DM-06's quali SE into AUD-11; add the CI collapse to DM-02; fold DM-01/02/03/05/07 into the TX-30 review",
         "board.py CATEGORIES does not list AUD ids, so the generated table files them under 'Held or after launch'; add AUD-01..14 to category 1 and AUD-15 to category 5 (this pass may not edit board.py or the hand-written index)",
         "transform/target/manifest.json is stale (102 of 108 models; 7 files edited since)"
+      ]
+    },
+    {
+      "date": "2026-11-18T18:00:00+04:00",
+      "session": "DQ-01 logged: stint 0 on three pre-stop laps accepted as a known issue (owner).",
+      "landed": [
+        "DQ-01 decision recorded in build-log.json"
+      ],
+      "verified": [
+        "none yet"
+      ],
+      "assumed": [
+        "Owner's 'ignore it' means no code change for this case."
+      ],
+      "gates_run": [
+        "board.py --check after edit"
+      ],
+      "next_command": "python3 _roadmap/_ai-integration/status/board.py --write-order",
+      "open": [
+        "Optional: add a test that stint 0 has NULL compound"
+      ]
+    },
+    {
+      "date": "2026-11-18T23:59:00+04:00",
+      "session": "Constructor cliff-onset plan finalised from the Opus review (_evidence/cliff-onset-downstream.md): TX-32 added at SPEC with six OPEN owner decisions HD29-HD34. Planner session; no ruling made.",
+      "landed": [
+        "wi/TX-32-cliff-onset-two-part.md (problem, method A survival timing, method B post-cliff rate, stopgap, thin/missing-cell rules, ghost mart changes, app pictures, ML as-of rule, numbers that move, test plan, sequence, 6.5d)",
+        "Item TX-32 (group 1-transform, SPEC, sonnet-5, depends on TX-30, TX-29, DM-05; blocked by HD29-HD34)",
+        "Decisions HD29 (cliff event), HD30 (two estimands vs x2.5 stopgap), HD31 (thin-cell sd tau vs NULL), HD32 (clips), HD33 (ML as-of feature), HD34 (cap H) -- all OPEN with recommendations"
+      ],
+      "verified": [
+        "Line references in the wi doc re-checked by grep on the working tree (int_constructor_deg_sensitivity :352-436, :440-472, :545-550, :560-581; fct_ghost_car_pace :243-319; fct_ghost_race_finish :80-90, :198-203)",
+        "No reader of *cliff_shift* / *cliff_active* in ml/src, app/src or scripts (grep)",
+        "Field onset event is transform/tasks/coefficients/survival.py::detect_cliff_lap (age_in_stint), not fct_stint_features.cliff_lap_in_stint (lap_in_stint)",
+        "Ids TX-32 and HD29-HD34 unused in the log and repo; CO-03 not used because wi/CO-03-v15-gates-rerun.md already exists"
+      ],
+      "assumed": [
+        "Counts quoted from the review (70,426 non-zero cliff_interaction_s rows, 26.5% plateau rows, 15.6% 0/0 rows) are from the Nov-8 export and will move on the TX-15 build; no build or test was run",
+        "DM-05 is a real dependency because it edits the same ghost-mart COALESCE lines and carries HD20's missing-cell rule",
+        "board.py CATEGORIES does not list TX-32, so the generated order files it under 'Held or after launch' with the ghost chain (DM-05)"
+      ],
+      "gates_run": [
+        "python3 _roadmap/_ai-integration/status/board.py --check",
+        "python3 _roadmap/_ai-integration/status/board.py --write-order",
+        "python3 _roadmap/_ai-integration/status/board.py --check"
+      ],
+      "next_command": "python3 _roadmap/_ai-integration/status/board.py   # put HD29-HD34 to the owner; TX-32 step 0 runs on the TX-30 accepted build",
+      "open": [
+        "Owner rulings HD29-HD34",
+        "Thin-cell threshold for A (proposed n_events >= 5 and n_stints >= 8) to be set from step 0",
+        "Per-lap application of the time ratio (vs one lap count per cell) is a plan recommendation; becomes a decision if the owner disagrees",
+        "Follow-up items not yet filed: app pictures (tyre-cliff-survival, ghost lap chart) and the ML as-of feature (after ML-01)"
+      ]
+    },
+    {
+      "date": "2026-11-18T23:59:30+04:00",
+      "session": "Corner-length method close verified and handed off. Measured corner length (3-sample median speed, 88 m apex band, per-lap exclusions) is merged into transform/models/intermediate/ and built in a scratch warehouse. The 88 m band and the exclusion policy were owner-approved. No decision is marked RESOLVED here. Changes are uncommitted.",
+      "landed": [
+        "transform/models/intermediate/int_corner_metrics.sql (3-sample median speed, v_apex_kph in an 88 m band, var apex_band_m)",
+        "transform/models/intermediate/int_corner_skill_residuals.sql (uses v_apex_kph; drops laps with an exclusion_reason via join to int_corner_lap_measured)",
+        "transform/models/intermediate/int_corner_length_measured.sql (per race x corner aggregate, raw and validated)",
+        "transform/models/intermediate/int_corner_lap_measured.sql (new, per race x driver x lap x corner)",
+        "transform/models/intermediate/schema.yml (old int_corner_length_measured entry replaced, int_corner_lap_measured added)",
+        "Evidence: _evidence/corner-length-investigation/ (exclusions_by_race.csv, cells_changed_by_recommended.csv, flagged_lap_corners.csv.gz, china2026_turn14_high_speed_laps.csv, suzuka_turn8_degner1_by_driver.csv)",
+        "Scratch build stats as reported by the implementing agent: |mid_corner_residual_s| > 60 s went 29 to 2; max 390.7 to 133.6; validated corner length median 225.3 m unchanged; exclusions 6,628 misaligned_corner, 4,797 near_stopped, 507 misaligned_global_lap, 184 stopped (stats.py output not re-run in this session)"
+      ],
+      "verified": [
+        "Item 1 PASS: shasum -a 256 of the four model files in the repo equals the validation copy (scratchpad/validation-stage/transform-copy/models/intermediate/): int_corner_metrics ebf4a02b5ea9e9c7, int_corner_skill_residuals e0e96b37b550d6d8, int_corner_length_measured ab555acb56beaf41, int_corner_lap_measured e190b196753381050 (first 16 hex shown)",
+        "Item 2 PASS: grep for lap_length_km, 0.40, corner_count over the four files and schema.yml returned no hits",
+        "Item 3 PASS: yaml.safe_load parses schema.yml; models int_corner_length_measured and int_corner_lap_measured both present",
+        "Item 4 PASS: from logs in scratchpad/implementation-build: seed.log PASS=19; run.log PASS=92 WARN=0 ERROR=0; test.log PASS=1086 WARN=3 ERROR=41 TOTAL=1130; target/run_results.json test counts pass 1086, fail 41, warn 3. The 44 failing or warning tests in f_new.txt match clean-warehouse/f1.txt by test name and row count (diff empty)",
+        "Item 5 PASS: transform/models/reference/dim_corners.sql has the same sha256 as the validation copy (feb198a34313579c). No separate clean-baseline copy of the file exists, only the validation copy",
+        "Item 6 PASS: find data app/public/data -type f -newer implementation-build/start-state.txt and -newer dbt.sh both returned 0 files",
+        "Scratch build path: /private/tmp/claude-501/-Users-justin-github-off-the-pace/4402ee30-2023-4b82-a775-3d3fe458c5e6/scratchpad/implementation-build/ (dev.duckdb, run.log, test.log, seed.log, target/run_results.json). Excluded from the test run: source:fits+"
+      ],
+      "assumed": [
+        "Stats listed under landed come from the implementing agent and from stats.py in the build folder. They were not recomputed here",
+        "The 41 test errors are the clean-baseline set. Two of them (assert_prior_season_labels_frozen, assert_rain_flag_matches_tyres) are only assumed unrelated to this change, because no HEAD build exists to compare against",
+        "Item 5 compares against the validation copy, taken as equal to the clean baseline",
+        "No item id was opened for corner length. It is recorded in this history entry only"
+      ],
+      "gates_run": [
+        "shasum -a 256 repo vs validation copy (4 files, dim_corners.sql)",
+        "grep for constant corner-length terms",
+        "python3 yaml.safe_load on schema.yml",
+        "log and run_results.json read of the scratch build",
+        "find -newer over data/ and app/public/data/",
+        "python3 _roadmap/_ai-integration/status/board.py --check",
+        "python3 _roadmap/_ai-integration/status/board.py --write-order",
+        "python3 _roadmap/_ai-integration/status/board.py --check"
+      ],
+      "next_command": "Owner reviews and commits the transform changes (agents do not commit). Then build HEAD in a scratch copy to classify assert_prior_season_labels_frozen and assert_rain_flag_matches_tyres, and save the methodology report",
+      "open": [
+        "Owner commit of the corner-length changes: all of it is uncommitted working-tree state",
+        "assert_prior_season_labels_frozen and assert_rain_flag_matches_tyres: failure cause undetermined. A HEAD build is needed to compare, and git is ruled out for agents in this session",
+        "Methodology report for the corner-length method is not saved",
+        "2026 alignment flags stay open (e.g. China 2026 turn 14, _evidence/corner-length-investigation/china2026_turn14_high_speed_laps.csv)",
+        "Open decisions untouched (XW, XM, HD18, HD20, HD25-HD34)"
+      ]
+    },
+    {
+      "date": "2026-11-19T00:30:00+04:00",
+      "session": "Transform status board verified and handed off (owner request)",
+      "landed": [
+        "_roadmap/_ai-integration/status/transform.md corrected: 110 models (108 audited + 2 new), verdicts SOUND 55, QUESTIONABLE 47, WRONG 6; status DONE 35, OPEN 71, NOT CHECKED 4"
+      ],
+      "verified": [
+        "1 PASS: audit tables sum 24+38+22+24=108; per-model verdicts parsed from _evidence/fresh-audit/*.md give SOUND 55, QUESTIONABLE 47, WRONG 6",
+        "2 FIX: rows sum to 110; 14 DONE SOUND rows had a failing own relationships test, moved to OPEN (DONE 49 to 35, OPEN 57 to 71)",
+        "3 PASS: int_corner_skill_residuals (v_apex_kph line 48, join to int_corner_lap_measured exclusion_reason), fct_stint_features (last_3_usable line 151, new test passes in run_results), int_track_geometry (t.x / 10.0 line 48), int_qualifying_decomposed (race minus quali, lines 145-149); int_constructor_deg_sensitivity open (TX-32 SPEC, HD29-HD34), stg_lap_tyre_qa accepted under DQ-01 (RESOLVED)",
+        "4 PASS: feeds column of all 110 rows matches ref() greps under transform/models (0 mismatches); 5 sampled rows reported",
+        "5 FIX: int_lap_residual_decomposed app mention is comment only; 12 reaches entries marked comment only, int_stint_geometry assistant moved to via",
+        "6 PASS: all 110 model files appear once in the table, none missing or extra",
+        "7 PASS: two new corner models NOT CHECKED; run_results shows 8 and 9 passing tests (draft said 9 for the first, corrected to 8)",
+        "Also FIX: failing relationships tests are 32 (26 race_to_track, 5 dim_constructors, 1 dim_circuits), not 29"
+      ],
+      "assumed": [
+        "Audit totals in the old board file were taken from section F of the draft; no earlier copy was available without git",
+        "The 3 fixed WRONG models are DONE on file reading plus a successful build; only fct_stint_features has a test pinning the fix",
+        "Test failures are attributed to the model a test is attached to"
+      ],
+      "gates_run": [
+        "python3 _roadmap/_ai-integration/status/board.py --check",
+        "python3 _roadmap/_ai-integration/status/board.py --write-order",
+        "python3 _roadmap/_ai-integration/status/board.py --check"
+      ],
+      "next_command": "python3 _roadmap/_ai-integration/status/board.py --write-order",
+      "open": [
+        "assert_prior_season_labels_frozen and assert_rain_flag_matches_tyres: cause undetermined",
+        "2026 alignment flags (China 2026 turn 14)",
+        "Cliff-onset decisions HD29 to HD34 (TX-32)",
+        "Zero-fill decisions HD25 to HD27",
+        "Methodology report for the corner-length method is not saved",
+        "All changes uncommitted working-tree state"
+      ]
+    },
+    {
+      "date": "2026-11-19T09:27:47+04:00",
+      "session": "Hand-off to a new chat: done-models verification, corner and stint fixes, teammate rating paused",
+      "landed": [
+        "Corner residual: mid term NULL without a lap measurement row; 45,201 statistical outliers NULLed with raw kept; flag column added (verified: 110 rows above 5 s, 0 above 60 s).",
+        "Stint falloff: slope uses the last 3 laps that carry a residual (verified: 7,503 of 10,002 stints; 0 changed against the earlier copy).",
+        "Coverage: NO_USABLE_LAPS reason added; 2018_3, 2020_1, 2021_12, 2025_6 relabelled (verified in the partial build only)."
+      ],
+      "verified": [
+        "Fresh main build of the tree at about 09:02: seed 19/19, run 92/92, tests 1089 pass, 3 warn, 41 error; failure list identical to the clean baseline f1.txt (41 fail, 3 warn). No new failure.",
+        "Done list (33 models): 22 REALLY DONE, 11 DONE WITH CAVEAT, 0 NOT DONE on build and test evidence. Five models are UNVERIFIED because they sit behind the absent fits (int_driver_isolation_lap_pace, int_driver_isolation_lap_values, int_driver_isolation_stint_tyre, fct_driver_isolation_pair_lap, int_driver_race_skill_loro in the main build).",
+        "Expected outcomes: a1, a2, a3, a4, b1, b2, d1, d3, e, f1, f2 MET. c MET only in a partial build. d2 PARTLY MET (340 edge bins have no reason). g NOT MET on the current tree (3,052 ratings, not 2,124)."
+      ],
+      "assumed": [
+        "The 18 fits-dependent models are not verified in a full build; their DONE evidence rests on copied tables.",
+        "int_track_geometry is DONE WITH CAVEAT (outside the 33-model list)."
+      ],
+      "gates_run": [
+        "fresh build and test of the tree at about 09:02",
+        "partial rebuild of paired laps, loro, coverage, summary and 69 selected tests"
+      ],
+      "next_command": "python3 _roadmap/_ai-integration/status/board.py --check",
+      "open": [
+        "Teammate rating: the live tree is in the paused OPTION 2 state (all pairs, tyre adjustment). The adjustment over-corrects and is not validated. The restricted version is the one in the earlier design. Needs a decision before anything is kept; the eight edited files are listed in the hand-off note.",
+        "Lap-level residual decomposition is QUESTIONABLE: zero fills and no compound pace offset. Blocks the teammate adjustment.",
+        "Corner residual: 386,267 rows with a valid measurement but a NULL mid term, unexplained. Braking loss up to 10 to 12 s in downstream corner inputs and drift.",
+        "Stint falloff: 3-point slopes noisy (max 13.75 s per lap); slope_reliable true for only 735 stints.",
+        "Edge bins in int_track_geometry: 340 NULL curvature with no reason.",
+        "Power-law stint fits: alpha_s to -78 s and intercept to 194 s; 44% of cells at the grid edge.",
+        "dim_circuits and the 2026 seed: three baseline failures remain (38, 76, 1 rows). 2026 set aside.",
+        "assert_prior_season_labels_frozen (7) and assert_rain_flag_matches_tyres (1) cause undetermined; no HEAD build (git ruled out).",
+        "Methodology and evidence report for the corner-length project not saved to _evidence.",
+        "Nothing committed; the owner commits.",
+        "Ownership of the live teammate code: the new chat must choose between reverting to the restricted version and keeping the paused option 2 state."
+      ]
+    },
+    {
+      "date": "2026-11-19T12:00:00+04:00",
+      "session": "Staging review and handoff: staging logic sorted for 2018 to 2025; open staging items moved to a temporary list in transform.md; work continues in a new chat",
+      "landed": [
+        "stg_results: is_retired added (status based); dnf_cause no longer NULL when classified. 61 retirements that were counted as finishers are now flagged (2018 to 2025). is_dnf unchanged.",
+        "stg_laps: race accuracy gate now only from 2019, matching stg_laps_qualifying. Recovers about 1,190 laps in 2018; no change 2019 onward.",
+        "int_lap_fuel_state: fuel_delta_vs_expected removed (identically minus the burn rate, no readers); header records the even-burn assumption and its bound (about 0.05 s per driver). Fuel item closed."
+      ],
+      "verified": [
+        "Scratch build of stg_results and stg_laps+: PASS 104, ERROR 12. All 12 traced: 2026 seed and dimension gaps (out of scope), archive-only tables, one bronze gap (2021_12 rain flag). No staging bug left in the failing set.",
+        "Staging review of the other staging models (agent, read-only): 8 clean, findings listed in the temporary list in transform.md."
+      ],
+      "open": [
+        "Staging items: see the temporary list in transform.md (stg_lap_tyre_qa, stg_tyre_allocations, stg_weather, stg_circuit_info, stg_telemetry, stg_results_qualifying, stg_sector_times, stg_telemetry_position, stg_session_status, stg_jolpica_pit_stops).",
+        "Revert or keep the two NULL changes (int_lap_residual_decomposed constructor term; int_compound_cliff_predicted compound term). They drop about 6,400 laps from race skill. Owner ruling under HD25.",
+        "Downstream readers still on is_dnf: fct_ghost_race_finish and mart_race_driver_summary. Switch to is_retired needs a go-ahead (app-visible).",
+        "Owner rulings: 2021 Belgian GP tyre data gap; Miami 2025 compound source; wet-flag rule; qualifying telemetry scope."
       ]
     }
   ],

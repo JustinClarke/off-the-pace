@@ -6,6 +6,20 @@ require-dbt-version: ">=1.5.0,<2.0.0"
 profile: 'off_the_pace'
 
 vars:
+  # G1: teammate lap pairs count toward the rating only when both drivers are on
+  # the same compound and their tyre ages differ by at most this many laps
+  # (int_driver_race_paired_laps.pair_is_comparable).
+  paired_lap_max_tyre_age_gap: 2
+  # G2: seasons whose laps may enter the power-law fit inputs
+  # (int_cell_power_law_fit, int_stint_power_law_fit, fct_power_law_training;
+  # int_power_law_lap keeps every season and flags in_power_law_fit_seasons).
+  # 2025 is excluded: its tyre nominations are carried forward from 2023/2024
+  # and unverified.
+  power_law_fit_seasons: [2018, 2019, 2020, 2021, 2022, 2023, 2024]
+  # G4: seasons int_track_geometry models. 2026 telemetry is in bronze but has no
+  # race_to_track rows; it is excluded here explicitly rather than by the join.
+  # Widen (and extend the race_to_track seed) when 2026 is modelled.
+  model_seasons: [2018, 2019, 2020, 2021, 2022, 2023, 2024, 2025]
   # Regulation-era boundary year (ground-effect regs introduced).
   # Moving this single knob re-splits pre/post eras across all era-aware models
   # and the isotonic fit. A third era (e.g. 2026 regs) needs new label strings

@@ -34,7 +34,15 @@ pit_laps AS (
         CAST(driver AS VARCHAR) AS driver_id,
         CAST(lapnumber AS INTEGER) AS lap_number,
         CAST(stint AS INTEGER) AS stint_number,
-        UPPER(CAST(compound AS VARCHAR)) AS compound,
+        -- Same null mapping as stg_laps: None/nan/UNKNOWN are not compounds.
+        CASE
+            WHEN
+                UPPER(CAST(compound AS VARCHAR)) IN (
+                    'NONE', 'NAN', 'UNKNOWN', 'NULL', ''
+                )
+                THEN NULL
+            ELSE UPPER(CAST(compound AS VARCHAR))
+        END AS compound,
 
         -- Pit times (nanoseconds → seconds)
         CASE

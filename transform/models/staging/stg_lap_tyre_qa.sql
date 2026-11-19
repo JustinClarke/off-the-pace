@@ -38,7 +38,8 @@
 --    or at least var('tyre_qa_race_unmatched_pit_share_min') of its racing
 --    stops unmatched (and at least 3 of them). Outside quarantined races, one
 --    DRIVER-RACE is quarantined when it has any unexplained stint change, or
---    laps bronze never assigned beyond the repairable lap-1 gap. Quarantine
+--    laps bronze never assigned beyond the repairable lap-1 gap (this includes a
+--    driver-race with no assigned lap at all). Quarantine
 --    serves the pit record, not bronze: the stint ordinal is rebuilt as 1 +
 --    the stops (in-laps the car exited from) before the lap, plus bronze's own
 --    stint changes on red-flag laps (tyres change in the pit lane under the
@@ -132,6 +133,18 @@ repaired AS (
         dr.first_in_lap,
         dr.first_assigned_lap,
         dr.first_stint_number,
+        -- A stop inside the gap means a stint existed before bronze's first.
+        -- When bronze's first stint is already 1, that stint cannot be 0:
+        -- the whole driver-race counts one higher (bronze skipped stint 1).
+        CASE
+            WHEN
+                COALESCE(dr.first_in_lap < dr.first_assigned_lap, FALSE)
+                AND dr.first_assigned_lap - 1
+                BETWEEN 1 AND {{ var('tyre_qa_max_unassigned_leading_laps') }}
+                AND dr.first_stint_number < 2
+                THEN 1
+            ELSE 0
+        END AS stint_shift,
         dr.first_tyre_life,
         dr.first_compound
     FROM lap_pit AS lp
@@ -156,11 +169,11 @@ filled AS (
             WHEN
                 is_repairable_gap AND lap_number < first_assigned_lap
                 AND lap_number <= first_in_lap
-                THEN first_stint_number - 1
+                THEN first_stint_number - 1 + stint_shift
             -- a gap lap after that stop: already on bronze's first set
             WHEN is_repairable_gap AND lap_number < first_assigned_lap
-                THEN first_stint_number
-            ELSE bronze_stint_number
+                THEN first_stint_number + stint_shift
+            ELSE bronze_stint_number + stint_shift
         END AS qa_stint_number,
         CASE
             WHEN
@@ -380,7 +393,7 @@ verdict AS (
             WHEN rq.is_race_quarantined THEN 'quarantined_race'
             WHEN
                 dq.n_unexplained_stint_changes_driver > 0
-                OR (dq.n_unassigned_laps > 0 AND dq.n_assigned_laps > 0)
+                OR dq.n_unassigned_laps > 0
                 THEN 'quarantined_driver'
             ELSE 'ok'
         END AS tyre_qa_status,

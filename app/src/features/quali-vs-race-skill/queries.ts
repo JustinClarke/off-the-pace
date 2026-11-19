@@ -38,13 +38,13 @@ export const queryQualiVsRace = registerQuery<Params, QualiVsRaceRow[]>(
       SELECT
         driver_id,
         AVG(quali_skill_s) AS quali_skill_s,
-        AVG(quali_skill_s - delta_s) AS race_skill_s,
+        AVG(quali_skill_s + delta_s) AS race_skill_s,
         AVG(delta_s) AS delta_s,
         COUNT(*) AS n_races
       FROM race_deltas
       GROUP BY driver_id
       HAVING COUNT(*) >= 3
-      ORDER BY delta_s ASC
+      ORDER BY delta_s DESC
     `, [season])
   }
 )

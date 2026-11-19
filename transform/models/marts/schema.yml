@@ -2910,7 +2910,8 @@ models:
       There is no within-race rank: ordering every driver's gap to his own teammate
       across the field reads as a speed ranking and is not one (CO-01/T4), so it was
       dropped. ci_low / ci_high (TX-01) are a distribution-free 95% CI for that median,
-      built from the same paired lap gaps (int_driver_race_paired_laps): the order
+      built from the same paired lap gaps (int_driver_race_paired_laps.adjusted_paired_delta_s: all
+      pairs, tyre-adjusted with the fitted tyre curve): the order
       statistics [x_j, x_{n-j+1}] of the n = paired_lap_count sorted gaps, where j is the
       largest k with P(Bin(n, 1/2) <= k - 1) <= 0.025 (coverage >= 95%). NULL when n < 6,
       where no such interval exists. Not the season Bayesian CI. rating_trust_label says
@@ -3031,7 +3032,7 @@ models:
       - name: paired_lap_count
         description: >
           Laps paired with a same-car teammate's clean lap on the same lap number: the n behind
-          rating_s (their median) and its CI. Equals int_driver_race_skill_loro.paired_lap_count.
+          rating_s (their median) and its CI; all pairs with a known tyre component. Equals int_driver_race_skill_loro.paired_lap_count.
         tests:
           - not_null
           - dbt_utils.accepted_range:

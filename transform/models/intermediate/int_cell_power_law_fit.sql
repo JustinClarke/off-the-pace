@@ -5,9 +5,11 @@
 -- Grain: (race_id, compound_hardness_rank). Every cell with at least one
 -- qualifying stint; fit_eligible marks the cells the model trains on (>= 3
 -- qualifying stints and >= 40 laps). A qualifying stint has >= 5 laps in
--- int_power_law_lap over >= 2 distinct tyre ages. 2025 forms no cells: its
--- compound_code, and so its hardness rank, is NULL until tyre_allocations
--- carries verified 2025 rows (W50).
+-- int_power_law_lap over >= 2 distinct tyre ages. Seasons outside
+-- var('power_law_fit_seasons') (2018-2024) form no cells (G2): 2025 does have a
+-- compound_code and hardness rank, but its tyre nominations are carried forward
+-- and unverified, so its laps are excluded from the fit by that explicit
+-- season condition (the laps stay, flagged, in int_power_law_lap).
 --
 -- Model: y = c_stint + alpha * age^beta. Each stint keeps its own intercept
 -- (driver, car, fuel-model error, stint start), so only the shape within stints
@@ -48,7 +50,9 @@ WITH laps AS (
         CAST(age_in_stint AS DOUBLE) AS age,
         y_s
     FROM {{ ref('int_power_law_lap') }}
-    WHERE compound_hardness_rank IS NOT NULL
+    WHERE
+        compound_hardness_rank IS NOT NULL
+        AND race_year IN ({{ var('power_law_fit_seasons') | join(', ') }})
 ),
 
 stint_q AS (

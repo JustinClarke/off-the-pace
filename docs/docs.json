@@ -217,6 +217,7 @@
             "group": "Model Reference",
             "icon": "database",
             "pages": [
+              "reference/model-flow",
               "reference/models/index",
               {
                 "group": "Staging",

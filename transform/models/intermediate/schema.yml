@@ -678,7 +678,11 @@ models:
       per-season, not collapsed to a single per-circuit shape, since GPS
       origin/heading can drift between seasons (verified at Bahrain: 2019
       diverges from 2020-2024). Start/finish bin has NULL gradient/curvature
-      (no wraparound across the lap boundary).
+      (no wraparound across the lap boundary). Only seasons in var('model_seasons')
+      (2018-2025) are modelled; 2026 is excluded by an explicit filter. Bronze X/Y/Z are in 1/10 m and
+      are converted to metres in the model, so bin_x/bin_y/bin_z are metres,
+      gradient_dz_ds is m/m, curvature_per_m is 1/m and
+      lateral_accel_proxy_ms2 is m/s^2.
     tags: [intermediate]
     meta:
       family: physics
@@ -697,11 +701,18 @@ models:
         description: Lower edge of the 25m distance bin (meters from start line)
         tests: [not_null]
       - name: gradient_dz_ds
-        description: Elevation gradient dZ/ds between the previous and next bin
+        description: Elevation gradient dZ/ds from the previous bin to the current bin (change in Z over the bin spacing)
       - name: curvature_per_m
         description: >
           Menger curvature (1/m) from 3 consecutive binned points. NULL at
-          season boundaries or where points are collinear.
+          season boundaries, where points are coincident, or where a data-derived
+          guard fires (sample_count below the table's lower decile; side-length
+          product below the table's 1st percentile). See curvature_guard_reason.
+      - name: curvature_guard_reason
+        description: >
+          Which guard NULLed curvature_per_m and lateral_accel_proxy_ms2:
+          low_sample_count, small_side_product, or both joined with +. NULL when
+          no guard fired.
       - name: lateral_accel_proxy_ms2
         description: v^2 * curvature_per_m, using median speed at the bin (m/s^2)
 
@@ -1691,6 +1702,108 @@ models:
               arguments:
                 values: ['fuel', 'compound', 'constructor', 'dirty_air']
 
+  - name: int_corner_lap_measured
+    description: >
+      One row per race x driver x lap x corner: the RAW measured corner length (brake onset to
+      throttle_pct >= 90 recovery, 0.3 s flicker merge, 600 m guards, 0 < length <= 1200 m) on clean
+      laps, plus validation flags. Nothing is dropped; exclusion_reason says which observations are
+      kept out of the VALIDATED corner length (stopped, near_stopped, misaligned_global_lap,
+      misaligned_corner). Statistical outliers and linked-corner flags are anomaly flags only.
+    tags: [intermediate, feature_engineering]
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [race_id, driver_id, lap_number, corner_name]
+    columns:
+      - name: race_id
+        tests: [not_null]
+      - name: driver_id
+        tests: [not_null]
+      - name: lap_number
+        tests: [not_null]
+      - name: corner_name
+        tests: [not_null]
+      - name: length_m
+        description: Raw per-lap measured corner length in metres.
+        tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              arguments:
+                min_value: 0
+                max_value: 1200
+                inclusive: false
+      - name: exclusion_reason
+        description: NULL when the observation enters the validated corner length.
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['stopped', 'near_stopped', 'misaligned_global_lap', 'misaligned_corner']
+      - name: linked_corner_flag
+        description: Quality flag only. Measured window crosses into the previous or next apex.
+      - name: linked_corner_reason
+        description: throttle_past_next_apex, brake_before_prev_apex or both; NULL when not flagged.
+
+  - name: int_corner_length_measured
+    description: >
+      One row per race x corner (dim_corners with an apex): MEASURED corner length in metres from
+      telemetry, feeding the mid-corner term of int_corner_skill_residuals. Per-lap measurement lives
+      in int_corner_lap_measured (brake onset to throttle >= 90 % recovery). corner_length_raw_m is the
+      median of every measured clean-lap observation; corner_length_m is the median after excluding only
+      stopped, near-stopped and demonstrably misaligned observations (misalignment per corner where
+      possible). Both NULL below 5 observations; no constant fallback. Per race, not per track.
+      Linked-corner shares and a cell flag (share >= 0.5) are quality flags only.
+    tags: [intermediate, feature_engineering]
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [race_id, corner_name]
+    columns:
+      - name: race_id
+        tests: [not_null]
+      - name: corner_name
+        tests: [not_null]
+      - name: corner_length_m
+        description: Validated measured corner length in metres, NULL = not measured.
+        tests:
+          - dbt_utils.accepted_range:
+              arguments:
+                min_value: 0
+                max_value: 1200
+                inclusive: false
+      - name: corner_length_raw_m
+        description: Median raw corner length (no exclusions), NULL below 5 observations.
+        tests:
+          - dbt_utils.accepted_range:
+              arguments:
+                min_value: 0
+                max_value: 1200
+                inclusive: false
+      - name: n_laps_measured
+        description: Validated observations.
+        tests: [not_null]
+      - name: n_laps_raw
+        description: Raw observations.
+        tests: [not_null]
+      - name: n_excluded_stopped
+      - name: n_excluded_near_stopped
+      - name: n_excluded_misaligned_lap
+      - name: n_excluded_misaligned_corner
+      - name: length_iqr_m
+        description: p75 - p25 of validated per-lap lengths (NULL when corner_length_m is NULL).
+      - name: linked_corner_share
+        description: Share of validated laps flagged linked-corner.
+      - name: throttle_past_next_share
+      - name: brake_before_prev_share
+      - name: linked_corner_cell_flag
+        description: TRUE when linked_corner_share >= 0.5.
+        tests: [not_null]
+      - name: null_reason
+        description: no_measured_clean_lap, too_few_laps or too_few_valid_laps when corner_length_m is NULL.
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['no_measured_clean_lap', 'too_few_laps', 'too_few_valid_laps']
+
   - name: int_corner_skill_residuals
     description: >
       One row per lap per named corner. Decomposes corner skill into braking, mid-corner,
@@ -1751,9 +1864,28 @@ models:
           contract (int_lap_telemetry_aggregates' braking_point_drift_m is base - lap).
       - name: mid_corner_residual_s
         description: >
-          Seconds lost at the apex vs the trailing-5 field median, as (field v_min - own v_min)
-          converted at the field apex speed. POSITIVE = carried LESS speed than the field = time
-          LOST. Highest-coverage of the three phases: every corner has an apex.
+          Seconds lost in the mid-corner (minimum-speed) window vs the trailing-5 field median:
+          L_m * (1/v_own - 1/v_field), v_min in m/s, L_m = MEASURED per-race corner length in
+          metres (int_corner_length_measured: median brake-onset-to-throttle>=90 distance over clean
+          laps, at least 5 laps). NULL when that length is NULL; there is no constant fallback. NULL when the lap has no row in int_corner_lap_measured, and NULL where the cell tail fence flags the value (mid_corner_outlier_flag = 'outlier'; raw value in mid_corner_residual_raw_s). POSITIVE = carried LESS speed than the
+          field = time LOST. NULL when field v_min or own v_min is NULL or 0, or the measured length is NULL. Highest-coverage of
+          the three phases: every corner has an apex.
+      - name: mid_corner_residual_raw_s
+        description: >
+          mid_corner_residual_s before the cell tail fence: the same term, kept so nothing is
+          lost. NULL exactly where the mid term is not measurable (no lap-corner measurement row,
+          exclusion reason, gate, missing length or speed).
+      - name: mid_corner_outlier_flag
+        description: >
+          Tail fence verdict per race x corner cell. 'outlier' = |raw - cell median| >
+          3 * 1.4826 * cell MAD (median and MAD over the cell's non-NULL raw terms; both from the
+          data, no fixed seconds threshold); mid_corner_residual_s is NULL on these rows.
+          'mad_zero' = cell MAD is 0 or NULL, raw value kept. 'ok' = inside the fence.
+          NULL when the raw term is NULL.
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['ok', 'outlier', 'mad_zero']
       - name: exit_residual_s
         description: >
           Seconds lost on exit vs the trailing-5 field median, as (own throttle_point_m - field
@@ -3021,8 +3153,8 @@ models:
   - name: int_driver_race_skill_loro
     description: >
       Equal-car driver skill, race grain (race_year, race_id, driver_id).
-      driver_skill_loro_s = MEDIAN(own lap time - teammate lap time) over the clean laps both
-      drivers ran, paired on lap_number (WI-14b, F40, FD5 option C); negative = faster than the
+      driver_skill_loro_s = MEDIAN(own lap time - teammate lap time, net of the tyre-component
+      difference) over the clean laps both drivers ran, paired on lap_number (WI-14b, F40, FD5 option C); negative = faster than the
       teammate; used by the rating chain. It replaced P20(own) minus the teammate's median, which
       rated lap-time scatter as speed (mean pair sum -1.83 s). driver_skill_field_s = median pace
       delta minus the de-biased constructor×race FE (int_constructor_car_fe.car_fe_s, car pace net
@@ -3058,8 +3190,10 @@ models:
       - name: driver_skill_loro_s
         description: >
           Equal-car rating, seconds: the median lap-by-lap gap to the teammate,
-          MEDIAN(own lap_time_s - teammate lap_time_s) over laps both ran clean (same lap
-          number, correction_weight 1, dry). Negative = faster than the teammate. Antisymmetric:
+          MEDIAN(own lap_time_s - teammate lap_time_s - (own - teammate tyre component)) over
+          all laps both ran clean (same lap number, correction_weight 1, dry), tyre-adjusted with
+          int_lap_residual_decomposed.compound_component_s (owner option 2; pairs with an unknown
+          tyre component drop out; assumes the fitted tyre curve is right). Negative = faster than the teammate. Antisymmetric:
           a two-driver car's two values sum to 0 (T30). NULL when no teammate has a clean lap on
           any lap number the driver ran clean (no equal-car reference). Used by the rating chain.
       - name: driver_skill_field_s
@@ -4339,7 +4473,7 @@ models:
       - name: hardness_identity
         description: What the rank is looked up on -- compound_label in 2018, compound_code from 2019.
       - name: compound_hardness_rank
-        description: compound_hardness_scale.hardness_rank (1 = hardest). NULL only where the identity is (2025).
+        description: compound_hardness_scale.hardness_rank (1 = hardest). NULL only where the compound identity is missing.
       - name: y_s
         description: The fitted quantity, weight_corrected_lap_time (s).
         tests: [not_null]
@@ -4381,7 +4515,7 @@ models:
       grid and alpha is OLS through the origin. curve_incr_{5,10,15,20}_s is the curve over the
       fresh-tyre pace at tyre age 2 (the simulator's anchor), the quantity Step 0 found
       identified (reliability ceiling 0.58-0.76) where alpha is not (0.07). fit_eligible: >= 3
-      qualifying stints (>= 5 laps over >= 2 ages) and >= 40 laps. No 2025 cells (no rank).
+      qualifying stints (>= 5 laps over >= 2 ages) and >= 40 laps. Only var('power_law_fit_seasons') (2018-2024) form cells; 2025 is excluded as unverified.
     tags: [intermediate]
     meta:
       family: physics

@@ -15,6 +15,8 @@
 -- in three and alpha's reliability ceiling at about zero: over 8-30 laps,
 -- lap-time noise is larger than the curve's bend, so alpha and beta trade off
 -- against each other. The per-stint R^2 distribution is reported, never gated.
+-- Seasons outside var('power_law_fit_seasons') (default 2018-2024; 2025 is
+-- excluded, its nominations unverified) are not fitted.
 -- The pooled per-cell fit (int_cell_power_law_fit) is the training target.
 {{ config(materialized='table') }}
 
@@ -33,6 +35,8 @@ WITH laps AS (
         CAST(age_in_stint AS DOUBLE) AS age,
         y_s
     FROM {{ ref('int_power_law_lap') }}
+    -- G2: fit seasons only (2025's tyre nominations are unverified).
+    WHERE race_year IN ({{ var('power_law_fit_seasons') | join(', ') }})
 ),
 
 stints AS (

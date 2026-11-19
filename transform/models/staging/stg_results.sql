@@ -77,11 +77,24 @@ SELECT
         AND status <> 'Finished'
     ) AS is_dnf,
 
+    -- is_retired: the car stopped on track, whatever the classification. A
+    -- driver who retires after covering about 90% of the race keeps an integer
+    -- ClassifiedPosition (so is_classified is TRUE and is_dnf is FALSE) while
+    -- status still says Retired / Engine / Collision. is_retired reads status
+    -- alone: not 'Finished', not a lapped finish, and not 'Disqualified'
+    -- (a disqualification is a ruling, not a retirement). is_classified,
+    -- classified_rank and is_dnf are unchanged.
+    (
+        status <> 'Finished'
+        AND status NOT LIKE '%Lap%'
+        AND status <> 'Disqualified'
+    ) AS is_retired,
+
     -- Coarse DNF cause split for the DNF hazard model: mechanical vs
     -- racing-incident. Crash/collision/accident/spun → racing; the rest of the
-    -- non-finishes are treated as mechanical/other.
+    -- non-finishes are treated as mechanical/other. Read from status
+    -- regardless of classification, so a classified retirement has a cause.
     CASE
-        WHEN classified_rank IS NOT NULL THEN NULL
         WHEN status LIKE '%Lap%' OR status = 'Finished' THEN NULL
         WHEN
             REGEXP_MATCHES(

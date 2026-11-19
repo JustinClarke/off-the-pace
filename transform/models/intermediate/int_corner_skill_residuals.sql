@@ -43,7 +43,9 @@ WITH corner_metrics AS (
         corner_name,
         track_id,
         braking_point_m,
-        v_min_kph,
+        -- apex speed (3-sample median, band around the apex); a window that
+        -- touched speed 0 keeps 0 so the zero guard below still NULLs it
+        CASE WHEN v_min_kph = 0 THEN 0 ELSE v_apex_kph END AS v_min_kph,
         throttle_point_m
     FROM {{ ref('int_corner_metrics') }}
 ),
@@ -202,19 +204,36 @@ with_residuals AS (
                 (fm.field_corner_braking_point_m - ck.braking_point_m)
                 * ck.dt_per_dm
         END AS braking_loss_s,
+        -- MID-CORNER TIME (seconds). L_m * (1/v_own - 1/v_field), speeds in
+        -- m/s, so positive = slower than the field = time lost. L_m is the
+        -- MEASURED per-race corner length (brake onset to throttle >= 90 %,
+        -- median over clean laps) from int_corner_length_measured. NULL there
+        -- (fewer than 5 laps, no onset, no throttle recovery) gives a NULL
+        -- term; there is no constant fallback. Before this fix the term was
+        -- (km/h difference) * (s/m), which has no length and is not seconds.
         CASE
             WHEN
                 fm.field_corner_sample_n < 5
                 OR fm.field_corner_v_min_kph IS NULL
                 OR fm.field_corner_v_min_kph = 0
+                OR ck.v_min_kph IS NULL
+                OR ck.v_min_kph = 0
+                OR cl.corner_length_m IS NULL
+                -- demonstrably invalid observation (stopped, near-stopped,
+                -- distance-axis misalignment): kept raw upstream, excluded here
+                -- explicit guard: the lap-corner measurement row must exist
+                -- (no row = no validated observation = no term), and must not
+                -- carry an exclusion reason
+                OR lq.race_id IS NULL
+                OR lq.exclusion_reason IS NOT NULL
                 THEN NULL
             ELSE
-                (fm.field_corner_v_min_kph - ck.v_min_kph)
+                cl.corner_length_m
                 * (
-                    1.0
-                    / NULLIF(fm.field_corner_v_min_kph * (1000.0 / 3600.0), 0)
+                    1.0 / (ck.v_min_kph / 3.6)
+                    - 1.0 / (fm.field_corner_v_min_kph / 3.6)
                 )
-        END AS mid_corner_residual_s,
+        END AS mid_corner_residual_raw_s,
         CASE
             WHEN
                 fm.field_corner_sample_n < 5
@@ -233,6 +252,71 @@ with_residuals AS (
             AND ck.race_id = fm.race_id
             AND ck.corner_name = fm.corner_name
             AND ck.lap_number = fm.lap_number
+    LEFT JOIN {{ ref('int_corner_length_measured') }} AS cl
+        ON
+            ck.race_id = cl.race_id
+            AND ck.corner_name = cl.corner_name
+    LEFT JOIN {{ ref('int_corner_lap_measured') }} AS lq
+        ON
+            ck.race_id = lq.race_id
+            AND ck.driver_id = lq.driver_id
+            AND ck.lap_number = lq.lap_number
+            AND ck.corner_name = lq.corner_name
+),
+
+-- MID-TERM TAIL FENCE (F2). Per race x corner cell: median and scaled MAD of
+-- the raw mid term over the cell's non-NULL laps; fence = 3 * 1.4826 * MAD
+-- (Tukey-style multiplier 3). Both numbers come from the data; no fixed
+-- seconds threshold. Outliers are NULLed in mid_corner_residual_s but kept in
+-- mid_corner_residual_raw_s and flagged. MAD of 0 or NULL: raw value kept,
+-- flag 'mad_zero'.
+cell_med AS (
+    SELECT
+        race_id,
+        corner_name,
+        QUANTILE_CONT(mid_corner_residual_raw_s, 0.5) AS cell_median_s
+    FROM with_residuals
+    WHERE mid_corner_residual_raw_s IS NOT NULL
+    GROUP BY race_id, corner_name
+),
+
+cell_mad AS (
+    SELECT
+        w.race_id,
+        w.corner_name,
+        m.cell_median_s,
+        QUANTILE_CONT(ABS(w.mid_corner_residual_raw_s - m.cell_median_s), 0.5)
+            AS cell_mad_s
+    FROM with_residuals AS w
+    INNER JOIN cell_med AS m
+        ON w.race_id = m.race_id AND w.corner_name = m.corner_name
+    WHERE w.mid_corner_residual_raw_s IS NOT NULL
+    GROUP BY w.race_id, w.corner_name, m.cell_median_s
+),
+
+fenced AS (
+    SELECT
+        w.*,
+        CASE
+            WHEN w.mid_corner_residual_raw_s IS NULL THEN NULL
+            WHEN cm.cell_mad_s IS NULL OR cm.cell_mad_s = 0 THEN 'mad_zero'
+            WHEN ABS(w.mid_corner_residual_raw_s - cm.cell_median_s)
+                > 3 * 1.4826 * cm.cell_mad_s THEN 'outlier'
+            ELSE 'ok'
+        END AS mid_corner_outlier_flag
+    FROM with_residuals AS w
+    LEFT JOIN cell_mad AS cm
+        ON w.race_id = cm.race_id AND w.corner_name = cm.corner_name
+),
+
+with_mid AS (
+    SELECT
+        *,
+        CASE
+            WHEN mid_corner_outlier_flag = 'outlier' THEN NULL
+            ELSE mid_corner_residual_raw_s
+        END AS mid_corner_residual_s
+    FROM fenced
 )
 
 SELECT
@@ -248,6 +332,8 @@ SELECT
     lap_number,
     braking_loss_s,
     mid_corner_residual_s,
+    mid_corner_residual_raw_s,
+    mid_corner_outlier_flag,
     exit_residual_s,
     braking_loss_s
     + mid_corner_residual_s
@@ -261,5 +347,5 @@ SELECT
     END AS corner_residual_unexplained_s,
     field_corner_sample_n,
     corner_unmapped_flag
-FROM with_residuals
+FROM with_mid
 ORDER BY race_year, race_id, driver_id, lap_number, corner_name

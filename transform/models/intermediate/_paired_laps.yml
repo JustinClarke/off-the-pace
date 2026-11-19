@@ -12,6 +12,16 @@ models:
       median of these rows and paired_lap_count their count, per (race_id, driver_id);
       mart_race_driver_summary builds the order-statistic CI for that median from them.
       For a two-driver car the teammate's rows are the driver's with the sign flipped.
+      Tyre adjustment (owner option 2): every pair is kept and rated. adjusted_paired_delta_s =
+      paired_delta_s - (own compound_component_s - teammate compound_component_s), where
+      compound_component_s (int_lap_residual_decomposed) is the fitted tyre curve's expected
+      pace cost at the lap's compound and tyre age (the only tyre term in the decomposition).
+      Assumption: that fitted curve prices tyre state correctly for both drivers. NULL when
+      either lap has no tyre component (flagged tyre_adjustment_missing, never read as 0);
+      those pairs are not rated. pair_is_comparable (same compound, tyre ages within
+      var('paired_lap_max_tyre_age_gap') = 2 laps) and pair_exclusion_reason are informative
+      flags only; nothing filters on them. int_driver_race_skill_loro, mart_race_driver_summary
+      and assert_mart_race_ci_brackets_rating all read adjusted_paired_delta_s.
     tags: [intermediate, driver_rating, causal_decomposition]
     meta:
       family: skill
@@ -37,6 +47,36 @@ models:
       - name: paired_delta_s
         description: Own lap time minus the teammate's on the same lap, seconds. Negative = faster.
         tests: [not_null]
+      - name: own_tyre_component_s
+        description: The driver's compound_component_s on the lap (int_lap_residual_decomposed). NULL when unknown.
+      - name: teammate_tyre_component_s
+        description: The teammate's compound_component_s on the lap. NULL when unknown.
+      - name: tyre_component_diff_s
+        description: Own minus teammate tyre component, seconds. NULL when either is unknown.
+      - name: adjusted_paired_delta_s
+        description: >
+          paired_delta_s - tyre_component_diff_s, seconds, negative = faster. The rating basis.
+          NULL (never 0) when either lap's tyre component is unknown.
+      - name: tyre_adjustment_missing
+        description: TRUE when either lap has no tyre component, so adjusted_paired_delta_s is NULL.
+        tests: [not_null]
+      - name: own_compound
+        description: The driver's compound on the lap (stg_laps.compound).
+      - name: teammate_compound
+        description: The teammate's compound on the lap.
+      - name: own_tyre_life
+        description: The driver's tyre age on the lap (stg_laps.tyre_life).
+      - name: teammate_tyre_life
+        description: The teammate's tyre age on the lap.
+      - name: pair_is_comparable
+        description: >
+          TRUE when both drivers ran the same compound with tyre ages within 2 laps. Informative
+          only; the rating no longer filters on it (all pairs are rated, tyre-adjusted).
+        tests: [not_null]
+      - name: pair_exclusion_reason
+        description: >
+          NULL when comparable; otherwise different_compound, tyre_age_gap_gt_2 or
+          tyre_data_missing.
     tests:
       - dbt_utils.unique_combination_of_columns:
           arguments:

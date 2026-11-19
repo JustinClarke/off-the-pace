@@ -24,6 +24,13 @@
 -- here (the app's simulator still uses it; the weight-penalty fitter divides by
 -- this model's rate since WI-13, F55).
 --
+-- Fuel burn is assumed even over the scheduled distance and is not observed per
+-- lap. The error from this assumption is bounded at roughly 0.05 s per driver in
+-- plausible cases (teammate and field sensitivity analysis, 2026-11-19 scratch
+-- copy of an older archive). A telemetry proxy was tested and did not help (see
+-- the 2026-11-19 proxy check). The column that used to show per-lap fuel
+-- deviation was removed because it was identically minus the burn rate.
+--
 -- JOIN COMPLETENESS (F8). The two seed joins below are INNER on purpose -- a
 -- race with no track or no scheduled distance cannot be priced -- and they
 -- must never drop a race silently. assert_race_to_track_covers_all_races (T4)
@@ -106,10 +113,7 @@ with_fuel AS (
             initial_fuel_kg
             - fuel_consumption_rate_kg_per_lap * (lap_number - 1),
             0.0
-        ) AS fuel_mass_kg,
-        -- Expected fuel consumed by this lap
-        fuel_consumption_rate_kg_per_lap
-        * lap_number AS expected_fuel_consumed_kg
+        ) AS fuel_mass_kg
     FROM combined
 )
 
@@ -125,10 +129,6 @@ SELECT
     fuel_mass_kg * weight_penalty_factor AS weight_penalty_s,
     lap_time_s
     - (fuel_mass_kg * weight_penalty_factor) AS weight_corrected_lap_time,
-    -- Positive = lap consumed more fuel than model expects (lift-and-coast →
-    -- negative delta)
-    (initial_fuel_kg - fuel_mass_kg)
-    - expected_fuel_consumed_kg AS fuel_delta_vs_expected,
     -- The race-level constants the load was priced from, carried so the fuel
     -- test (T6/T24) and the audit can check them against the scheduled distance
     -- directly instead of re-deriving them.

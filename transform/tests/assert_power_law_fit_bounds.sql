@@ -17,6 +17,8 @@ WITH fit AS (
 eligible_in_lap_set AS (
     SELECT stint_id
     FROM {{ ref('int_power_law_lap') }}
+    -- G2: the fits cover var('power_law_fit_seasons') only (2025 is flagged out).
+    WHERE in_power_law_fit_seasons
     GROUP BY stint_id
     HAVING
         COUNT(*) >= 8

@@ -54,9 +54,9 @@ Dirty air is held because the car-ahead field is internal only (`assert_car_ahea
 
 <!-- BEGIN GENERATED TASKS -- do not hand-edit; `board.py --write-order` -->
 
-_Generated from [`build-log.json`](build-log.json) at `updated: 2026-11-18T23:55:00+04:00`. Run `python3 _roadmap/_ai-integration/status/board.py --write-order` after any edit to the log._
+_Generated from [`build-log.json`](build-log.json) at `updated: 2026-11-18T23:59:00+04:00`. Run `python3 _roadmap/_ai-integration/status/board.py --write-order` after any edit to the log._
 
-**56 live items** (5 blocked). The pointer is on **TX-15** — that is the one to run next; the rest of the order is what becomes runnable after it, with anything waiting on one of your rulings sorted behind the work that isn't. 42 terminal items are finished and not listed here — run `board.py` for the per-group view, or read their `closed` field in [`build-log.json`](build-log.json).
+**57 live items** (5 blocked). The pointer is on **TX-15** — that is the one to run next; the rest of the order is what becomes runnable after it, with anything waiting on one of your rulings sorted behind the work that isn't. 42 terminal items are finished and not listed here — run `board.py` for the per-group view, or read their `closed` field in [`build-log.json`](build-log.json).
 
 #### 1. Transform close (data honesty) (29)
 
@@ -103,10 +103,10 @@ _Pages and cards for the new data, then the assistant core, worker, eval and dra
 | 33 | [AP-09](../wi/AP-09-new-data-pages.md) App pages for the new measured marts… | SPEC | TX-23, TX-26, TX-27, TX-30, AUD-04 | — |
 | 34 | [AP-10](../wi/AP-10-season-2026-results.md) 2026 season results and race recaps page… | SPEC | AP-09 | — |
 | 36 | [AX-28](../wi/AX-28-new-data-cards.md) Card kinds and qv_* query views for the new… | SPEC | AP-09, TX-29, TX-30, TX-23, TX-26, TX-27, TX-28, TX-31 | — |
-| 40 | [AX-10](../wi/AX-10.md) Assistant core v2: dispatcher for the 7… | MEASURED | TX-29, TX-30, TX-23, TX-26, TX-27, TX-28, TX-31 | — |
-| 41 | [AX-12](../wi/AX-12.md) Worker v2: one ticket per question… | MEASURED | TX-29, TX-30, TX-23, TX-26, TX-27, TX-28, TX-31 | — |
-| 42 | [AX-13](../wi/AX-13.md) Analyst eval v2: questions per class… | MEASURED | AX-10, TX-29, TX-30, TX-23, TX-26, TX-27, TX-28, TX-31 | — |
-| 43 | [AX-14](../wi/AX-14.md) Chat drawer with render-time grounding and… | MEASURED | AX-10, AX-12, TX-29, TX-30, TX-23, TX-26, TX-27, TX-28, TX-31 | — |
+| 41 | [AX-10](../wi/AX-10.md) Assistant core v2: dispatcher for the 7… | MEASURED | TX-29, TX-30, TX-23, TX-26, TX-27, TX-28, TX-31 | — |
+| 42 | [AX-12](../wi/AX-12.md) Worker v2: one ticket per question… | MEASURED | TX-29, TX-30, TX-23, TX-26, TX-27, TX-28, TX-31 | — |
+| 43 | [AX-13](../wi/AX-13.md) Analyst eval v2: questions per class… | MEASURED | AX-10, TX-29, TX-30, TX-23, TX-26, TX-27, TX-28, TX-31 | — |
+| 44 | [AX-14](../wi/AX-14.md) Chat drawer with render-time grounding and… | MEASURED | AX-10, AX-12, TX-29, TX-30, TX-23, TX-26, TX-27, TX-28, TX-31 | — |
 
 #### 3. New data features (4)
 
@@ -125,10 +125,10 @@ _Freeze the snapshot, then the owner switches the assistant on._
 
 | # | Item | Stage | Waits on | Owner decision |
 | ---: | :--- | :--- | :--- | :--- |
-| 44 | [AX-19](../wi/AX-19.md) Freeze: snapshot of manifest version, card… | SPEC | AX-13, AX-14 | — |
-| 45 | [AX-20](../wi/AX-20.md) Launch run through the real drawer and… | SPEC | AX-19 | — |
+| 45 | [AX-19](../wi/AX-19.md) Freeze: snapshot of manifest version, card… | SPEC | AX-13, AX-14 | — |
+| 46 | [AX-20](../wi/AX-20.md) Launch run through the real drawer and… | SPEC | AX-19 | — |
 
-#### 5. Held or after launch (14)
+#### 5. Held or after launch (15)
 
 _Dirty air, ML, uncertainty and the ghost chain; all wait on launch or a ruling._
 
@@ -137,17 +137,18 @@ _Dirty air, ML, uncertainty and the ghost chain; all wait on launch or a ruling.
 | 29 | [AUD-15](../wi/AUD-00-model-triage.md) Audit ML features and the degradation… | SPEC | AUD-11, AUD-03 | — |
 | 37 | [DM-05](../wi/TX-30-transform-honesty-sweep.md) Ghost chain: interaction and deg-sensitivity… | SPEC | DM-03 | HD20 |
 | 39 | [TX-09](../wi/TX-09.md) Refit the degradation-envelope isotonic file | BLOCKED | — | XM |
-| 46 | [AX-24](../wi/AX-24-car-ahead-off-published.md) No published number depends on DriverAhead… | SPEC | AX-20 | — |
-| 47 | [DM-04](../wi/TX-30-transform-honesty-sweep.md) Dirty air: rebuild air state on proximity… | SPEC | AX-20, AX-24, DM-03 | — |
-| 48 | [AX-23](../wi/AX-23-dirty-air-off-surface.md) Take dirty-air cost off the product surface… | SPEC | AX-20 | — |
-| 49 | [AX-26](../wi/AX-26-held-wording-and-tax-label.md) Held-card wording and the unvalidated label… | SPEC | AX-20 | — |
-| 50 | [AX-15b](../wi/AX-15b.md) Make the dirty-air-dependent cards live once… | BLOCKED | TX-17, TX-18, AX-20 | XW |
-| 51 | [AX-16](../wi/AX-16.md) Traffic-cost cards from the wake-calibration… | BLOCKED | AX-15b, AX-20 | XW |
-| 52 | [DM-06](../wi/TX-30-transform-honesty-sweep.md) ML-only zeros: drift_s_per_lap, quali SE… | SPEC | AX-20, TX-29, AUD-15 | — |
-| 53 | [ML-01](../wi/ML-01-retrain-2018-2024.md) Retrain models on 2018-2024 and score 2025… | SPEC | AX-20, TX-29 | — |
-| 54 | [AX-17](../wi/AX-17.md) ML cards: prediction bands, in-envelope… | BLOCKED | ML-01 | XM |
-| 55 | [AX-18](../wi/AX-18.md) Pit-call verdict cards with the measured… | BLOCKED | AX-17 | XM |
-| 56 | [UNC-01](../wi/UNC-01-uncertainty-methodology.md) Uncertainty methodology for constructor… | SPEC | AX-20, AX-24 | — |
+| 40 | [TX-32](../wi/TX-32-cliff-onset-two-part.md) Constructor cliff onset: split… | SPEC | TX-30, TX-29, DM-05 | HD29, HD30, HD31, HD32, HD33, HD34 |
+| 47 | [AX-24](../wi/AX-24-car-ahead-off-published.md) No published number depends on DriverAhead… | SPEC | AX-20 | — |
+| 48 | [DM-04](../wi/TX-30-transform-honesty-sweep.md) Dirty air: rebuild air state on proximity… | SPEC | AX-20, AX-24, DM-03 | — |
+| 49 | [AX-23](../wi/AX-23-dirty-air-off-surface.md) Take dirty-air cost off the product surface… | SPEC | AX-20 | — |
+| 50 | [AX-26](../wi/AX-26-held-wording-and-tax-label.md) Held-card wording and the unvalidated label… | SPEC | AX-20 | — |
+| 51 | [AX-15b](../wi/AX-15b.md) Make the dirty-air-dependent cards live once… | BLOCKED | TX-17, TX-18, AX-20 | XW |
+| 52 | [AX-16](../wi/AX-16.md) Traffic-cost cards from the wake-calibration… | BLOCKED | AX-15b, AX-20 | XW |
+| 53 | [DM-06](../wi/TX-30-transform-honesty-sweep.md) ML-only zeros: drift_s_per_lap, quali SE… | SPEC | AX-20, TX-29, AUD-15 | — |
+| 54 | [ML-01](../wi/ML-01-retrain-2018-2024.md) Retrain models on 2018-2024 and score 2025… | SPEC | AX-20, TX-29 | — |
+| 55 | [AX-17](../wi/AX-17.md) ML cards: prediction bands, in-envelope… | BLOCKED | ML-01 | XM |
+| 56 | [AX-18](../wi/AX-18.md) Pit-call verdict cards with the measured… | BLOCKED | AX-17 | XM |
+| 57 | [UNC-01](../wi/UNC-01-uncertainty-methodology.md) Uncertainty methodology for constructor… | SPEC | AX-20, AX-24 | — |
 
 ### Which model to run it on
 
@@ -168,6 +169,12 @@ Recorded per item in the log, not chosen at the keyboard, so the choice is revie
 - **HD26** (blocks `AUD-05`, `AUD-12`) — Where the transform substitutes a fixed non-zero constant for a missing input, should the row get NULL with a…
 - **HD27** (blocks `AUD-10`, `AUD-11`, `DM-02`) — (a) Three rating models pool within-cell variance as AVG(POWER(COALESCE(sd, 0), 2)), so a single-observation…
 - **HD28** (blocks `DM-01`) — int_track_evolution clamps the rubber slope to <= 0 (about :80-90), so 36 of 166 races have rubber exactly 0…
+- **HD29** (blocks `TX-32`) — Which per-stint cliff event should method A's survival model use? A: fct_stint_features.cliff_lap_in_stint…
+- **HD30** (blocks `TX-32`) — A/B (timing in laps via survival, post-cliff cost as a rate) as the fix, and should the minimal x2.5 units…
+- **HD31** (blocks `TX-32`) — For a constructor-compound-season cell below the minimum sample, the point is 0 (field-timed by prior)
+- **HD32** (blocks `TX-32`) — cliff_onset_shift_laps is clipped to +/-3 laps; the published range is -0.68 to +1.12, so it never binds (max…
+- **HD33** (blocks `TX-32`) — Admit an as-of version of method A (fitted only on races strictly before the predicted race, passes…
+- **HD34** (blocks `TX-32`) — Method B's ghost term is (B_host - B_ego) * LEAST(laps_past_onset, H)
 
 ### Watch list — kept an eye on, not tasks and not rulings
 

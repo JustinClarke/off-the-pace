@@ -18,7 +18,9 @@
 -- races (no Miami row), and every
 -- 2025 row is CARRIED FORWARD from that circuit's 2023 or 2024 allocation
 -- (`source_url` is
--- 'carried_from_20xx', not a URL), not read from a 2025 preview. Per-season
+-- 'carried_from_20xx', not a URL), not read from a 2025 preview, and so
+-- unverified. The 2025 rows are kept here and flow into compound_code, but the
+-- power-law fits exclude 2025 by var('power_law_fit_seasons') (G2). Per-season
 -- counts are pinned by tests/assert_tyre_allocations_rows_per_season.sql.
 --
 -- Seed is wide (one row per race); this model unpivots to one row per

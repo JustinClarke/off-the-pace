@@ -7,7 +7,7 @@ models:
       One row per race_to_track race: what the warehouse measured for it and, when a race has
       no rating or thin residuals, why (coverage_reason). Every value is derived from the
       data, never from a hand list of race ids. On the 2018-2025 build: 173 races in
-      race_to_track, 172 in fct_lap_residuals (2021_12 has no racing laps), 171 rated
+      race_to_track, 172 in fct_lap_residuals (every race except 2018_14, which has no laps in Bronze; 2021_12 has 20 lap rows but none ml-eligible and none with a residual, so it is NO_USABLE_LAPS, not 'no racing laps'), 171 rated
       (2021_16 is all wet, so the rating's clean panel has no dry pairs).
     tags: [marts]
     meta:
@@ -79,7 +79,7 @@ models:
         description: >
           Why coverage is short, first match wins: SOURCE_UNAVAILABLE (no stg_laps rows: the
           source delivered no race laps, listed in ingestion/known_gaps.txt; TX-16 / HD15 option
-          B, 2018_14), NO_RACING_LAPS (no fct_lap_residuals rows),
+          B, 2018_14), NO_RACING_LAPS (no fct_lap_residuals rows), NO_USABLE_LAPS (lap rows exist but n_ml_eligible_laps = 0 and no driver_skill_residual_s; never OK),
           ALL_WET_NO_DRY_PAIRS (no rating and rain_lap_share > 0.5), NO_TELEMETRY (has_telemetry
           FALSE), TYRE_QA_QUARANTINED (tyre_qa_status = 'quarantined_race'), TYRE_LIFE_PARTIAL
           (bronze_tyre_life_share < 0.90), OK.
@@ -87,4 +87,4 @@ models:
           - not_null
           - accepted_values:
               arguments:
-                values: ['SOURCE_UNAVAILABLE', 'NO_RACING_LAPS', 'ALL_WET_NO_DRY_PAIRS', 'NO_TELEMETRY', 'TYRE_QA_QUARANTINED', 'TYRE_LIFE_PARTIAL', 'OK']
+                values: ['SOURCE_UNAVAILABLE', 'NO_RACING_LAPS', 'NO_USABLE_LAPS', 'ALL_WET_NO_DRY_PAIRS', 'NO_TELEMETRY', 'TYRE_QA_QUARANTINED', 'TYRE_LIFE_PARTIAL', 'OK']

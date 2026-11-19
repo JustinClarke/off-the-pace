@@ -5,7 +5,8 @@
 -- Aggregates: stint length, compound, starting tyre age, end-of-stint thermal
 -- load,
 -- cumulative dirty air tax, first cliff lap, and OLS pace falloff slope (last 3
--- laps).
+-- laps). The slope uses only those laps that have a driver_skill_residual_s
+-- (x-mean, y-mean, count, numerator and denominator all use the same rows).
 --
 -- Strategy columns:
 --   pit_decision_class: from int_pit_strategy_value (strategy_verdict).
@@ -131,6 +132,11 @@ cliff_agg AS (
     GROUP BY sg.stint_id
 ),
 
+-- The last 3 laps of each stint that CARRY a residual. The NULL filter comes
+-- BEFORE the row-number window, so a NULL-residual lap inside the trailing
+-- rows is skipped and the 3 non-NULL laps before it are used (previously the
+-- last 3 rows were taken first and NULLs dropped after, leaving 2 laps and no
+-- slope). The n < 3 gate in slope_calc is kept.
 last_3_laps AS (
     SELECT
         sg.stint_id,
@@ -139,10 +145,21 @@ last_3_laps AS (
     FROM {{ ref('int_stint_geometry') }} AS sg
     INNER JOIN {{ ref('int_lap_residual_decomposed') }} AS lr
         ON sg.lap_id = lr.lap_id
+    WHERE lr.driver_skill_residual_s IS NOT NULL
     QUALIFY
         ROW_NUMBER()
             OVER (PARTITION BY sg.stint_id ORDER BY sg.lap_in_stint DESC)
         <= 3
+),
+
+-- Every regression term below uses these rows only, so the x and y means
+-- match the sums.
+last_3_usable AS (
+    SELECT
+        stint_id,
+        valid_lap_in_stint,
+        driver_skill_residual_s
+    FROM last_3_laps
 ),
 
 slope_means AS (
@@ -151,7 +168,7 @@ slope_means AS (
         AVG(valid_lap_in_stint) AS mean_x,
         AVG(driver_skill_residual_s) AS mean_y,
         COUNT(*) AS n_laps
-    FROM last_3_laps
+    FROM last_3_usable
     GROUP BY stint_id
 ),
 
@@ -228,7 +245,7 @@ slope_calc AS (
                 )
                 / NULLIF(SUM(POWER(l.valid_lap_in_stint - sm.mean_x, 2)), 0)
         END AS end_of_stint_pace_falloff_s_per_lap
-    FROM last_3_laps AS l
+    FROM last_3_usable AS l
     INNER JOIN slope_means AS sm ON l.stint_id = sm.stint_id
     GROUP BY l.stint_id, sm.n_laps
 )

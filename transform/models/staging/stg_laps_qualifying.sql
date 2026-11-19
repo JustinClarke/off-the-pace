@@ -155,12 +155,17 @@ flagged AS (
         -- It is required only from 2019, the first season that populates it.
         -- assert_quali_valid_share_consistent_across_seasons (T25) catches the
         -- next season that doesn't.
-        lap_time_s > 0
-        AND NOT is_pit_lap
-        AND NOT is_deleted
-        AND (is_accurate OR race_year < 2019)
-        AND NOT REGEXP_MATCHES(track_status, '.*[4567].*')
-        AND lap_number > 1
+        -- COALESCE: an untimed lap (lap_time_s NULL) makes the AND chain NULL,
+        -- not FALSE; the flag is a boolean, so NULL is mapped to FALSE here.
+        COALESCE(
+            lap_time_s > 0
+            AND NOT is_pit_lap
+            AND NOT is_deleted
+            AND (is_accurate OR race_year < 2019)
+            AND NOT REGEXP_MATCHES(track_status, '.*[4567].*')
+            AND lap_number > 1,
+            FALSE
+        )
             AS is_valid_lap
     FROM renamed
 )

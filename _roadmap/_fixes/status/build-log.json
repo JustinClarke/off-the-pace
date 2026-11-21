@@ -1781,6 +1781,27 @@
       "gates_run": "board.py --check",
       "next_action": "Work continues on _roadmap/_ai-integration (pointer CO-01).",
       "next_command": "python3 _roadmap/_ai-integration/status/board.py"
+    },
+    {
+      "date": "2026-11-21T12:00:00Z",
+      "session": "Two fixes in the working tree, uncommitted: fuel NULL handling (int_lap_fuel_state) and the weight-penalty fitter's non-identified case plus honesty policy",
+      "landed": [
+        "Fix 1, fuel NULL handling (uncommitted; owner commits): transform/models/intermediate/int_lap_fuel_state.sql (CASE clamp keeps NULL NULL; GREATEST skips NULL in DuckDB), transform/models/intermediate/schema.yml (not_null and >=0 tests on fuel_mass_kg, weight_penalty_s, weight_corrected_lap_time), transform/tests/assert_fuel_mass_null_and_range.sql (new, untracked), transform/tests/least_greatest_nullable.allowlist.json (int_lap_fuel_state entry removed).",
+        "Fix 2, fitter and honesty policy (uncommitted; owner commits): transform/tasks/coefficients/fit_weight_penalty.py (no floor on a flat or rising first-stint slope; NON_IDENTIFIED status, prior kept), transform/tasks/coefficients/tests/test_fit_weight_penalty.py, transform/models/reference/schema.yml, app/src/assistant/honesty/policy.json."
+      ],
+      "verified": [
+        "test_fit_weight_penalty.py: 14 passed.",
+        "Read-only trace of the new not_null tests: lap_time_s is non-null on valid laps (stg_laps is_valid_lap requires lap_time_s > 0, COALESCEd to FALSE); weight_penalty_factor is not_null in dim_circuits and both joins are INNER; race_scheduled_laps covers 2018-2025 with no 0 or NULL scheduled_laps and the fuel macro returns NULL only before 2018; lap_number is not_null in stg_laps. Conclusion: the not_null tests on weight_penalty_s and weight_corrected_lap_time are safe. Only the 2018 floor is unguarded by a direct stg_laps year test."
+      ],
+      "assumed": [
+        "dbt has NOT been run and the warehouse was not queried; the new singular test and schema tests are unexecuted.",
+        "Open calibration-policy question: test_small_negative_slope_is_not_floored proves the old floor is gone but does not judge whether a tiny factor (about 0.001 s/kg) is acceptable.",
+        "Citation items (app/src/assistant/honesty/sources.node.test.ts and the policy.json line citations) are a separate pending job, not done here.",
+        "transform/seeds/circuit_reference.csv (Spain row) is unchanged and in neither commit."
+      ],
+      "gates_run": "pytest tasks/coefficients/tests/test_fit_weight_penalty.py only. No dbt, no board.py.",
+      "next_action": "Owner commits fix 1 then fix 2, then runs dbt build for int_lap_fuel_state and its tests.",
+      "next_command": "dbt build --select int_lap_fuel_state assert_fuel_mass_null_and_range assert_fuel_load_matches_scheduled_distance"
     }
   ],
   "watch_vocabulary": {

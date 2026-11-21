@@ -176,7 +176,7 @@ def calibrate_circuit(
             "calibration_flag": "INSUFFICIENT_DATA",
         }
 
-    # max(NaN / rate, 0.005) is NaN, which would be adopted as the factor.
+    # NaN / rate is NaN, which would be adopted as the factor.
     if not fuel_rate > 0:
         raise ValueError(f"{circuit_key}: burn rate {fuel_rate!r} kg/lap cannot convert s/lap to s/kg")
 
@@ -196,8 +196,28 @@ def calibrate_circuit(
     )
 
     # slope is s/lap; negate because pace improves (time decreases) as fuel burns
-    # fuel_rate converts: (s/lap) / (kg/lap) = s/kg
-    measured_wpf = max(-result.slope / fuel_rate, 0.005)
+    # fuel_rate converts: (s/lap) / (kg/lap) = s/kg. No floor: a flat or rising
+    # first-stint pace cannot identify a fuel penalty, so it is reported as such
+    # rather than clamped to a plausible-looking number.
+    measured_wpf = -result.slope / fuel_rate
+
+    if not measured_wpf > 0:
+        log.warning(
+            "%s: slope %.5f s/lap is not negative (raw factor %.5f)   fuel effect not "
+            "identified, retaining prior %.4f",
+            circuit_key, result.slope, measured_wpf, prior_wpf,
+        )
+        return {
+            "circuit_key": circuit_key,
+            "weight_penalty_factor": prior_wpf,
+            # Blank (NaN): the raw non-positive value is not a calibration.
+            "measured_weight_penalty_factor": float("nan"),
+            "calibration_source": "first_stint_regression",
+            "n_calibration_laps": n_laps,
+            "prior_weight_penalty_factor": prior_wpf,
+            "calibration_delta_pct": float("nan"),
+            "calibration_flag": "NON_IDENTIFIED",
+        }
 
     delta_pct = abs(measured_wpf-prior_wpf) / prior_wpf
     flag = "OK"

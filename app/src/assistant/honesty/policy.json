@@ -499,10 +499,10 @@
           "any decomposition page"
         ],
         "metrics": [
-          "driver residuals and compound estimates at circuits whose calibration is REVIEW_REQUIRED or INSUFFICIENT_DATA"
+          "driver residuals and compound estimates at circuits whose calibration is REVIEW_REQUIRED, INSUFFICIENT_DATA or NON_IDENTIFIED"
         ]
       },
-      "condition": "A card comes from a circuit whose weight-penalty calibration is flagged REVIEW_REQUIRED or INSUFFICIENT_DATA.",
+      "condition": "A card comes from a circuit whose weight-penalty calibration is flagged REVIEW_REQUIRED, INSUFFICIENT_DATA or NON_IDENTIFIED.",
       "triggers": [
         {
           "card": [
@@ -520,7 +520,8 @@
               "op": "in",
               "value": [
                 "REVIEW_REQUIRED",
-                "INSUFFICIENT_DATA"
+                "INSUFFICIENT_DATA",
+                "NON_IDENTIFIED"
               ]
             }
           ]
@@ -532,6 +533,7 @@
           [
             "\\bREVIEW_REQUIRED\\b",
             "\\bINSUFFICIENT_DATA\\b",
+            "\\bNON_IDENTIFIED\\b",
             "\\bcalibration (is |was )?(flagged|under review|uncertain|not settled)\\b",
             "\\b(flagged|marked) for review\\b",
             "\\b(extra )?caution\\b"

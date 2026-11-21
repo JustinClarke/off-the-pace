@@ -312,6 +312,26 @@ models:
       - name: lap_id
         description: Foreign key to stg_laps
         tests: [not_null, unique]
+      - name: fuel_mass_kg
+        description: >
+          Fuel remaining at the start of the lap, floored at 0 kg. NULL stays NULL (the floor
+          does not turn an unknown load into an empty tank). Bounded by initial_fuel_kg.
+        tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              arguments:
+                min_value: 0
+      - name: weight_penalty_s
+        description: fuel_mass_kg * the circuit's weight_penalty_factor. NULL if either is NULL.
+        tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              arguments:
+                min_value: 0
+      - name: weight_corrected_lap_time
+        description: lap_time_s minus weight_penalty_s. NULL if the penalty is NULL.
+        tests:
+          - not_null
       - name: race_lap_count
         description: The race's scheduled distance in laps (race_scheduled_laps.scheduled_laps), a pre-race known.
         tests: [not_null]

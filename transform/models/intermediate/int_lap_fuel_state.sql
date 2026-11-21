@@ -103,18 +103,28 @@ combined AS (
         ON g.race_id = rf.race_id
 ),
 
+with_raw_fuel AS (
+    SELECT
+        *,
+        -- Fuel remaining at start of this lap before any bound (lap 1 = full
+        -- tank). NULL when the load, the rate or the lap number is NULL.
+        initial_fuel_kg
+        - fuel_consumption_rate_kg_per_lap * (lap_number - 1) AS raw_fuel_kg
+    FROM combined
+),
+
 with_fuel AS (
     SELECT
         *,
-        -- Fuel remaining at start of this lap (lap 1 = full tank). Never below
-        -- zero: race_lap_count is the scheduled distance, so no lap a race can
-        -- actually run exhausts the modelled load.
-        GREATEST(
-            initial_fuel_kg
-            - fuel_consumption_rate_kg_per_lap * (lap_number - 1),
-            0.0
-        ) AS fuel_mass_kg
-    FROM combined
+        -- Never below zero: race_lap_count is the scheduled distance, so no lap
+        -- a race can actually run exhausts the modelled load. GREATEST skips
+        -- NULL in DuckDB (GREATEST(NULL, 0.0) is 0.0), so a NULL raw value is
+        -- passed through explicitly: unknown fuel stays NULL, a real zero stays 0.
+        CASE
+            WHEN raw_fuel_kg IS NULL THEN NULL
+            ELSE GREATEST(raw_fuel_kg, 0.0)
+        END AS fuel_mass_kg
+    FROM with_raw_fuel
 )
 
 SELECT

@@ -73,11 +73,34 @@ class TestCalibrateCircuit:
         # Adopts the prior, not the noisy measured value.
         assert out["weight_penalty_factor"] == 0.010
 
-    def test_factor_has_floor(self):
-        # Flat/positive slope → measured would be ≤ 0, but is floored at 0.005.
-        df = make_first_stint_panel("flat", n_laps=80, slope_s_per_lap=0.0, noise_std=0.0)
-        out = calibrate_circuit(df, "flat", prior_wpf=0.005, fuel_rate=1.6)
-        assert out["measured_weight_penalty_factor"] >= 0.005
+    @pytest.mark.parametrize("slope", [0.0, 0.03])
+    def test_flat_or_positive_slope_is_not_identified(self, slope):
+        # Pace that does not improve with burn-off cannot identify a fuel penalty.
+        # No 0.005 floor: the prior is kept and the measured value is left blank.
+        df = make_first_stint_panel("flat", n_laps=80, slope_s_per_lap=slope, noise_std=0.0)
+        out = calibrate_circuit(df, "flat", prior_wpf=0.03, fuel_rate=1.6)
+        assert out["calibration_flag"] == "NON_IDENTIFIED"
+        assert out["weight_penalty_factor"] == 0.03
+        assert np.isnan(out["measured_weight_penalty_factor"])
+
+    def test_negative_slope_recovers_unfloored_factor(self):
+        df = make_first_stint_panel("neg", n_laps=80, slope_s_per_lap=-0.048, noise_std=0.0)
+        out = calibrate_circuit(df, "neg", prior_wpf=0.03, fuel_rate=1.6)
+        assert out["measured_weight_penalty_factor"] == pytest.approx(0.03, abs=1e-5)
+        assert out["calibration_flag"] == "OK"
+        assert out["weight_penalty_factor"] == pytest.approx(0.03, abs=1e-5)
+
+    def test_small_negative_slope_is_not_floored(self):
+        # raw factor 0.0016/1.6 = 0.001, below the old 0.005 floor; prior is 0.001 so OK.
+        df = make_first_stint_panel("tiny", n_laps=80, slope_s_per_lap=-0.0016, noise_std=0.0)
+        out = calibrate_circuit(df, "tiny", prior_wpf=0.001, fuel_rate=1.6)
+        assert out["measured_weight_penalty_factor"] == pytest.approx(0.001, abs=1e-5)
+
+    def test_flag_on_other_paths(self):
+        short = make_first_stint_panel("m", n_laps=MIN_CALIBRATION_LAPS - 1)
+        assert calibrate_circuit(short, "m", 0.025, 1.6)["calibration_flag"] == "INSUFFICIENT_DATA"
+        steep = make_first_stint_panel("s", n_laps=80, slope_s_per_lap=-0.20)
+        assert calibrate_circuit(steep, "s", 0.010, 1.6)["calibration_flag"] == "REVIEW_REQUIRED"
 
 
 # ---------------------------------------------------------------------------

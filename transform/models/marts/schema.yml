@@ -256,7 +256,7 @@ models:
                 to: ref('dim_compounds_season')
                 field: compound_code
       - name: compound_grip_peak
-        description: Fitted peak grip coefficient for this compound × circuit × season
+        description: Peak grip ratio for this compound (unitless, 0.95–1.09). A compound-class constant, not fitted, and not a seconds offset. Same value across circuits and seasons.
         data_type: double
       - name: compound_wear_gradient
         description: Fitted wear gradient (s/lap) for this compound × circuit × season
@@ -1123,7 +1123,7 @@ models:
           get NULL. Falls back to the legacy last-valid-lap position only for races not
           yet in stg_results (see finish_from_results).
       - name: actual_is_dnf
-        description: True when official results classify the driver as a retirement (NULL position). FALSE when results absent.
+        description: True when official results show the driver retired (stg_results.is_retired, including late retirees who keep a classified position); disqualified drivers are FALSE. actual_finish_position is NULL. FALSE when results absent.
       - name: actual_dnf_cause
         description: Coarse DNF cause from stg_results ('racing'/'mechanical'/'non_classified'); NULL for finishers or races without results.
       - name: finish_from_results
@@ -3027,7 +3027,7 @@ models:
           grid_position - finish_position from stg_results. Positive = places gained. NULL when
           grid_position = 0 (pit-lane start, not a grid slot) or either position is missing.
       - name: has_dnf
-        description: TRUE when stg_results marks the driver as a DNF. FALSE when no result row exists.
+        description: TRUE when stg_results marks the driver retired (is_retired, including late retirees with a classified position). Disqualified drivers are FALSE. FALSE when no result row exists.
         tests: [not_null]
       - name: paired_lap_count
         description: >

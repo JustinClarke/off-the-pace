@@ -61,7 +61,7 @@
 -- racing stops unmatched). Jolpica pit stops match stg_pits, so the pit record
 -- is the trusted side. Stale or missing bronze compounds are not served; the
 -- race stays quarantined and its lap-level compounds stay NULL. The 2025 Miami
--- allocation metadata (carried_from_2024) is separate and does not supply
+-- allocation metadata (official nomination C3/C4/C5) is separate and does not supply
 -- lap-level compounds. Pinned by tests/assert_miami_2025_*.sql and
 -- tests/assert_quarantined_laps_serve_no_compound.sql.
 {{ config(materialized='view') }}

@@ -2,7 +2,7 @@
 --
 -- Returns one row per violation. Checks:
 --   * per-season race count equals the declared count (2019-2024 = every ingested race;
---     2025 = 24, all ingested races; 2025_6 Miami is a carried_from_2024 row, see the seed
+--     2025 = 24, all ingested races; 2025_6 Miami is a sourced row (C3/C4/C5), the other 23 are carried_from_20xx, see the seed
 --     description -- a 2025 row added or dropped must change this list on purpose);
 --   * no season outside 2019-2025 (W50: 2018 rows are never allowed, 2018 identity comes from
 --     the lap name);

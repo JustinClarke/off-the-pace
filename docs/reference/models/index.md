@@ -21,7 +21,6 @@ Auto-generated reference for all 99 dbt models.
 | [`stg_results`](/reference/models/stg/stg_results) | Official classified race results from FastF1 session.results. |
 | [`stg_results_qualifying`](/reference/models/stg/stg_results_qualifying) | Official classified results for the qualifying session. |
 | [`stg_sector_times`](/reference/models/stg/stg_sector_times) | Per-sector timing unpivoted from stg_laps. |
-| [`stg_session_status`](/reference/models/stg/stg_session_status) | Session lifecycle events from FastF1 session.session_status (Inactive / Started / Aborted / Finished / Finalised). |
 | [`stg_session_status_qualifying`](/reference/models/stg/stg_session_status_qualifying) | Session lifecycle events for the qualifying session, mirroring stg_session_status. |
 | [`stg_telemetry`](/reference/models/stg/stg_telemetry) | High-frequency car telemetry (~10 Hz) from FastF1, one row per sample. |
 | [`stg_telemetry_position`](/reference/models/stg/stg_telemetry_position) | The channel split. |

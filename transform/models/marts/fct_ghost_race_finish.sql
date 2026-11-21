@@ -125,7 +125,7 @@ race_distance AS (
 
 -- Actual finish position. Source of truth = official classified results
 -- (stg_results): classified finishers get their official finishing position;
--- retirements (is_dnf) get NULL so deltas stay undefined. Falls back to the
+-- retirements (is_retired, or unclassified incl. disqualified) get NULL so deltas stay undefined. Falls back to the
 -- lap-derived position (last valid lap) only for races not yet present
 -- in stg_results.
 lap_finish AS (
@@ -143,9 +143,13 @@ results_finish AS (
         race_year,
         race_id,
         driver_id                               AS ego_driver_id,
-        -- Official position only for classified finishers; DNFs → NULL.
-        CASE WHEN is_classified THEN finish_position ELSE NULL END AS result_finish_position,
-        is_dnf,
+        -- Official position only for classified finishers; retirements and
+        -- non-classified → NULL. is_retired also catches late retirees who keep
+        -- an integer ClassifiedPosition (is_classified TRUE, is_dnf FALSE).
+        CASE WHEN is_classified AND NOT is_retired THEN finish_position ELSE NULL END AS result_finish_position,
+        -- Retired, including late retirees with a classified position. Disqualified
+        -- drivers are excluded (is_disqualified), since a ruling is not a retirement.
+        is_retired                              AS is_dnf,
         dnf_cause
     FROM {{ ref('stg_results') }}
 ),

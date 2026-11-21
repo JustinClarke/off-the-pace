@@ -27,9 +27,9 @@
 --     (08p). tyre_allocations has no 2018 rows and is never consulted for 2018.
 --   * 2019+: compound_code (C1-C5) from int_stint_geometry's tyre_allocations
 --     join.
---   * 2025: tyre_allocations carries 2025 rows (23 of 24 races, no Miami), so
+--   * 2025: tyre_allocations carries 2025 rows (all 24 races), so
 --     compound_code and the hardness rank ARE populated for 2025 and 2025
---     forms cells. But every 2025 nomination is carried forward from that
+--     forms cells. But every 2025 nomination except Miami is carried forward from that
 --     circuit's 2023/2024 allocation and is unverified (stg_tyre_allocations).
 --     G2: 2025 stays in this lap set, flagged in_power_law_fit_seasons =
 --     FALSE, and the fit models (int_cell_power_law_fit,

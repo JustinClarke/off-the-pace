@@ -14,13 +14,9 @@
 -- mismatch against the tyre window is untouched here) and is not asserted by
 -- this test.
 --
--- Known remaining consumer, NOT covered here (WI-01 verification pass,
--- 2026-09-27): int_pit_strategy_cost_curve.sql (~line 362) still adds the
--- difference of two compounds' unitless compound_grip_peak ratios into a
--- per-lap pace offset in seconds (when var('pit_strategy_baseline_delta') is
--- on). Fixing it needs a fitted per-compound offset in seconds, which is
--- outside WI-01's scope; it is on the fixes board's watch list as debt, and
--- this test deliberately stays scoped to int_compound_cliff_predicted.
+-- int_pit_strategy_cost_curve already excludes compound_grip_peak from
+-- baseline_delta_s_per_lap (temperature term only); that model's dead
+-- grip_peak column was removed. assert_pit_cost_curve_baseline_units covers it.
 {{ config(severity='error') }}
 
 SELECT

@@ -466,6 +466,11 @@ seeds:
         race_id: varchar
     # race_id must be typed: '2021_10' is otherwise sniffed as the digit-separated
     # integer 202110 (F13's defect on raw_dim_events).
+    # race_id typed for the same reason ('2018_1' is sniffed as an integer otherwise).
+    seed_physical_ahead_known_reference_gaps:
+      +column_types:
+        race_id: varchar
+        reason: varchar
     race_scheduled_laps:
       +column_types:
         race_id: varchar

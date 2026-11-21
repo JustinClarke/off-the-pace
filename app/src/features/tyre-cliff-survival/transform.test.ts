@@ -125,6 +125,8 @@ describe('transform', () => {
       fit_date: '2026-05-21',
       data_window: '2018_to_2024',
       notes: 'fitted from 33 stints via cox_km_survival',
+      onset_source: 'fitted', gradient_source: 'fitted', severity_source: 'fitted',
+      onset_iqr_low: 15, onset_iqr_high: 23,
     }
     const stints = [makeStint({ stint_length: 15, cliffed: false })]
     const result = transform(profile, stints, 'SOFT')
@@ -133,6 +135,22 @@ describe('transform', () => {
     expect(result.fitDate).toBe('2026-05-21')
     expect(result.dataWindow).toBe('2018_to_2024')
     expect(result.nStints).toBe(33)
+    expect(result.cliffOnset).toEqual({ kind: 'measured', lap: 18 })
+    expect(result.cliffSeverityIsEstimate).toBe(false)
+  })
+
+  it('shows a class_default onset as a range and flags a class_default severity', () => {
+    const profile = {
+      circuit_key: 'miami_grand_prix', compound_code: 'SOFT', season: 2024,
+      compound_cliff_onset_laps: 22, compound_cliff_severity: 0.8, compound_wear_gradient: 0.05,
+      compound_grip_peak: null, compound_optimal_temp_low: null, compound_optimal_temp_high: null,
+      fit_date: null, data_window: null, notes: null,
+      onset_source: 'class_default', gradient_source: 'class_default', severity_source: 'class_default',
+      onset_iqr_low: 15, onset_iqr_high: 23,
+    }
+    const result = transform(profile, [], 'SOFT')
+    expect(result.cliffOnset).toEqual({ kind: 'estimate', range: [15, 23] })
+    expect(result.cliffSeverityIsEstimate).toBe(true)
   })
 
   it('builds one observation per stint', () => {
@@ -153,6 +171,8 @@ describe('findProfile', () => {
     compound_cliff_onset_laps: 18, compound_cliff_severity: 0.86, compound_wear_gradient: 0.07,
     compound_grip_peak: null, compound_optimal_temp_low: null, compound_optimal_temp_high: null,
     fit_date: null, data_window: null, notes: null,
+    onset_source: 'fitted', gradient_source: 'fitted', severity_source: 'fitted',
+    onset_iqr_low: 15, onset_iqr_high: 23,
   })
   const profiles = [row('australian_grand_prix', 'SOFT'), row('bahrain_grand_prix', 'SOFT')]
 

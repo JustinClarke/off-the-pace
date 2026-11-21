@@ -15,10 +15,10 @@
 --
 -- COVERAGE  2019-2025: 152 seed rows, 456 rows here (152 races x 3 labels).
 -- 2019-2024 is 128 races (every ingested race). 2025 is all 24 ingested races,
--- and every 2025 row is CARRIED FORWARD from that circuit's 2023 or 2024
--- allocation (`source_url` is 'carried_from_20xx', not a URL), including
--- 2025_6 Miami (carried_from_2024, C2/C3/C4). None is read from a 2025 preview, and so
--- unverified. The 2025 rows are kept here and flow into compound_code, but the
+-- and every 2025 row except Miami is CARRIED FORWARD from that circuit's 2023 or 2024
+-- allocation (`source_url` is 'carried_from_20xx', not a URL). 2025_6 Miami is the
+-- exception: C3/C4/C5 from the official 2025 nomination (source_url is the formula1.com
+-- article). The other 23 are not read from a 2025 preview, and so unverified. The 2025 rows are kept here and flow into compound_code, but the
 -- power-law fits exclude 2025 by var('power_law_fit_seasons') (G2). Per-season
 -- counts are pinned by tests/assert_tyre_allocations_rows_per_season.sql.
 --

@@ -8,6 +8,7 @@ import { useQuery } from '../../data/hooks/useQuery'
 import { useFilters } from '../../state/FilterContext'
 import { useRaceOptions } from '../shared/useRaceOptions'
 import { transform, toCsvRows } from './transform'
+import { CLIFF_ESTIMATE_LABEL, formatOnsetRange } from '../shared/cliffEstimate'
 import './queries'
 import type { DegradationProfileRow } from './queries'
 
@@ -111,9 +112,15 @@ export default function StintDegradationTimelinePage() {
                   style={{ backgroundColor: getColor(profile.compound) }}
                 />
                 <h2 className="text-sm font-semibold tracking-tight">{profile.compound}</h2>
-                {profile.cliffOnset !== null && (
+                {profile.cliffOnsetDisplay?.kind === 'measured' && (
                   <span className="text-xs text-muted/70">
-                    · cliff onset ~{profile.cliffOnset} laps
+                    · cliff onset ~{profile.cliffOnsetDisplay.lap} laps
+                  </span>
+                )}
+                {profile.cliffOnsetDisplay?.kind === 'estimate' && (
+                  <span className="text-xs text-muted/70">
+                    · cliff onset {profile.cliffOnsetDisplay.range ? `~${formatOnsetRange(profile.cliffOnsetDisplay.range)} ` : ''}
+                    <span className="italic">({CLIFF_ESTIMATE_LABEL})</span>
                   </span>
                 )}
               </div>

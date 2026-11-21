@@ -1268,9 +1268,9 @@ models:
   - name: int_constructor_car_fe
     description: >
       De-biased constructor car pace (constructor×race fixed effect), one row per
-      (race_year, race_id, constructor_id). A thin reader over
-      data/fits/constructor_car_fe.parquet, fitted by
-      tasks/coefficients/fit_constructor_car_fe.py via a two-way FE regression
+      (race_year, race_id, constructor_id). Fitted in-warehouse on every build
+      (models/intermediate/int_constructor_car_fe.py, which reuses fit_car_fe from
+      tasks/coefficients/fit_constructor_car_fe.py) via a two-way FE regression
       (pace_delta_s ~ 1 | driver_id + constructor_race) on the clean lap panel.
       car_fe_s estimates car pace net of driver skill (global driver anchor),
       so subtracting it removes the car without crediting a weak driver's slowness
@@ -2215,6 +2215,8 @@ models:
               arguments:
                 to: ref('race_to_track')
                 field: race_id
+              config:
+                where: "race_year <= 2025"
       - name: quali_segment
         description: Segment label   'Q1', 'Q2' or 'Q3'.
         tests:
@@ -2231,13 +2233,17 @@ models:
       - name: segment_end_s
         description: >
           Session clock (s) at the segment's chequered flag; the unresumed red flag that ended it,
-          or the session's 'Finalised', when no chequered flag fell.
+          or the session's 'Finalised', when no chequered flag fell. With a red flag mid-segment it
+          is the chequered flag after the segment resumed, not an earlier one (2022_9 Q2 has two).
       - name: segment_span_s
         description: >
           segment_end_s minus segment_start_s. Nominally 1080s (Q1), 900s (Q2), 720s (Q3); longer
           when a red flag suspended the clock.
       - name: stoppage_n
-        description: Red-flag stoppages ('Aborted' events) inside the segment window.
+        description: >
+          Red flags (stg_red_flags_qualifying, from track status) inside the segment window,
+          including one thrown after the chequered flag, which stops nothing but is still in the
+          window. Not 'Aborted' events: session status omits some red flags.
       - name: anchor_lap_n
         description: >
           Official segment times matched back to the lap that set them. Diagnostic   a low count
@@ -2319,86 +2325,6 @@ models:
           decomposition entirely.
         tests: [not_null]
 
-  - name: int_lap_fuel_state_qualifying
-    description: >
-      One row per qualifying lap. Fuel weight correction for qualifying (flat 12 kg assumption).
-      Fuel component negligible (~0.42 s). Enables matching between int_lap_residual_decomposed (race)
-      and int_lap_residual_decomposed_qualifying (quali) on grain.
-    tags: [intermediate, simulation, qualifying]
-    meta:
-      family: physics
-    tests:
-      - dbt_utils.unique_combination_of_columns:
-          arguments:
-            combination_of_columns: [race_year, race_id, driver_id, lap_number]
-    columns:
-      - name: lap_id
-        description: PK, FK to stg_laps_qualifying
-        tests: [not_null, unique]
-      - name: race_year
-        description: Season year.
-        tests: [not_null]
-      - name: race_id
-        description: Race identifier.
-        tests:
-          - not_null
-          - relationships:
-              arguments:
-                to: ref('race_to_track')
-                field: race_id
-      - name: driver_id
-        description: FastF1 three-letter driver code.
-        tests:
-          - not_null
-          - relationships:
-              arguments:
-                to: ref('dim_drivers')
-                field: driver_id
-      - name: lap_number
-        description: Lap number within the race.
-        tests: [not_null]
-
-  - name: int_constructor_structural_pace_qualifying
-    description: >
-      One row per (race_year, race_id, constructor_id). Car pace advantage in qualifying
-      (one-lap trim) via same panel regression as race version. Different coefficient expected
-      vs race due to fuel load and strategy differences. Single-lap setup may favor different cars.
-    tags: [intermediate, simulation, qualifying]
-    meta:
-      family: pace-baselines
-      aggregation_scope_exemptions:
-        - keys: [quali_segment, race_id, race_year]
-          status: accepted
-          reason: >
-            segment_pace (the segment field-pace baseline) and segment_centre
-            (re-centring pace deltas within a segment before pooling to the
-            constructor) both group push laps within one qualifying session. Neither
-            reads or produces anything race-session-scoped; race_id identifies the
-            weekend, not a race-lap sequence.
-        - keys: [constructor_id, race_id, race_year]
-          status: accepted
-          reason: >
-            The final pooling of re-centred, qualifying-only pace deltas to one
-            constructor-weekend coefficient. Same argument as above, one level up.
-        - keys: [race_id, race_year]
-          status: accepted
-          reason: >
-            race_mean averages the per-constructor qualifying medians (constructor_agg,
-            itself qualifying-only) to re-centre constructor_structural_pace_s on the
-            weekend's field average. No race-session column enters this model anywhere
-            -- see int_constructor_structural_pace for the race-session mirror, which
-            is a separate model.
-    columns:
-      - name: constructor_race_id
-        description: Surrogate PK = concat(race_year, race_id, constructor_id, '_Q')
-        tests: [not_null, unique]
-      - name: constructor_structural_pace_s
-        description: >
-          Constructor qualifying-mode coefficient. Fit on each driver's best push lap per Q1/Q2/Q3
-          segment, measured against that segment's median push lap and re-centred within the
-          segment before pooling. Positive = slower.
-        tests: [not_null]
-
   - name: int_lap_residual_decomposed_qualifying
     description: >
       One row per qualifying lap. 7-term decomposition mirroring int_lap_residual_decomposed
@@ -2414,8 +2340,7 @@ models:
           status: accepted
           reason: >
             base_track_pace_s reads the segment field-pace baseline (a segment median
-            over qualifying push laps -- see int_lap_fuel_state_qualifying /
-            int_qualifying_push_laps). Qualifying-session internal; race_id identifies
+            over qualifying push laps -- see int_qualifying_push_laps). Qualifying-session internal; race_id identifies
             the weekend, not a race-lap sequence.
     columns:
       - name: lap_id
@@ -2509,7 +2434,9 @@ models:
     description: >
       02b (Tier 1). Driver-weekend qualifying summary, one row per (race_year, race_id,
       driver_id), read off int_qualifying_decomposed's push-lap rows and rolled up to
-      the whole qualifying session. The first channel in the feature contract's lineage
+      the whole qualifying session; the driver's pace columns are read off their fastest
+      push lap in the highest segment reached (the lap that sets the grid slot), not a
+      minimum across segments. The first channel in the feature contract's lineage
       sourced from a strictly-prior SESSION rather than a further transform of race-lap
       residuals -- qualifying runs before the race, so no lag/expanding-window treatment
       is needed, PROVIDED (as here) every input column is itself scoped to the
@@ -2544,8 +2471,9 @@ models:
             int_qualifying_decomposed's race_driver_race_avg (grouped on this same key
             set, in a DIFFERENT CTE, one model upstream), no column this model SELECTs
             reads anything race-scoped: the list is constructor_component_s (+ SE),
-            quali_pace_delta_s, ratio_to_segment_best, quali_skill_session_avg_s and
-            quali_segments_contested_n, all qualifying-session columns.
+            lap_time_s, quali_segment, quali_pace_delta_s, ratio_to_segment_best,
+            quali_skill_session_avg_s and quali_segments_contested_n, all
+            qualifying-session columns.
             quali_vs_race_skill_delta_s -- the one column with the forward-reach defect
             -- is deliberately excluded from the SELECT above; see the model description.
             Confirmed mechanically: ml/src/features.py::audit_aggregation_scope returns
@@ -2576,7 +2504,7 @@ models:
                 field: driver_id
       - name: quali_push_laps_n
         description: >
-          Push laps this driver set across Q1/Q2/Q3 this weekend (COUNT(*) over
+          Push laps this driver set across ALL of Q1/Q2/Q3 this weekend (COUNT(*) over
           int_qualifying_decomposed's push-lap rows for this driver-weekend). The mart
           COALESCEs this to 0 for a driver-weekend with no row here at all -- a genuine
           "no qualifying record" (DNQ or a data gap), not an invented value.
@@ -2585,22 +2513,40 @@ models:
         description: >
           Mean constructor_component_s over the driver's push laps this weekend: a car's
           one-lap aero/power level, measured with fuel, strategy and traffic all
-          near-absent. MEAN smooths Q1/Q2/Q3 segment-to-segment noise in a term expected
-          to be near-stable across one weekend.
+          near-absent. The term is constant per (constructor, weekend) -- it does not vary
+          by segment or lap -- so the mean is a value-preserving collapse and teammates
+          share one value.
       - name: quali_constructor_pace_se_mean_s
         description: >
           Mean of constructor_component_se_s over the same push laps -- the average
           estimation uncertainty on the pace term above.
       - name: quali_pace_delta_best_s
         description: >
-          MIN(quali_pace_delta_s) over the weekend, i.e. the driver's single best push
-          lap: quali_pace_delta_s is positive/higher = slower by construction (see
-          int_lap_residual_decomposed_qualifying's header), so MIN is the fastest lap.
+          quali_pace_delta_s of the driver's fastest push lap (lowest lap_time_s) in the
+          highest segment they reached (quali_top_segment) -- the lap that sets their grid
+          slot. The delta is lap_time_s minus that segment's median push lap, positive =
+          slower, so a Q3 driver is measured against the faster, self-selected Q3 field and a
+          Q1-only driver against the Q1 field. NOT MIN(quali_pace_delta_s) over all segments:
+          that picks the lap furthest below its own segment's median, which is the top
+          segment's fastest lap in only ~6% of Q3 weekends.
       - name: quali_ratio_to_segment_best_min
         description: >
-          MIN(ratio_to_segment_best) over the weekend -- how close the driver's best lap
-          in any segment came to that segment's own fastest push lap. Same
-          "higher = slower" orientation as quali_pace_delta_best_s above.
+          ratio_to_segment_best (lap_time_s / the segment's fastest push lap) of the same lap
+          as quali_pace_delta_best_s: the driver's fastest push lap in the top segment
+          reached. 1.0 = the segment's fastest lap; higher = slower. The _min suffix is
+          historical (the column was once a MIN across segments).
+      - name: quali_top_segment
+        description: >
+          Highest qualifying segment the driver reached: Q3, Q2 or Q1, or 'Q' for a weekend
+          whose segments could not be recovered (2025_6 -- no qualifying results or session
+          status in bronze; int_qualifying_push_laps treats the whole session as one
+          unsegmented segment). Not read by the mart; it states which segment
+          quali_pace_delta_best_s and quali_ratio_to_segment_best_min are measured in.
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['Q1', 'Q2', 'Q3', 'Q']
       - name: quali_skill_session_avg_s
         description: >
           MAX(quali_skill_session_avg_s) over the driver's push-lap rows. Already
@@ -2826,10 +2772,11 @@ models:
         tests: [not_null]
       - name: baseline_cost_s
         description: >
-          Per-lap pace offset between the two compounds (compound_grip_peak plus the
-          optimal-temperature term) over the laps on the new set. Both inputs are per-compound
-          CONSTANTS in compound_cliff_params, never fitted, and grip_peak as typed prices SOFT
-          slower than HARD. var('pit_strategy_baseline_delta') decides whether this term is
+          Per-lap pace offset between the two compounds over the laps on the new set. Only the
+          optimal-temperature term (0.005 s per degC) remains: it is a per-compound CONSTANT in
+          compound_cliff_params, never fitted. The unitless compound_grip_peak ratio is NOT part
+          of it (units error, dropped as in int_compound_cliff_predicted). A fitted per-compound
+          offset in seconds has not been estimated. var('pit_strategy_baseline_delta') decides whether this term is
           allowed to move the argmin; setting it FALSE zeroes this column.
         tests: [not_null]
       - name: sc_hazard_per_lap

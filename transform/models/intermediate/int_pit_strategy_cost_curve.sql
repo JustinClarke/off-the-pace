@@ -158,7 +158,7 @@ race_map AS (
 ),
 
 -- Cumulative wear by tyre age, per fitted compound curve. Age-dependent terms
--- only: grip_peak and the temperature offset are per-lap constants and are
+-- only: the temperature offset is a per-lap constant and is
 -- carried separately, because whether they belong in the argmin at all is a
 -- judgement call the pit_strategy_baseline_delta var exposes.
 compound_wear_per_age AS (
@@ -167,7 +167,6 @@ compound_wear_per_age AS (
         p.compound_code,
         p.season,
         a.age_laps,
-        p.compound_grip_peak,
         p.compound_optimal_temp_low,
         -- Capped. The hockey-stick is a polynomial with nothing holding its
         -- tail down: extrapolated to age 80 it reaches 136 s/lap, and it is
@@ -214,7 +213,6 @@ compound_curve AS (
         compound_code,
         season,
         age_laps,
-        compound_grip_peak,
         compound_optimal_temp_low,
         SUM(wear_s) OVER (
             PARTITION BY circuit_key, compound_code, season

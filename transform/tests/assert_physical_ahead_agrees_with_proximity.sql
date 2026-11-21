@@ -1,18 +1,18 @@
--- int_lap_physical_ahead vs int_lap_proximity (production crossing-time model), per race, LAP-GRAIN PROXY.
--- WARN only. This is NOT the 94% validation gate.
+-- COMPARISON DIAGNOSTIC, not a physical-model check. WARN only, non-blocking, no stored failures.
+-- Comparison against int_lap_proximity, a different model. Disagreement is NOT evidence the physical model is
+-- wrong. Last audit (2025 sample, 56 laps) found the physical model's named car correct on 55 of 56 and
+-- proximity's correct on 8 of 56. Proximity ties resolve alphabetically by driver code.
 --
--- The gate ("agreement on valid same-lap samples >= 94% per race") is SAMPLE grain against
--- int_lap_proximity's per-bin car ahead, which is a CTE and is not materialised, so it cannot run as a dbt
--- test on existing tables. It is the documented check transform/scripts/check_physical_ahead_agreement.py
--- (read-only). 2026-11-09 run: 162 of 170 rated races pass, 8 fail (listed in the script header).
+-- Validation of the physical model is the separate sample-grain script
+-- transform/scripts/check_physical_ahead_agreement.py (94% gate, read-only); this lap-grain proxy is not it.
+-- The gate is SAMPLE grain against int_lap_proximity's per-bin car ahead (a CTE, not materialised).
+-- 2026-11-09 script run: 162 of 170 rated races pass, 8 fail (listed in the script header).
 --
--- What this proxy compares: on valid_same_lap, non-neutralised laps where both models put the lap's minimum
--- gap under 1 s, is the car ahead at the minimum the same driver? That is a different statistic: the two
--- minima can fall at different points of the lap behind different cars in a train. Measured 2026-11-09 on
--- the full build (scratch DB): pooled 92.3% (19,306 laps), race median 92.9%, 5th percentile 84.6%,
--- min 56.4%. It is kept as a regression guard against gross drift, with the gate's 94% threshold, and is
--- expected to warn on many races. Races with < 50 compared laps are skipped.
-{{ config(severity='warn') }}
+-- This proxy: on valid_same_lap, non-neutralised laps where both models put the lap's minimum gap under 1 s, is
+-- the car ahead at the minimum the same driver? The two minima can fall at different points of the lap behind
+-- different cars in a train. Measured 2026-11-09 (scratch DB): pooled 92.3% (19,306 laps), race median 92.9%,
+-- 5th percentile 84.6%, min 56.4%. Expected to warn on many races. Races with < 50 compared laps are skipped.
+{{ config(severity='warn', store_failures=false) }}
 WITH cmp AS (
     SELECT
         p.race_id,

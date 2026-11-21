@@ -233,7 +233,6 @@
                   "reference/models/stg/stg_results",
                   "reference/models/stg/stg_results_qualifying",
                   "reference/models/stg/stg_sector_times",
-                  "reference/models/stg/stg_session_status",
                   "reference/models/stg/stg_session_status_qualifying",
                   "reference/models/stg/stg_telemetry",
                   "reference/models/stg/stg_telemetry_position",

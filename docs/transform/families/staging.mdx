@@ -21,7 +21,6 @@ flowchart LR
     raw_weather["raw_weather"] --> stg_weather
     raw_results["raw_results"] --> stg_results
     raw_track_status["raw_track_status"] --> stg_track_status
-    raw_session_status["raw_session_status"] --> stg_session_status
     raw_circuit_info["raw_circuit_info"] --> stg_circuit_info
     raw_dim_events["raw_dim_events (seed)"] --> stg_events
     stg_laps --> stg_sector_times
@@ -37,8 +36,8 @@ flowchart LR
     classDef stg fill:#111827,stroke:#e40404,color:#fff;
     classDef src fill:#1f2937,stroke:#6b7280,color:#d1d5db;
     classDef downstream fill:#1f2937,stroke:#6b7280,color:#d1d5db,stroke-dasharray: 3 3;
-    class stg_laps,stg_laps_qualifying,stg_telemetry,stg_sector_times,stg_pits,stg_weather,stg_events,stg_results,stg_track_status,stg_session_status,stg_circuit_info stg;
-    class raw_laps,raw_laps_qualifying,raw_telemetry,raw_weather,raw_results,raw_track_status,raw_session_status,raw_circuit_info,raw_dim_events src;
+    class stg_laps,stg_laps_qualifying,stg_telemetry,stg_sector_times,stg_pits,stg_weather,stg_events,stg_results,stg_track_status,stg_circuit_info stg;
+    class raw_laps,raw_laps_qualifying,raw_telemetry,raw_weather,raw_results,raw_track_status,raw_circuit_info,raw_dim_events src;
     class Reference,Physics,Marts,Strategy downstream;
 ```
 
@@ -126,9 +125,6 @@ This decode is ground-truthed against FastF1's own `Message` column, not guessed
   </Card>
   <Card title="stg_track_status" icon="table" href="/reference/models/stg/stg_track_status">
     The SC/VSC/yellow/red timeline, decoded once and ground-truthed against FastF1's own message text.
-  </Card>
-  <Card title="stg_session_status" icon="table" href="/reference/models/stg/stg_session_status">
-    Session lifecycle events; 'Aborted' surfaces as the red-flag-stop flag.
   </Card>
   <Card title="stg_circuit_info" icon="table" href="/reference/models/stg/stg_circuit_info">
     Corner geometry per circuit per season, ordered by distance along the lap.

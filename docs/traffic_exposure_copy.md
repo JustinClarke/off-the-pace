@@ -90,6 +90,35 @@ export function TrafficBetaBanner() {
 }
 ```
 
+## Assistant description: pair table (draft, NOT WIRED)
+
+Not an `app/src/nav/assistant-docs/` entry: those files must shadow a `docs/app/<slug>.mdx` page (frontmatter,
+callouts and figures are tested against it), and no such page exists for this table. Wording for the day one does,
+or for a query-catalogue view description. Source models: `int_physical_ahead_pairs.py`,
+`int_physical_ahead_pair_race.sql`; shared core `transform/python_lib/physical_ahead_core.py`.
+
+**What it is.** One row per race, follower, leader and lap, for every lap on which the follower spent at least
+one position sample (about a quarter of a second) less than 1 second behind that leader. Columns:
+`seconds_within_1s`, `n_samples_within_1s`, `min_gap_s`, `median_gap_s`, `validity_class`. The race-level table
+sums `seconds_within_1s` per race, follower and leader over valid laps only.
+
+**What it answers.** "How long was A within 1 second behind B in race X", "who spent the most time close behind
+whom", "was this stretch of following with one car or several".
+
+**Limits (say these every time).**
+- Measurement only. It shows who was close to whom, not what that did to a lap time, and it is not a time loss,
+  a dirty-air figure or a cause of a slow lap.
+- Only laps with `validity_class = 'valid_same_lap'` are measured. Rows on other laps (lap 1, lapped,
+  overlapping, side by side, unknown) are kept and flagged; they are never counted as clear air and never
+  counted as following. A pair with no row on a valid lap was not within 1 second; on any other lap it is unknown.
+- The 1-second threshold and the agreement of the car-ahead identity with the timing-based neighbour (96-99% in
+  the checks, not 100%) are not validated against any lap-time effect. A switch of the car ahead between two
+  close cars splits one stretch of following across two pairs.
+- The X = Y = 0 placeholder guard is off by default and unvalidated (see the model header). Singapore 2019 laps it
+  affects fall into lapped, which is excluded.
+- Leader identity is the nearest car within 300 m on the same lap, from position data, never the broadcast
+  "driver ahead" field.
+
 ## Words not to use on this page
 
 "cost", "penalty", "time lost", "held up", "dirty air effect", "wake effect", "because of traffic",

@@ -4,6 +4,8 @@ off_the_pace:
     dev:
       type: duckdb
       path: '../data/dev.duckdb'
+      # Python models import transform/python_lib/physical_ahead_core.py (relative to transform/, dbt's cwd).
+      module_paths: ['python_lib']
       # threads: 1 + settings.threads: 1 as on ci (byte-reproducible builds; see ci comment).
       threads: 1
       settings:
@@ -11,6 +13,8 @@ off_the_pace:
     ci:
       type: duckdb
       path: '../data/ci.duckdb'
+      # Python models import transform/python_lib/physical_ahead_core.py (relative to transform/, dbt's cwd).
+      module_paths: ['python_lib']
       # threads: 1 (dbt model-level) + settings.threads: 1 (DuckDB intra-query) make the
       # build byte-reproducible run-to-run, which the lint byte-stability oracle requires.
       # DuckDB's internal thread count is the one that matters: non-associative float

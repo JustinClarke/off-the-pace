@@ -7,6 +7,7 @@ import {
   CartesianGrid,
   Tooltip,
   ReferenceLine,
+  ReferenceArea,
   ResponsiveContainer,
   TooltipContentProps,
 } from 'recharts'
@@ -38,6 +39,12 @@ export interface SurvivalCurveProps {
   stintObservations?: StintObservation[]
   /** Model median cliff onset (from dim_compounds_season)-shown as a vertical marker */
   cliffOnsetLap?: number
+  /**
+   * Set instead of cliffOnsetLap when the onset is not measured for this track: draws range as a
+   * band, or only the legend text when range is null. text is shown as given (e.g. "laps 15-26,
+   * estimate, no data for this track").
+   */
+  cliffOnsetEstimate?: { range: [number, number] | null; text: string }
   /** Cliff severity (s of degradation jump at cliff)-for annotation */
   cliffSeverity?: number
   /** Fit provenance: ISO date */
@@ -98,6 +105,7 @@ export default function SurvivalCurve({
   kmCurve,
   stintObservations = [],
   cliffOnsetLap,
+  cliffOnsetEstimate,
   fitDate,
   dataWindow,
   nStints,
@@ -142,6 +150,14 @@ export default function SurvivalCurve({
           <div className="flex items-center gap-1.5 text-xs text-muted">
             <span className="w-8 h-px inline-block border-t border-dashed" style={{ borderColor: 'rgba(251,191,36,0.7)' }} />
             Model onset (lap {cliffOnsetLap})
+          </div>
+        )}
+        {cliffOnsetEstimate && (
+          <div className="flex items-center gap-1.5 text-xs text-muted">
+            {cliffOnsetEstimate.range && (
+              <span className="w-4 h-2.5 inline-block" style={{ background: 'rgba(251,191,36,0.15)' }} />
+            )}
+            Model onset ({cliffOnsetEstimate.text})
           </div>
         )}
       </div>
@@ -197,6 +213,17 @@ export default function SurvivalCurve({
               stroke="rgba(251,191,36,0.7)"
               strokeDasharray="4 4"
               label={{ value: `onset ~lap ${cliffOnsetLap}`, position: 'insideTopRight', fontSize: 10, fill: 'rgba(251,191,36,0.85)' }}
+            />
+          )}
+
+          {cliffOnsetEstimate?.range && (
+            <ReferenceArea
+              yAxisId="survival"
+              x1={cliffOnsetEstimate.range[0]}
+              x2={cliffOnsetEstimate.range[1]}
+              fill="rgba(251,191,36,0.12)"
+              strokeOpacity={0}
+              label={{ value: `onset ~laps ${cliffOnsetEstimate.range[0]}\u2013${cliffOnsetEstimate.range[1]} (estimate)`, position: 'insideTop', fontSize: 10, fill: 'rgba(251,191,36,0.85)' }}
             />
           )}
 

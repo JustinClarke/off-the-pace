@@ -18,4 +18,4 @@ SELECT
     n_stints
 FROM {{ ref('compound_cliff_params') }}
 WHERE compound_cliff_severity > 1.6
-   OR (fit_source = 'cross_season_fallback' AND n_stints < 8)
+   OR (fit_source IN ('cross_season_fallback', 'pooled_compound_fallback') AND n_stints < 8)

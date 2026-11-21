@@ -14,6 +14,10 @@
 --    'Started', so greens outnumber segments; and counting the 'Finished'
 --    events instead fails on the sessions whose final segment was red-flagged
 --    at its end, where the chequered flag never falls.
+--    Red flags themselves are read from stg_red_flags_qualifying, not from
+--    'Aborted', which session status omits for some of them (it records 2022
+--    Montreal's Q2 stoppage as a chequered flag). They set stoppage_n and, via
+--    the last green after a red flag, which chequered flag closes the segment.
 --  * stg_results_qualifying gives each driver's official best lap in each
 --    segment. Matched back to the lap that set it, those are anchor laps with
 --    known session times   they cannot say where a segment *starts*, but they
@@ -46,7 +50,6 @@ WITH status_events AS (
         race_id,
         session_time_s,
         LOWER(status) AS status,
-        is_red_flag_stop,
         is_green_light
     FROM {{ ref('stg_session_status_qualifying') }}
 ),
@@ -58,6 +61,17 @@ greens AS (
         session_time_s AS green_s
     FROM status_events
     WHERE is_green_light
+),
+
+-- Every qualifying red flag, from track status. session status writes only some
+-- of them as 'Aborted' (2019_4, 2019_7, 2022_9, 2023_15, 2025_7, 2025_8 and
+-- 2024_21 are short), so red flags are read from here, not from 'Aborted'.
+red_flags AS (
+    SELECT
+        race_year,
+        race_id,
+        session_time_s AS red_s
+    FROM {{ ref('stg_red_flags_qualifying') }}
 ),
 
 -- Official segment bests, one row per driver × segment they set a time in.
@@ -310,17 +324,72 @@ windowed AS (
     FROM resolved
 ),
 
+-- Where each segment last resumed after a red flag: the latest green inside its
+-- window that follows a red flag. The red flag is what marks it, not an
+-- 'Aborted' row, because session status sometimes records the stoppage as a
+-- chequered flag instead (2022 Montreal Q2: red flag, 'Finished' at 2752s, then
+-- a second Started / Finished pair). The chequered flag that closes such a
+-- segment is the first one after this point, not the first in the window.
+-- NULL when the window has no red flag followed by a green. A red flag that
+-- falls after the chequered flag with nothing resuming (an in-lap crash, 2019_7
+-- Q2) has no later green in the window, so it moves nothing.
+with_resume AS (
+    SELECT
+        w.*,
+        (
+            SELECT MAX(g.green_s)
+            FROM greens AS g
+            WHERE
+                g.race_year = w.race_year
+                AND g.race_id = w.race_id
+                AND g.green_s > w.segment_start_s
+                AND (
+                    w.next_segment_start_s IS NULL
+                    OR g.green_s < w.next_segment_start_s
+                )
+                AND EXISTS (
+                    SELECT 1
+                    FROM red_flags AS r
+                    WHERE
+                        r.race_year = w.race_year
+                        AND r.race_id = w.race_id
+                        AND r.red_s > w.segment_start_s
+                        AND r.red_s < g.green_s
+                )
+        ) AS resume_s
+    FROM windowed AS w
+),
+
 -- Terminal event of each segment, looked up inside its own window: the
--- chequered flag when there is one, otherwise the unresumed red flag that ended
--- it, otherwise the session's 'Finalised'.
+-- chequered flag that follows the last resumption (or the window's first, with
+-- no red flag), otherwise the unresumed red flag that ended it, otherwise the
+-- session's 'Finalised'.
 with_end AS (
     SELECT
         w.*,
         (
             SELECT
                 COALESCE(
-                    MIN(e.session_time_s) FILTER (WHERE e.status = 'finished'),
+                    MIN(e.session_time_s) FILTER (
+                        WHERE
+                        e.status = 'finished'
+                        AND e.session_time_s > COALESCE(
+                            w.resume_s, w.segment_start_s
+                        )
+                    ),
                     MAX(e.session_time_s) FILTER (WHERE e.status = 'aborted'),
+                    (
+                        SELECT MAX(r.red_s)
+                        FROM red_flags AS r
+                        WHERE
+                            r.race_year = w.race_year
+                            AND r.race_id = w.race_id
+                            AND r.red_s > w.segment_start_s
+                            AND (
+                                w.next_segment_start_s IS NULL
+                                OR r.red_s < w.next_segment_start_s
+                            )
+                    ),
                     MIN(e.session_time_s) FILTER (WHERE e.status = 'finalised')
                 )
             FROM status_events AS e
@@ -335,18 +404,17 @@ with_end AS (
         ) AS segment_end_s,
         (
             SELECT COUNT(*)
-            FROM status_events AS e
+            FROM red_flags AS r
             WHERE
-                e.race_year = w.race_year
-                AND e.race_id = w.race_id
-                AND e.is_red_flag_stop
-                AND e.session_time_s > w.segment_start_s
+                r.race_year = w.race_year
+                AND r.race_id = w.race_id
+                AND r.red_s > w.segment_start_s
                 AND (
                     w.next_segment_start_s IS NULL
-                    OR e.session_time_s < w.next_segment_start_s
+                    OR r.red_s < w.next_segment_start_s
                 )
         ) AS stoppage_n
-    FROM windowed AS w
+    FROM with_resume AS w
 )
 
 SELECT

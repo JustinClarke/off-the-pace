@@ -10,6 +10,7 @@ import { useRaceOptions } from '../shared/useRaceOptions'
 import { transform, toCsvRows, findProfile } from './transform'
 
 import { TechTooltip } from '../../ui/TechTooltip'
+import { CLIFF_ESTIMATE_LABEL, cliffOnsetDisplay, formatOnsetRange, isClassDefault } from '../shared/cliffEstimate'
 import './queries'
 import type { RaceCompoundRow, CompoundProfileRow, StintSummaryRow } from './queries'
 
@@ -107,6 +108,11 @@ export default function TyreCliffSurvivalPage() {
     [profiles, trackId, compound]
   )
 
+  // class_default onset: show the compound's measured-onset IQR (or the label only), not one lap
+  const onsetDisplay = profile
+    ? cliffOnsetDisplay(profile.compound_cliff_onset_laps, profile.onset_source, profile.onset_iqr_low, profile.onset_iqr_high)
+    : null
+
   // Load per-stint summaries only when both race and compound are selected
   const ready = Boolean(raceId && compound)
   const { data: stints, isLoading: stintsLoading, error } = useQuery<StintSummaryRow[]>(
@@ -176,14 +182,18 @@ export default function TyreCliffSurvivalPage() {
         />
         {profile && (
           <div className="flex items-end gap-4 text-xs text-muted">
-            <TechTooltip content="The lap when degradation begins accelerating rapidly (Kaplan-Meier survival baseline)">
-              <span className="cursor-help">Model onset: <span className="font-mono text-[rgb(var(--color-text))]">lap {profile.compound_cliff_onset_laps}</span></span>
+            <TechTooltip content={onsetDisplay?.kind === 'estimate'
+              ? 'No stints to fit at this track: the range is the middle half (25th-75th percentile) of measured onsets for this compound at other tracks and seasons'
+              : 'The lap when degradation begins accelerating rapidly (Kaplan-Meier survival baseline)'}>
+              <span className="cursor-help">Model onset: {onsetDisplay?.kind === 'estimate'
+                ? <>{onsetDisplay.range && <span className="font-mono text-[rgb(var(--color-text))]">{formatOnsetRange(onsetDisplay.range)} </span>}<span className="italic">({CLIFF_ESTIMATE_LABEL})</span></>
+                : <span className="font-mono text-[rgb(var(--color-text))]">lap {profile.compound_cliff_onset_laps}</span>}</span>
             </TechTooltip>
             <TechTooltip content="The sudden jump in lap time (seconds) when the cliff hits">
-              <span className="cursor-help">Severity: <span className="font-mono text-[rgb(var(--color-text))]">+{profile.compound_cliff_severity?.toFixed(2)}s</span></span>
+              <span className="cursor-help">Severity: <span className="font-mono text-[rgb(var(--color-text))]">+{profile.compound_cliff_severity?.toFixed(2)}s</span>{isClassDefault(profile.severity_source) && <span className="italic"> ({CLIFF_ESTIMATE_LABEL})</span>}</span>
             </TechTooltip>
             <TechTooltip content="The steady pace loss per lap (seconds/lap) before the cliff">
-              <span className="cursor-help">Wear rate: <span className="font-mono text-[rgb(var(--color-text))]">{profile.compound_wear_gradient?.toFixed(4)}s/lap</span></span>
+              <span className="cursor-help">Wear rate: <span className="font-mono text-[rgb(var(--color-text))]">{profile.compound_wear_gradient?.toFixed(4)}s/lap</span>{isClassDefault(profile.gradient_source) && <span className="italic"> ({CLIFF_ESTIMATE_LABEL})</span>}</span>
             </TechTooltip>
           </div>
         )}

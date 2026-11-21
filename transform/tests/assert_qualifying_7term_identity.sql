@@ -1,7 +1,7 @@
--- Qualifying 7-term residual decomposition identity.
+-- Qualifying 6-term residual decomposition identity.
 --
--- Qualifying laps close the 7-term identity with their own (re-fit) coefficients:
---   quali_pace_delta_s = quali_fuel + quali_compound + quali_rubber
+-- Qualifying laps close the 6-term identity with their own (re-fit) coefficients:
+--   quali_pace_delta_s = quali_compound + quali_rubber
 --                      + quali_ambient + quali_constructor + quali_dirty_air_tax
 --                      + quali_driver_skill + quali_unexplained
 --
@@ -16,13 +16,13 @@ SELECT
     lap_number,
     quali_pace_delta_s,
     (
-        fuel_component_s + compound_component_s + rubber_component_s +
+        compound_component_s + rubber_component_s +
         ambient_component_s + constructor_component_s + dirty_air_tax_s +
         quali_skill_residual_s
     ) AS sum_components,
     ABS(
         quali_pace_delta_s-(
-            fuel_component_s + compound_component_s + rubber_component_s +
+            compound_component_s + rubber_component_s +
             ambient_component_s + constructor_component_s + dirty_air_tax_s +
             quali_skill_residual_s
         )
@@ -30,7 +30,7 @@ SELECT
 FROM {{ ref('int_qualifying_decomposed') }}
 WHERE ABS(
     quali_pace_delta_s-(
-        fuel_component_s + compound_component_s + rubber_component_s +
+        compound_component_s + rubber_component_s +
         ambient_component_s + constructor_component_s + dirty_air_tax_s +
         quali_skill_residual_s
     )

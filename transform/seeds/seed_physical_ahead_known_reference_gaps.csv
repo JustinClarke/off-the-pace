@@ -1,0 +1,4 @@
+race_id,reason
+2018_1,"No race telemetry in the source (Australia 2018): no reference polyline, every lap is unknown (no_position_samples)."
+2018_2,"No race telemetry in the source (Bahrain 2018): no reference polyline, every lap is unknown (no_position_samples)."
+2021_12,"Belgium 2021 is a safety-car race (three laps behind the SC) with pit-lane windows: more than 50% of laps unknown for real, not a bad reference line."

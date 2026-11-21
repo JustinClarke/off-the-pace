@@ -34,10 +34,17 @@ WITH source AS (
 ),
 
 -- Lap length in metres, per driver-lap, from the position samples' own
--- distance_m. Used only where FastF1 left RelativeDistance NULL (16,708 rows,
--- all with distance_m). On rows where both exist, distance_m / this max differs
--- from RelativeDistance by 0.002 on average (p99 0.008); treat derived values as
--- approximate and filter on relative_distance_source if precision matters.
+-- distance_m. Used only where FastF1 left RelativeDistance NULL (16,708 rows).
+-- Those rows fall in 41 driver-laps whose every distance_m is 0.0, so the lap
+-- max is 0 and NO row can be derived today (a measured fact, not an assumption).
+-- The derivation is kept for a future lap that has NULL RelativeDistance but a
+-- positive max distance; it applies only when the lap max is greater than 0.
+-- Where it does not (max is 0 or NULL), the row is kept with relative_distance
+-- NULL and relative_distance_source 'unavailable': the value is unknown, and 0.0
+-- would be a false position. On rows where both measures exist, distance_m / the
+-- lap max differs from RelativeDistance by 0.002 on average (p99 0.008); treat
+-- derived values as approximate and filter on relative_distance_source if
+-- precision matters.
 lap_extent AS (
     SELECT
         season, race_id, driver_id, lap_number,
@@ -59,24 +66,29 @@ renamed AS (
         -- difference of two distances.
         CAST(sessiontime AS DOUBLE) / 1e9 AS session_time_s,
 
-        -- Lap fraction in [0, 1). Where FastF1 left RelativeDistance NULL, it is
-        -- derived from distance_m over the lap's own max distance (flagged below).
-        -- Out-of-range FastF1 values are clamped, not dropped, so the start/finish
-        -- bin keeps its samples; relative_clamp says which ones were clamped.
-        LEAST(
-            GREATEST(
-                COALESCE(
-                    CAST(relativedistance AS DOUBLE),
-                    CAST(source.distance_m AS DOUBLE) / NULLIF(lap_extent.lap_max_distance_m, 0)
-                ),
-                0.0
-            ),
-            0.999999
-        ) AS relative_distance,
+        -- Lap fraction in [0, 1), or NULL. FastF1's RelativeDistance is used when
+        -- present; out-of-range FastF1 values are clamped, not dropped, so the
+        -- start/finish bin keeps its samples (relative_clamp says which ones were
+        -- clamped). Where FastF1 left it NULL, it is derived from distance_m over
+        -- the lap's max distance ONLY when that max is greater than 0 (flagged
+        -- below). Otherwise it stays NULL, never coerced to 0.
+        CASE
+            WHEN relativedistance IS NOT NULL
+                THEN LEAST(GREATEST(CAST(relativedistance AS DOUBLE), 0.0), 0.999999)
+            WHEN lap_extent.lap_max_distance_m > 0
+                THEN LEAST(
+                    GREATEST(
+                        CAST(source.distance_m AS DOUBLE) / lap_extent.lap_max_distance_m,
+                        0.0
+                    ),
+                    0.999999
+                )
+        END AS relative_distance,
 
         CASE
             WHEN relativedistance IS NOT NULL THEN 'fastf1'
-            ELSE 'derived_from_distance_m'
+            WHEN lap_extent.lap_max_distance_m > 0 THEN 'derived_from_distance_m'
+            ELSE 'unavailable'
         END AS relative_distance_source,
 
         -- Clamp flags. FastF1 has 25,526 samples below 0 and 158,831 at or above 1

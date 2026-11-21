@@ -77,7 +77,9 @@ results AS (
         CASE
             WHEN grid_position >= 1 THEN grid_position - finish_position
         END AS positions_gained,
-        is_dnf AS has_dnf
+        -- is_retired includes late retirees with a classified position.
+        -- Disqualified drivers are not flagged (is_disqualified).
+        is_retired AS has_dnf
     FROM {{ ref('stg_results') }}
 ),
 

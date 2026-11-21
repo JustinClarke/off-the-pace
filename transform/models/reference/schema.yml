@@ -89,6 +89,14 @@ models:
       uses 2018 through the prior season (data_window 2018_to_2018 up to 2018_to_2024), and 2018
       is fitted in-sample on its own laps (2018_to_2018_in_sample). Every row carries fit_date and
       data_window for governance. Re-fit when a new season is ingested via make coefficients-fit.
+
+      Not every number is measured. About a quarter of rows (117 of 499 at the 2026-10-15 fit)
+      are compound_class_default on at least one parameter, and most of those have no stints at
+      all, so the values are placeholders from COMPOUND_DEFAULTS in fit_compound_cliff.py. Check
+      the three *_source columns before treating a cell as measured. compound_grip_peak and the
+      temperature window are compound-class constants, not fits. A compound_cliff_severity of
+      0.0 is a fitted estimate: the post-cliff line came out faster than the pre-cliff line, and
+      the fit floors it at zero rather than treating it as missing.
     meta:
       family: reference
     columns:
@@ -105,7 +113,10 @@ models:
         data_type: integer
         tests: [not_null]
       - name: compound_grip_peak
-        description: Fitted peak grip level (relative pace offset at the compound's best window).
+        description: >
+          Peak grip ratio for the compound (0.95–1.09, unitless). A compound-class constant from
+          COMPOUND_DEFAULTS, not fitted: the same value in every circuit and season. Not a
+          seconds offset.
         data_type: double
       - name: compound_wear_gradient
         description: Fitted linear wear rate (pace loss per lap before the cliff).
@@ -117,10 +128,15 @@ models:
         description: Upper bound of the compound's optimal operating-temperature window (°C).
         data_type: double
       - name: compound_cliff_onset_laps
-        description: Fitted Kaplan-Meier cliff-onset age (laps) at which performance falls off sharply.
+        description: >
+          Kaplan-Meier cliff-onset age (laps) at which performance falls off sharply. Check
+          onset_source: class_default (50 laps for HARD, and so on) means no estimate for this cell.
         data_type: double
       - name: compound_cliff_severity
-        description: Fitted magnitude of the pace drop once the cliff is reached.
+        description: >
+          Magnitude of the pace drop once the cliff is reached, in seconds, capped at 1.5. A value
+          of 0.0 is a fitted "no cliff" estimate, not a missing value. Check severity_source:
+          class_default means no estimate for this cell.
         data_type: double
       - name: fit_date
         description: Date on which the cliff parameters were last estimated.
@@ -131,15 +147,15 @@ models:
         data_type: varchar
       - name: fit_source
         description: >
-          Cell-level fit tier (cox_km_survival, cross_season_fallback, compound_class_default,
+          Cell-level fit tier (cox_km_survival, cross_season_fallback, pooled_compound_fallback, compound_class_default,
           carried_forward_<season>). Says which tier was attempted, not where each number came
           from -- use the three *_source columns for that.
         data_type: varchar
         tests: [not_null]
       - name: onset_source
         description: >
-          Where compound_cliff_onset_laps came from: fitted, cross_season_fallback, class_default
-          or carried_forward. A class default stays class_default wherever the cell is carried.
+          Where compound_cliff_onset_laps came from: fitted, cross_season_fallback,
+          pooled_compound_fallback, class_default or carried_forward. A class default stays class_default wherever the cell is carried.
           See the compound_cliff_params seed for how rows fitted before this column existed were
           labelled.
         data_type: varchar
@@ -147,7 +163,7 @@ models:
           - not_null
           - accepted_values:
               arguments:
-                values: ['fitted', 'cross_season_fallback', 'class_default', 'carried_forward']
+                values: ['fitted', 'cross_season_fallback', 'pooled_compound_fallback', 'class_default', 'carried_forward']
       - name: gradient_source
         description: Where compound_wear_gradient came from; same vocabulary as onset_source.
         data_type: varchar
@@ -155,7 +171,7 @@ models:
           - not_null
           - accepted_values:
               arguments:
-                values: ['fitted', 'cross_season_fallback', 'class_default', 'carried_forward']
+                values: ['fitted', 'cross_season_fallback', 'pooled_compound_fallback', 'class_default', 'carried_forward']
       - name: severity_source
         description: Where compound_cliff_severity came from; same vocabulary as onset_source.
         data_type: varchar
@@ -163,12 +179,21 @@ models:
           - not_null
           - accepted_values:
               arguments:
-                values: ['fitted', 'cross_season_fallback', 'class_default', 'carried_forward']
+                values: ['fitted', 'cross_season_fallback', 'pooled_compound_fallback', 'class_default', 'carried_forward']
       - name: notes
         description: >
           Free-text provenance / caveat notes carried from the seed. Never reads "fitted from"
           on a cell where any parameter is a class default.
         data_type: varchar
+      - name: is_measured
+        description: >
+          TRUE only when onset_source, gradient_source and severity_source are all one of fitted,
+          cross_season_fallback, pooled_compound_fallback or carried_forward, i.e. no parameter is
+          a compound-class default. Derived here, not in the seed. pooled_compound_fallback is
+          measured but not venue-specific. Filter or flag on this instead of re-deriving it from
+          the three *_source columns.
+        data_type: boolean
+        tests: [not_null]
     tests:
       - dbt_utils.unique_combination_of_columns:
           arguments:

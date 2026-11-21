@@ -1,6 +1,7 @@
 import { registerQuery, rawQuery } from '../../data/hooks/useQuery'
 import { loadManifest, getTablePath } from '../../data/manifest'
 import { registerParquet } from '../../data/duckdb/register'
+import { ONSET_IQR_CTE } from '../shared/cliffEstimate'
 
 /** Compound fit profile from dim_compounds_season for a given race x compound */
 export interface CompoundProfileRow {
@@ -16,6 +17,13 @@ export interface CompoundProfileRow {
   fit_date: string | null
   data_window: string | null
   notes: string | null
+  /** Per-parameter provenance; class_default means no data for this track (see shared/cliffEstimate) */
+  onset_source: string | null
+  gradient_source: string | null
+  severity_source: string | null
+  /** IQR of the compound's measured onsets (laps); null when fewer than 5 measured cells */
+  onset_iqr_low: number | null
+  onset_iqr_high: number | null
 }
 
 /** Distinct compounds available for a race in the cliff prediction data */
@@ -47,23 +55,30 @@ interface StintParams {
 
 /** SQL for the compound profiles of a season (circuit_key is a circuit name such as australian_grand_prix) */
 export const PROFILES_SQL = `
+      WITH ${ONSET_IQR_CTE}
       SELECT
-        circuit_key,
-        compound_code,
-        season,
-        compound_cliff_onset_laps,
-        compound_cliff_severity,
-        compound_wear_gradient,
-        compound_grip_peak,
-        compound_optimal_temp_low,
-        compound_optimal_temp_high,
-        CAST(fit_date AS VARCHAR) AS fit_date,
-        data_window,
-        notes
-      FROM dim_compounds_season
-      WHERE season = ?
-        AND compound_code NOT IN ('INTERMEDIATE', 'WET')
-      ORDER BY circuit_key, compound_code
+        cs.circuit_key,
+        cs.compound_code,
+        cs.season,
+        cs.compound_cliff_onset_laps,
+        cs.compound_cliff_severity,
+        cs.compound_wear_gradient,
+        cs.compound_grip_peak,
+        cs.compound_optimal_temp_low,
+        cs.compound_optimal_temp_high,
+        CAST(cs.fit_date AS VARCHAR) AS fit_date,
+        cs.data_window,
+        cs.notes,
+        cs.onset_source,
+        cs.gradient_source,
+        cs.severity_source,
+        r.onset_iqr_low,
+        r.onset_iqr_high
+      FROM dim_compounds_season cs
+      LEFT JOIN onset_iqr r ON r.compound_code = cs.compound_code
+      WHERE cs.season = ?
+        AND cs.compound_code NOT IN ('INTERMEDIATE', 'WET')
+      ORDER BY cs.circuit_key, cs.compound_code
     `
 
 /** SQL for the circuit a race is held at: race_to_track.track_id is dim_circuits.circuit_key, the key dim_compounds_season.circuit_key uses. */

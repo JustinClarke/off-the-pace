@@ -35,7 +35,8 @@ sakhir_grand_prix,Bahrain International Circuit (outer),3.543,11,2.0,1.7,46.2,3,
 saudi_arabian_grand_prix,Jeddah Corniche Circuit,6.174,27,2.3,2.3,142.9,2,0.032,2021,not_calibrated,0,0.032,0.0,SKIPPED,0.032,2026-09-28,2018_to_2024,first_stint_regression_v1,fcf4949,2026-09-28T15:27:14Z,19.0,False
 singapore_grand_prix,Marina Bay Street Circuit,4.94,23,2.2,1.9,111.3,2,0.028,2008,not_calibrated,0,0.028,0.0,SKIPPED,0.028,2026-09-28,2018_to_2024,first_stint_regression_v1,fcf4949,2026-09-28T15:27:14Z,23.5,False
 south_african_grand_prix,Kyalami Circuit,4.525,16,2.3,1.9,82.1,3,0.025,1967,not_calibrated,0,0.025,0.0,SKIPPED,0.025,2026-09-28,2018_to_2024,first_stint_regression_v1,fcf4949,2026-09-28T15:27:14Z,21.0,True
-spanish_grand_prix,Circuit de Barcelona-Catalunya,4.675,16,2.3,1.9,84.6,4,0.02162,1991,first_stint_regression,78,0.02162,76.9,REVIEW_REQUIRED,0.005,2026-09-28,2018_to_2024,first_stint_regression_v1,fcf4949,2026-09-28T15:27:14Z,20.0,False
+spanish_grand_prix,Circuit de Barcelona-Catalunya,4.675,14,2.3,1.9,84.6,4,0.02162,1991,first_stint_regression,78,0.02162,76.9,REVIEW_REQUIRED,0.005,2026-09-28,2018_to_2024,first_stint_regression_v1,fcf4949,2026-09-28T15:27:14Z,20.0,False
+spanish_grand_prix_2018_2022,Circuit de Barcelona-Catalunya,4.675,16,2.3,1.9,84.6,4,0.02162,1991,not_calibrated,0,0.02162,0.0,SKIPPED,0.02162,,,,,,20.0,False
 styrian_grand_prix,Red Bull Ring,4.318,10,2.2,1.75,48.4,3,0.022,1969,not_calibrated,0,0.022,0.0,SKIPPED,0.022,2026-09-28,2018_to_2024,first_stint_regression_v1,fcf4949,2026-09-28T15:27:14Z,20.0,False
 são_paulo_grand_prix,Autodromo Jose Carlos Pace,4.309,15,2.3,1.75,79.4,3,0.025,1973,not_calibrated,0,0.025,0.0,SKIPPED,0.025,2026-09-28,2018_to_2024,first_stint_regression_v1,fcf4949,2026-09-28T15:27:14Z,21.5,False
 thai_grand_prix,Buriram International Circuit,5.407,12,2.0,1.8,76.5,2,0.024,2019,not_calibrated,0,0.024,0.0,SKIPPED,0.024,2026-09-28,2018_to_2024,first_stint_regression_v1,fcf4949,2026-09-28T15:27:14Z,21.0,True
@@ -43,3 +44,4 @@ turkish_grand_prix,Istanbul Park,5.338,14,2.5,2.0,87.5,2,0.027,2005,not_calibrat
 tuscan_grand_prix,Autodromo Internazionale del Mugello,5.245,14,2.7,2.05,108.4,4,0.029,2020,not_calibrated,0,0.029,0.0,SKIPPED,0.029,2026-09-28,2018_to_2024,first_stint_regression_v1,fcf4949,2026-09-28T15:27:14Z,20.5,False
 united_states_grand_prix,Circuit of the Americas,5.513,20,2.5,2.1,125.0,3,0.03,2012,not_calibrated,0,0.03,0.0,SKIPPED,0.03,2026-09-28,2018_to_2024,first_stint_regression_v1,fcf4949,2026-09-28T15:27:14Z,21.0,False
 vietnamese_grand_prix,Hanoi Street Circuit,5.607,19,2.1,2.0,104.6,3,0.027,2020,not_calibrated,0,0.027,0.0,SKIPPED,0.027,2026-09-28,2018_to_2024,first_stint_regression_v1,fcf4949,2026-09-28T15:27:14Z,21.0,True
+barcelona_grand_prix,Circuit de Barcelona-Catalunya,4.675,14,2.3,1.9,84.6,4,0.02162,1991,not_calibrated,0,0.02162,0.0,SKIPPED,0.02162,,,,,,20.0,False

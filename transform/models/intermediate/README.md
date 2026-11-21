@@ -4,7 +4,7 @@ The mathematical engine of the pipeline. These models apply physics corrections,
 causal decomposition, and Bayesian shrinkage to produce clean driver-skill signals
 and tyre-degradation estimates from raw lap data.
 
-All models are materialised as **tables**, except `int_lap_fuel_state_qualifying`, which is a view.
+All models are materialised as **tables**.
 
 ---
 
@@ -22,7 +22,6 @@ All models are materialised as **tables**, except `int_lap_fuel_state_qualifying
 |---|---|---|
 | `int_stint_geometry` | lap | Tyre age, stint number, in/out-lap flags |
 | `int_lap_fuel_state` | lap | Fuel-burnoff weight correction (race) |
-| `int_lap_fuel_state_qualifying` | lap | Fuel correction for qualifying runs |
 | `int_lap_air_state` | lap | Dirty-air exponential-weighted thermal load |
 | `int_dirty_air_tax_component` | lap | Causal pace-delta attributed to dirty air |
 | `int_lap_thermal_proxy` | lap | Push-load EW cumulative thermal state |

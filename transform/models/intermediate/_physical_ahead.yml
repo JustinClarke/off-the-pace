@@ -11,6 +11,20 @@ models:
       ONLY: how close the car ahead was, never what it cost. Only validity_class = 'valid_same_lap'
       carries the gap columns and is_within_1s_of_car_ahead; every other class has them NULL and must
       not be read as clear air or as following. 'unknown' is never clear air.
+      Known scope limits (documented, not changed): (1) it now reads the staging views
+      stg_physical_ahead_laps / stg_physical_ahead_telemetry (not bronze), which carry the stg_laps flags and the
+      HD22 manual exclusion; the default 'legacy' reference rule honours HD22 (a no-op today, see below) and the
+      pit windows still use every lap. Checked 2026-11-20: that lap has no PitIn/PitOut and a 152.8 s lap time, so it is
+      neither a pit window nor a reference candidate (the 2019_20 reference is BOT lap 43, 70.698 s); honouring
+      HD22 would change no number today. (2) One reference lap per race drives every projection;
+      assert_physical_ahead_reference_lap_sane (warn) flags degenerate ones. (3) The zero-XY guard stays
+      off (unvalidated); the build's state is in zero_xy_guard_on and is carried to int_traffic_exposure_race.
+      (4) unknown_max_share 0.05 was tuned on Monza 2024 only; see scripts/check_unknown_share_sensitivity.py.
+      Validation is the separate sample-grain script scripts/check_physical_ahead_agreement.py (94% gate).
+      The dbt test assert_physical_ahead_agrees_with_proximity is a comparison diagnostic against
+      int_lap_proximity, a different model. Disagreement is NOT evidence the physical model is wrong. Last audit
+      (2025 sample, 56 laps) found the physical model's named car correct on 55 of 56 and proximity's correct on
+      8 of 56. Proximity ties resolve alphabetically by driver code.
     config:
       materialized: table
       # NOT validated (exp 26 exploratory, exp 28 inconclusive). Default off. Turn on only for a
@@ -18,6 +32,13 @@ models:
       drop_zero_xy: "{{ var('physical_ahead_drop_zero_xy', false) }}"
       unknown_max_share: "{{ var('physical_ahead_unknown_max_share', 0.05) }}"
       min_class_samples: "{{ var('physical_ahead_min_class_samples', 4) }}"
+      # Reference line. 'single' = the validated one fastest clean lap (default, unchanged). 'consensus' = pointwise
+      # median of reference_k clean laps, one per driver (see physical_ahead_core.consensus_polyline).
+      # reference_rule 'legacy' (default) or 'stg_valid' (stg_laps.is_valid_lap) picks which laps are clean.
+      # Both models must use the same values. Not validated: compare before switching.
+      reference_method: "{{ var('physical_ahead_reference_method', 'single') }}"
+      reference_k: "{{ var('physical_ahead_reference_k', 5) }}"
+      reference_rule: "{{ var('physical_ahead_reference_rule', 'legacy') }}"
     tags: [intermediate, traffic_exposure, measurement_only]
     tests:
       - dbt_utils.unique_combination_of_columns:
@@ -38,6 +59,13 @@ models:
         description: >
           Exactly one of valid_same_lap, lap1, side_by_side, lapped, overlapping, unknown (precedence:
           unknown > lap1 > lapped > overlapping > side_by_side > valid_same_lap).
+          A lap with >= min_class_samples samples classed leader_in_pit (the nearest car ahead was in its pit
+          window) and none of the classes above is 'unknown' with unknown_reason_mode = 'leader_in_pit'; it has no
+          lap class of its own. n_leader_in_pit_samples is carried on every lap.
+          Sample class 'parked_ahead' (the nearest car ahead within 300 m is stopped ON the racing line: moved < 5 m
+          in 10 s on lap >= 2, <= 15 m from the line, not in a pit window) is not clear air and not following
+          (gap_s NULL, never within 1 s); n_parked_ahead_samples is carried on every lap. No lap rule uses it yet:
+          the lap stays valid_same_lap (owner decision pending). A parked car > 15 m off the line is not counted.
         tests:
           - not_null
           - accepted_values:
@@ -45,8 +73,10 @@ models:
                 values: ['valid_same_lap', 'lap1', 'side_by_side', 'lapped', 'overlapping', 'unknown']
       - name: is_within_1s_of_car_ahead
         description: >
-          TRUE if the lap's minimum physical gap to a same-lap car ahead was under 1 s; FALSE if it was
-          not (including no car within 300 m). NULL unless validity_class = 'valid_same_lap'.
+          TRUE if the lap's minimum physical gap to a same-lap car ahead was under 1 s; FALSE otherwise,
+          which includes a lap with no measured gap at all (no car within 300 m, or a car within 300 m whose
+          gap was NULL / over 30 s). NULL unless validity_class = 'valid_same_lap', where it is never NULL.
+          gap_ahead_phys_s IS NULL tells "no gap measured" from "gap >= 1 s".
       - name: gap_ahead_phys_s
         description: >
           Minimum over the lap of the physical time gap to the car ahead, SECONDS: the time the follower
@@ -65,13 +95,29 @@ models:
       - name: gap_ahead_phys_min_m
         description: Minimum forward arc distance to the car ahead along the reference lap, METRES.
       - name: gap_ahead_phys_min_driver_id
-        description: Car ahead at the lap's minimum gap. Diagnostic for the int_lap_proximity agreement test.
+        description: >
+          Car ahead at the lap's minimum gap. Input to the int_lap_proximity comparison diagnostic only:
+          disagreement with int_lap_proximity is not evidence this column is wrong (proximity ties resolve
+          alphabetically by driver code; 2025 audit, 56 laps: physical correct on 55, proximity on 8).
       - name: time_within_1s_phys_s
         description: Seconds of the lap (known samples) spent under 1 s behind a same-lap car ahead.
       - name: time_measured_s
         description: Seconds of the lap covered by known samples (denominator for shares).
       - name: is_neutralised_lap
         description: SC, VSC or red-flag lap (int_stint_geometry). Excluded from exposure in the summaries.
+      - name: is_lapped_lap
+        description: >
+          validity_class = 'lapped' (the car ahead is on a different lap). Such laps keep the headline columns
+          NULL and carry their own columns below instead.
+        tests: [not_null]
+      - name: lapped_seconds_within_1s
+        description: >
+          Lapped laps only (NULL elsewhere): seconds within 1 s behind a car on a different lap (samples classed
+          'lapped'). Reported on its own; never added to time_within_1s_phys_s.
+      - name: lapped_time_measured_s
+        description: "Lapped laps only, seconds covered by known samples (denominator for lapped shares)."
+      - name: lapped_gap_phys_min_s
+        description: "Lapped laps only, smallest gap in seconds to a car on a different lap."
       - name: n_ahead_flips
         description: >
           Car-ahead identity changes between consecutive samples <= 1 s apart, both with a car ahead.
@@ -104,8 +150,256 @@ models:
   - name: int_traffic_exposure_race
     description: >
       MEASUREMENT ONLY. Per race roll-up of int_traffic_exposure_driver_race, plus the car-ahead identity
-      flip rate as a visible known limit. Not wired to any page.
+      flip rate as a visible known limit. Not wired to any page. NOT validated end to end: the 94%
+      sample-grain agreement gate is a script only (scripts/check_physical_ahead_agreement.py; 8 of 170
+      races failed on 2026-11-09). Headline shares (share_time_close_behind, bunching_share) are
+      CONDITIONAL on measured laps: lapped, overlapping, side_by_side, lap1, neutralised and unknown laps
+      are outside the denominator and published as share_laps_* columns, not adjusted for. Quality columns
+      flag races with a low measured share; no rows are filtered.
     tags: [intermediate, traffic_exposure, measurement_only]
     columns:
       - name: race_id
         tests: [unique, not_null]
+      - name: quality_flag
+        description: >
+          'ok', 'low_measured_share' (measured laps / all laps below min_measured_share_floor) or
+          'no_measured_laps'. A flag, not a filter.
+        tests:
+          - not_null
+          - accepted_values:
+              arguments: {values: ['ok', 'low_measured_share', 'no_measured_laps']}
+      - name: is_low_measured_share
+        tests: [not_null]
+      - name: min_measured_share_floor
+        description: var traffic_exposure_min_measured_share (default 0.25, provisional, not tuned).
+      - name: zero_xy_guard_on
+        description: >
+          Whether the unvalidated X = Y = 0 guard was on (default false). With it off, Singapore 2019 laps
+          fall into 'lapped' and drop out of the measured denominator.
+        tests: [not_null]
+      - name: share_laps_measured
+        tests:
+          - dbt_utils.accepted_range:
+              arguments: {min_value: 0, max_value: 1, inclusive: true}
+      - name: share_laps_lapped
+        tests:
+          - dbt_utils.accepted_range:
+              arguments: {min_value: 0, max_value: 1, inclusive: true}
+      - name: share_laps_overlapping
+        tests:
+          - dbt_utils.accepted_range:
+              arguments: {min_value: 0, max_value: 1, inclusive: true}
+      - name: share_laps_unknown
+        tests:
+          - dbt_utils.accepted_range:
+              arguments: {min_value: 0, max_value: 1, inclusive: true}
+      - name: share_laps_neutralised
+        tests:
+          - dbt_utils.accepted_range:
+              arguments: {min_value: 0, max_value: 1, inclusive: true}
+      - name: share_time_close_behind
+        tests:
+          - dbt_utils.accepted_range:
+              arguments: {min_value: 0, max_value: 1, inclusive: true}
+              config: {where: "share_time_close_behind IS NOT NULL"}
+      - name: bunching_share
+        tests:
+          - dbt_utils.accepted_range:
+              arguments: {min_value: 0, max_value: 1, inclusive: true}
+              config: {where: "bunching_share IS NOT NULL"}
+
+  - name: int_physical_ahead_pairs
+    description: >
+      MEASUREMENT ONLY. Pair grain of the physical-car-ahead measurement: one row per (race_id, follower,
+      leader, lap_number) with at least one position sample under 1 s behind that leader (sample_class
+      'same_lap', gap_s < 1). Same definitions and per-sample build as int_lap_physical_ahead, via
+      transform/python_lib/physical_ahead_core.py. Answers "how long was A within 1 s behind B in race X".
+      Rows on non-valid laps are KEPT and carry their validity_class; filter to 'valid_same_lap' before using
+      a figure, and never read a missing row on a non-valid lap as clear air. No time-loss, dirty-air or tax
+      columns. Not wired to any page.
+      Any comparison with int_lap_proximity is a diagnostic of a different model, not validation of this one;
+      validation is the sample-grain script scripts/check_physical_ahead_agreement.py. Proximity ties resolve
+      alphabetically by driver code.
+    config:
+      materialized: table
+      # Same switch as int_lap_physical_ahead (default off, NOT validated); the two must agree. drop_zero_xy is
+      # checked at run time against the lap table's zero_xy_guard_on; the reference_* settings are not (see the
+      # model docstring, REQUIRED INVARIANT).
+      drop_zero_xy: "{{ var('physical_ahead_drop_zero_xy', false) }}"
+      reference_method: "{{ var('physical_ahead_reference_method', 'single') }}"
+      reference_k: "{{ var('physical_ahead_reference_k', 5) }}"
+      reference_rule: "{{ var('physical_ahead_reference_rule', 'legacy') }}"
+    tags: [intermediate, traffic_exposure, measurement_only]
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [race_id, follower_driver_id, leader_driver_id, lap_number]
+    columns:
+      - name: race_id
+        tests: [not_null]
+      - name: season
+        tests: [not_null]
+      - name: follower_driver_id
+        description: The car that was close behind.
+        tests: [not_null]
+      - name: leader_driver_id
+        description: The car directly ahead (nearest car within 300 m on the same lap) at those samples.
+        tests: [not_null]
+      - name: lap_number
+        description: The follower's lap number.
+        tests: [not_null]
+      - name: seconds_within_1s
+        description: >
+          SECONDS the follower spent under 1 s behind this leader on this lap (sum of the per-sample dt_s).
+          Summed over leaders it equals int_lap_physical_ahead.time_within_1s_phys_s on valid laps.
+        tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              arguments: {min_value: 0, inclusive: true}
+      - name: n_samples_within_1s
+        description: Position samples counted (about 4 per second).
+        tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              arguments: {min_value: 1, inclusive: true}
+      - name: min_gap_s
+        description: Smallest time gap to this leader among the counted samples, SECONDS (always < 1).
+        tests:
+          - not_null
+      - name: median_gap_s
+        description: Median time gap to this leader among the counted samples, SECONDS.
+      - name: validity_class
+        description: >
+          validity_class of this lap in int_lap_physical_ahead (a lap with no row there is 'unknown').
+          Filter to 'valid_same_lap' for any figure; the other classes are kept, flagged, never counted as
+          clear air.
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['valid_same_lap', 'lap1', 'side_by_side', 'lapped', 'overlapping', 'unknown']
+      - name: zero_xy_guard_on
+        description: Whether the unvalidated X = Y = 0 guard was applied in this build (default false).
+
+  - name: int_physical_ahead_pairs_lapped
+    description: >
+      MEASUREMENT ONLY. Lapped-traffic pairs, kept apart from int_physical_ahead_pairs (which is unchanged): one
+      row per (race_id, follower, leader, lap_number) with at least one sample under 1 s behind a car on a
+      DIFFERENT lap (sample_class 'lapped'), only on laps with is_lapped_lap = TRUE in int_lap_physical_ahead.
+      pair_class is always 'lapped_traffic'. Same per-sample build, pair helper and reference config as
+      int_physical_ahead_pairs. Summed over leaders, seconds_within_1s matches
+      int_lap_physical_ahead.lapped_seconds_within_1s. Never add these seconds to the same-lap pair seconds.
+    config:
+      materialized: table
+      drop_zero_xy: "{{ var('physical_ahead_drop_zero_xy', false) }}"
+      reference_method: "{{ var('physical_ahead_reference_method', 'single') }}"
+      reference_k: "{{ var('physical_ahead_reference_k', 5) }}"
+      reference_rule: "{{ var('physical_ahead_reference_rule', 'legacy') }}"
+    tags: [intermediate, traffic_exposure, measurement_only]
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [race_id, follower_driver_id, leader_driver_id, lap_number]
+    columns:
+      - name: race_id
+        tests: [not_null]
+      - name: season
+        tests: [not_null]
+      - name: follower_driver_id
+        tests: [not_null]
+      - name: leader_driver_id
+        tests: [not_null]
+      - name: lap_number
+        tests: [not_null]
+      - name: pair_class
+        description: Always 'lapped_traffic'.
+        tests:
+          - not_null
+          - accepted_values:
+              arguments: {values: ['lapped_traffic']}
+      - name: seconds_within_1s
+        description: SECONDS the follower spent under 1 s behind this lapped car on this lap (sum of dt_s).
+        tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              arguments: {min_value: 0, inclusive: true}
+      - name: n_samples_within_1s
+        tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              arguments: {min_value: 1, inclusive: true}
+      - name: min_gap_s
+        description: Smallest time gap to this car among the counted samples, SECONDS (always < 1).
+      - name: median_gap_s
+        description: Median time gap to this car among the counted samples, SECONDS.
+      - name: validity_class
+        description: Copied from int_lap_physical_ahead; 'lapped' on every row.
+      - name: zero_xy_guard_on
+        description: Whether the unvalidated X = Y = 0 guard was applied in this build (default false).
+
+  - name: int_physical_ahead_pair_race
+    description: >
+      MEASUREMENT ONLY. One row per (race_id, follower, leader): total seconds within 1 s behind that leader,
+      summed over VALID laps only (validity_class = 'valid_same_lap') from int_physical_ahead_pairs. Not wired
+      to any page. seconds_within_1s_green keeps only laps whose is_neutralised_lap is FALSE: SC / VSC /
+      red-flag laps and laps with an unknown (NULL) flag are left out.
+      A pair has a row only if it has at least one valid lap with a position sample under 1 s behind that
+      leader; seconds_within_1s can still be 0 when that sample's dt is 0 (the last sample of a lap).
+    tags: [intermediate, traffic_exposure, measurement_only]
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [race_id, follower_driver_id, leader_driver_id]
+      # the green sum is a subset of the valid-lap sum (NULL when no lap is known-green)
+      - dbt_utils.expression_is_true:
+          arguments:
+            expression: "seconds_within_1s_green IS NULL OR seconds_within_1s_green <= seconds_within_1s"
+    columns:
+      - name: race_id
+        tests: [not_null]
+      - name: follower_driver_id
+        tests: [not_null]
+      - name: leader_driver_id
+        tests: [not_null]
+      - name: seconds_within_1s
+        tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              arguments: {min_value: 0, inclusive: true}
+      - name: n_laps_within_1s
+        tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              arguments: {min_value: 1, inclusive: true}
+
+  - name: stg_physical_ahead_laps
+    description: >
+      Staging input of the physical-ahead chain: raw_laps rows under stable names plus the stg_laps cleaning
+      rules as flags (is_stg_valid_lap, is_manual_excluded for HD22, compound_clean). No row is dropped.
+    columns:
+      - name: race_id
+        tests: [not_null]
+      - name: driver_id
+        tests: [not_null]
+      - name: lap_number
+        tests: [not_null]
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [race_year, race_id, driver_id, lap_number]
+      # the exact key of the LEFT JOIN to stg_laps; a duplicate here would duplicate laps in the Python reads
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [race_id, driver_id, lap_number]
+
+  - name: stg_physical_ahead_telemetry
+    description: >
+      Staging input of the physical-ahead chain: the 'pos' telemetry samples under a stable column contract,
+      with is_zero_xy marking X = Y = 0 placeholders (flagged, not dropped; the drop_zero_xy guard is the model's).
+    columns:
+      - name: race_id
+        tests: [not_null]
+      - name: driver_id
+        tests: [not_null]
+      - name: session_time_s
+        tests: [not_null]

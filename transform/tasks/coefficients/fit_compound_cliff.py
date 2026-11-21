@@ -15,8 +15,9 @@ Usage:
 The fitter operates per (circuit_key, compound_code, season) group, and is
 point-in-time (FD3): a season's cell is fitted on EARLIER seasons' stints only
 (race_year < season), at this event slug first and then, with fewer than
-MIN_STINTS stints there, on the physical venue's earlier stints pooled; with
-too few of either it takes the compound-class defaults. The one exception is
+MIN_STINTS stints there, on the physical venue's earlier stints pooled, then on
+every venue's earlier stints for the same compound pooled (pooled_compound_fallback);
+with too few of any it takes the compound-class defaults. The one exception is
 IN_SAMPLE_SEASONS (2018, ruling CD2 = C): it has no earlier season, so it is
 fitted on its own laps and its rows' data_window says "_in_sample". 2018 must
 never be used for honest evaluation. Every row's data_window is the window that
@@ -108,17 +109,23 @@ COMPOUND_DEFAULTS = {
 #                          season) stints
 #   cross_season_fallback  estimated from the venue's stints pooled across
 #                          every season (too few in this season alone)
+#   pooled_compound_fallback  estimated from the same compound's stints pooled
+#                          across ALL venues in the cell's window (the venue
+#                          itself had < MIN_STINTS). Measured, but not venue-specific
 #   class_default          COMPOUND_DEFAULTS (or a compound-class value noted
 #                          in the row): no usable estimate for this venue
 #   carried_forward        copied unchanged from an earlier season's cell, where
 #                          it was fitted or cross-season estimated
-PARAM_SOURCES = ("fitted", "cross_season_fallback", "class_default", "carried_forward")
+PARAM_SOURCES = (
+    "fitted", "cross_season_fallback", "pooled_compound_fallback", "class_default", "carried_forward",
+)
 
 # The parameter source each fit tier implies when its estimator returns a
 # usable number.
 _TIER_PARAM_SOURCE = {
     "cox_km_survival": "fitted",
     "cross_season_fallback": "cross_season_fallback",
+    "pooled_compound_fallback": "pooled_compound_fallback",
     "compound_class_default": "class_default",
 }
 
@@ -265,7 +272,7 @@ def load_stint_data(con: duckdb.DuckDBPyConnection, seasons: list[int]) -> pd.Da
                 SELECT r.status FROM stg_results r
                 WHERE r.driver_id = sg.driver_id
                   AND r.race_id = sg.race_id
-                  AND r.is_dnf
+                  AND r.is_retired  -- retirements only; disqualified drivers excluded
                 LIMIT 1
             ) END AS dnf_status
         FROM int_stint_geometry sg
@@ -342,14 +349,16 @@ def fit_group(
     compound_code: str,
     season: int,
     fallback_df: pd.DataFrame | None = None,
+    pooled_df: pd.DataFrame | None = None,
 ) -> dict:
     """
     Fit cliff parameters for a single (circuit_key, compound_code, season) group.
 
     Tiers: this event slug's stints from the cell's history window (>=
     MIN_STINTS), else the physical venue's stints from the same window
-    (fallback_df, built by the caller, >= MIN_STINTS), else the compound-class
-    defaults. The window is history_mask: earlier seasons only, or the season
+    (fallback_df, built by the caller, >= MIN_STINTS), else every venue's stints
+    for the same compound from the same window (pooled_df, built by the caller,
+    >= MIN_STINTS), else the compound-class defaults. The window is history_mask: earlier seasons only, or the season
     itself for IN_SAMPLE_SEASONS (CD2). Within a tier that ran, any parameter
     whose estimator returns nothing or an out-of-range value takes the class
     default, and that is recorded against the parameter itself (onset_source /
@@ -395,6 +404,11 @@ def fit_group(
         if fallback_df is not None and len(fallback_df) > 0
         else pd.DataFrame()
     )
+    pooled_survival = (
+        build_survival_dataset(pooled_df, pace_col=pace_col)
+        if pooled_df is not None and len(pooled_df) > 0
+        else pd.DataFrame()
+    )
     fit_notes = ""
 
     if season_n_stints >= MIN_STINTS:
@@ -425,6 +439,25 @@ def fit_group(
         log.warning(
             "%s / %s / %d: only %d stints, falling back to cross-season (%s)",
             circuit_key, compound_code, season, season_n_stints, fit_notes,
+        )
+    elif len(pooled_survival) >= MIN_STINTS:
+        # Neither this event nor its venue has enough history: pool the same
+        # compound across every venue in the same window. Gated on actual
+        # stints, like the venue tier. A measured, non-venue-specific estimate.
+        cliff_onset = fit_cliff_onset_median(pooled_survival)
+        cliff_severity = estimate_cliff_severity(
+            pooled_df, cliff_onset or defaults["cliff_onset_laps"], pace_col=pace_col
+        )
+        wear_gradient = estimate_wear_gradient(
+            fresh_tyre_only(pooled_df), cliff_onset or defaults["cliff_onset_laps"], pace_col=pace_col
+        )
+        source = "pooled_compound_fallback"
+        used_n_stints = len(pooled_survival)
+        fit_notes = (f"insufficient venue stints ({len(cross_survival)}); used {used_n_stints} "
+                     f"{compound_code} stints pooled across all venues")
+        log.warning(
+            "%s / %s / %d: falling back to all-venue compound pool (%s)",
+            circuit_key, compound_code, season, fit_notes,
         )
     else:
         cliff_onset = None
@@ -562,7 +595,14 @@ def run_fit(
                 history_mask(stints_df["race_year"], season)
             ]
 
-        result = fit_group(stints_df, circuit_key, compound_code, season, fallback_df=cross_df)
+        # Last measured tier: the same compound at every venue, same window.
+        pooled_df = stints_df[
+            (stints_df["compound_code"] == compound_code) &
+            history_mask(stints_df["race_year"], season)
+        ]
+
+        result = fit_group(stints_df, circuit_key, compound_code, season,
+                           fallback_df=cross_df, pooled_df=pooled_df)
         results.append(result)
         log.info(
             "  %-35s %-12s %d  onset=%.1f  severity=%.2f  gradient=%.4f  [%s]",

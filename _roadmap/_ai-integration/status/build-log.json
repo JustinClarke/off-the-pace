@@ -1,7 +1,7 @@
 {
   "schema_version": 2,
   "project": "off the pace AI integration v2 (assistant data access)",
-  "updated": "2026-11-19T12:59:00+04:00",
+  "updated": "2026-11-19T16:30:00+04:00",
   "pointer": "TX-15",
   "stage_vocabulary": {
     "SPEC": "Reverified and specced in its WI doc. Nothing run.",
@@ -4387,6 +4387,84 @@
         "stg_session_status_qualifying and the remaining staging items on roadmap lines 84-86.",
         "dim_corners full rebuild from a complete run (still unverified)."
       ]
+    },
+    {
+      "date": "2026-11-19",
+      "session": "Staging pass continued: stg_telemetry, stg_results_qualifying, stg_sector_times, stg_telemetry_position, stg_session_status (new stg_red_flags), stg_jolpica_pit_stops tests, Miami 2025 tyre seed, UNKNOWN compound check. Working tree only, nothing committed. Handoff for the next chat: start at the pending list at the bottom of transform.md.",
+      "landed": [
+        "stg_telemetry: header race-only; qualifying deferred to TX-23. Roadmap line 82 ticked.",
+        "stg_results_qualifying: segment_source column (missing_from_feed for 2025 Miami only). AP-11 added to BUILD-ORDER for the app flag.",
+        "stg_sector_times: sectors with no time kept with sector_time_missing; int_corner_skill_residuals filters the flag. 5,553 of 631,980 rows flagged.",
+        "stg_telemetry_position: 16,708 rows with no position kept as relative_distance NULL, source 'unavailable' (audit found the earlier derivation set them to 0). Clamp flags kept.",
+        "stg_session_status: new stg_red_flags built from track status (31 events, including 2025 Belgium). stg_session_status documented as incomplete.",
+        "stg_jolpica_pit_stops: 14 tests added (keys, ranges, years, relationship to 2025).",
+        "Miami 2025 tyre seed row changed from carried-forward C2/C3/C4 to the official C3/C4/C5. Dependent test assert_miami_2025_allocation_carried now fails on purpose; not yet updated.",
+        "Rain test: no change needed. stg_laps already maps UNKNOWN compounds to NULL, so 2021 Belgium abstains."
+      ],
+      "verified": [
+        "Scratch builds of each changed staging model; counts measured against bronze (race-session files, the model's own filters).",
+        "Audit by a separate agent of the closed items: stg_telemetry, stg_results_qualifying, stg_sector_times pass; stg_telemetry_position had the derivation bug, now fixed and re-measured.",
+        "2025 Belgium red flag in track_status (3,390 s) has no Aborted session row; the other 191 races agree."
+      ],
+      "assumed": [
+        "Position-based qualifying segments are not used: they disagreed with official times in about 150 rows.",
+        "Downstream models that read the changed staging views are unchanged or safe to change, based on reading the SQL. Not rebuilt.",
+        "Stale 'Reverted?' item: the NULL changes in the two intermediate models are not in the working tree (no uncommitted diff); likely committed in e496682. Not confirmed."
+      ],
+      "gates_run": [
+        "dbt build of each changed staging model in a scratch copy of dev.duckdb (own profiles).",
+        "In-memory DuckDB measurements against bronze."
+      ],
+      "next_command": "python3 _roadmap/_ai-integration/status/board.py --check",
+      "open": [
+        "Pending staging models listed at the bottom of transform.md (13 OPEN in the model table, plus stg_red_flags not yet in the table).",
+        "assert_miami_2025_allocation_carried needs updating to C3/C4/C5 or retiring.",
+        "Owner rulings line ticked by a sub-agent; needs your confirmation.",
+        "Reverted? decision on the NULL changes (about 6,400 laps).",
+        "AP-11 app side: owner ruling on a qualifying column in mart_race_coverage (hash baseline) and on the app/public/data re-export.",
+        "dim_corners full rebuild from a complete run (still unverified)."
+      ]
+    },
+    {
+      "date": "2026-11-19T15:30:00+04:00",
+      "session": "Staging handoff from transform.md temporary list. Working tree only, nothing committed.",
+      "landed": [
+        "stg_results: late retirees are is_retired (69 rows), disqualifications are is_disqualified (15 rows), is_dnf unchanged. Two 2026 rows (STR 2026_1, ALB 2026_7) have status 'Lapped' with classification 'R': set DNF with dnf_cause non_classified, TODO to check the official results. Consumers fct_ghost_race_finish, fit_compound_cliff.py and mart_race_driver_summary now read is_retired.",
+        "stg_session_status_qualifying: race_id relationship limited to race_year <= 2025 (all 242 failing rows are 2026). Red-flag gap documented: 7 qualifying sessions have fewer Aborted rows than track-status red flags.",
+        "stg_red_flags_qualifying: new view from track status (Status '5'), 108 rows across 72 races, tests pass.",
+        "stg_race_control and stg_track_status: race_id relationship limited to race_year <= 2025.",
+        "stg_lap_tyre_qa: verified in a bronze-backed scratch build; zero stint-0 laps; 17/17 tests pass. assert_miami_2025_allocation_carried updated to the official 2025 Miami nomination C3/C4/C5 (the seed was already correct; the test was stale)."
+      ],
+      "verified": [
+        "Scratch copy of dev.duckdb, bronze-backed staging views. stg_lap_tyre_qa 17/17 with assert_pit_not_taken_from_joined_boundary built via int_pit_strategy_value.",
+        "stg_results rebuilt: flag counts 3258 none / 69 retired / 15 disqualified / 514 DNF-retired."
+      ],
+      "assumed": [
+        "The 2026 rows that are 'Lapped' with 'R' are retirements until the official results say otherwise."
+      ],
+      "gates_run": [
+        "dbt test on each staging model listed above, from transform/ with the scratch profile"
+      ],
+      "next_command": "Owner decision: dnf_cause for 2026 STR and ALB; then check mart_race_driver_summary, fit_compound_cliff.py and the data-profile baseline (downstream, separate)"
+    },
+    {
+      "date": "2026-11-19T16:30:00+04:00",
+      "session": "Staging temporary list handed to the build log. Replaced in transform.md by the intermediate-layer list. Working tree only, nothing committed.",
+      "landed": [
+        "Staging items from the temporary list, all marked done: stg_lap_tyre_qa (stint 0 gone, 17/17 tests), stg_tyre_allocations (2025 Miami official C3/C4/C5; other 2025 rows still unverified carry-forwards), stg_weather (wet vote fixed; rain test 0 rows), stg_circuit_info (race file preferred, quali fallback), stg_telemetry (race-only, header fixed), stg_results_qualifying (segment_source column), stg_sector_times (sector_time_missing flag), stg_telemetry_position (relative_distance NULL with source 'unavailable'), stg_session_status (stg_red_flags added), stg_jolpica_pit_stops (14 tests).",
+        "Staging pending list closed: stg_race_control, stg_track_status, stg_session_status_qualifying (race_id cap 2025 and earlier), stg_results (is_retired, is_disqualified), stg_lap_tyre_qa, stg_weather, stg_red_flags row, Miami test, and the seven table re-checks (stg_results_qualifying DONE by owner decision, 2026 constructor gap ignored)."
+      ],
+      "verified": [
+        "Scratch copy of dev.duckdb with bronze-backed staging views. Staging-only build: 20 of 20 models built; 203 tests pass, 6 fail (2026 constructor gaps in stg_laps, stg_laps_qualifying, stg_results, stg_results_qualifying; assert_race_to_track_covers_all_races 76 rows; assert_fuel_load_matches_scheduled_distance 38 rows, both in the earlier baseline), 11 error from missing downstream tables in scratch."
+      ],
+      "assumed": [
+        "The 2026 constructor gap (Audi and Cadillac absent from dim_constructors) is out of scope until 2026 is modelled.",
+        "The other 23 2025 tyre allocation rows remain carry-forwards until a Pirelli source is found."
+      ],
+      "gates_run": [
+        "dbt run and dbt test on staging models, from transform/ with the scratch profile"
+      ],
+      "next_command": "Owner decisions: Reverted? NULL changes in int_lap_residual_decomposed and int_compound_cliff_predicted; then the intermediate list in transform.md (int_constructor_deg_sensitivity first). Owner to confirm the owner rulings line. Caveat rebuild blocked by data/fits/constructor_car_fe.parquet."
     }
   ],
   "watch_vocabulary": {

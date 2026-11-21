@@ -38,6 +38,8 @@ models:
               arguments:
                 to: ref('race_to_track')
                 field: race_id
+              config:
+                where: "race_year <= 2025"
       - name: race_id
         description: Numeric FastF1 event id cast to string (e.g. '4'); the join key used across staging, not the human-readable slug.
         data_type: varchar
@@ -47,6 +49,8 @@ models:
               arguments:
                 to: ref('race_to_track')
                 field: race_id
+              config:
+                where: "race_year <= 2025"
       - name: driver_id
         description: FastF1 three-letter driver code (e.g. VER, HAM).
         data_type: varchar
@@ -205,6 +209,8 @@ models:
               arguments:
                 to: ref('race_to_track')
                 field: race_id
+              config:
+                where: "race_year <= 2025"
       - name: race_id
         description: Numeric FastF1 event id cast to string; matches stg_laps.race_id.
         data_type: varchar
@@ -214,6 +220,8 @@ models:
               arguments:
                 to: ref('race_to_track')
                 field: race_id
+              config:
+                where: "race_year <= 2025"
       - name: session_type
         description: Constant 'Q' marking the qualifying session.
         data_type: varchar
@@ -362,6 +370,8 @@ models:
               arguments:
                 to: ref('race_to_track')
                 field: race_id
+              config:
+                where: "race_year <= 2025"
       - name: driver_id
         description: FastF1 three-letter driver code.
         data_type: varchar
@@ -451,6 +461,8 @@ models:
               arguments:
                 to: ref('race_to_track')
                 field: race_id
+              config:
+                where: "race_year <= 2025"
       - name: driver_id
         description: FastF1 three-letter driver code.
         data_type: varchar
@@ -488,6 +500,79 @@ models:
         description: Inherited clean-lap flag from the parent lap.
         data_type: boolean
 
+  - name: stg_jolpica_pit_stops
+    description: >
+      Pit stops from Jolpica (Ergast successor), one row per stop, 2018-2026. Independent of
+      FastF1, used only by the scratch cross-check (fct_pit_stop_crosscheck). duration_s is NULL
+      for 485 stops (about 7%, most in 2020-2023); kept, not dropped. race_id is 'YYYY_R', which
+      matches race_to_track. race_to_track has no 2026 rows, so the relationship test is limited
+      to 2025 and earlier.
+    meta:
+      family: staging
+    columns:
+      - name: race_id
+        description: 'YYYY_R (season and round), as in race_to_track.'
+        data_type: varchar
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('race_to_track')
+                field: race_id
+              config:
+                where: "race_year <= 2025"
+      - name: race_year
+        description: Season year.
+        data_type: integer
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [2018, 2019, 2020, 2021, 2022, 2023, 2024, 2025, 2026]
+      - name: round_number
+        description: Round within the season.
+        data_type: integer
+        tests: [not_null]
+      - name: race_name
+        description: Jolpica race name as given (not the FastF1 slug).
+        data_type: varchar
+      - name: driver_ergast_id
+        description: Jolpica driver id (e.g. max_verstappen). Mapped to the FastF1 abbreviation through Bronze results in the cross-check.
+        data_type: varchar
+        tests: [not_null]
+      - name: stop_number
+        description: Stop index within the driver's race (1 = first stop).
+        data_type: integer
+        tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              arguments:
+                min_value: 1
+      - name: lap_number
+        description: Lap on which the stop was made.
+        data_type: integer
+        tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              arguments:
+                min_value: 1
+      - name: time_of_day
+        description: Clock time of the stop as given by Jolpica.
+        data_type: varchar
+        tests: [not_null]
+      - name: duration_s
+        description: Stationary time in seconds, 0 to 120 when present; NULL where the source has no value (485 stops).
+        data_type: double
+        tests:
+          - dbt_utils.accepted_range:
+              arguments:
+                min_value: 0
+                max_value: 120
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [race_year, round_number, driver_ergast_id, stop_number]
+
   - name: stg_pits
     description: >
       One row per pit stop: a lap carrying PitInTime. Bronze splits a stop across two lap
@@ -512,6 +597,8 @@ models:
               arguments:
                 to: ref('race_to_track')
                 field: race_id
+              config:
+                where: "race_year <= 2025"
       - name: driver_id
         description: FastF1 three-letter driver code.
         data_type: varchar
@@ -690,6 +777,8 @@ models:
               arguments:
                 to: ref('race_to_track')
                 field: race_id
+              config:
+                where: "race_year <= 2025"
       - name: driver_id
         description: FastF1 three-letter driver code.
         data_type: varchar
@@ -767,21 +856,23 @@ models:
 
   - name: stg_events
     description: >
-      Race-level events (damage, retirements, penalties) sourced from the raw_dim_events seed.
-      Currently manual entries for 2021 only   expand as automated detection is built.
+      Race-level events (upgrades, penalties, DNFs, weather, format changes) sourced from the
+      raw_dim_events seed. Currently manual entries for 2021 only; expand as automated detection
+      is built. Coverage note: the seed covers 2021 only (six rows), so the table has no rows
+      outside 2021. Consumers must not read "no row" as "no event".
     meta:
       family: staging
     columns:
       - name: stg_event_id
-        description: Surrogate key   {race_id}_{event_id}.
+        description: Surrogate key, formed as {race_id}_{event_id} (for example 2021_10_E001).
         data_type: varchar
         tests: [not_null, unique]
       - name: event_id
         description: Seed-level event identifier.
         data_type: varchar
       - name: race_id
-        description: Race identifier from the seed (numeric).
-        data_type: integer
+        description: Race identifier from the seed, text of the form {year}_{round} (for example '2021_10').
+        data_type: varchar
         tests:
           - relationships:
               arguments:
@@ -801,8 +892,12 @@ models:
               config:
                 where: "driver_id <> 'ALL'"
       - name: event_type
-        description: Event category label (e.g. damage, retirement, penalty).
+        description: Event category label. One of UPGRADE, PENALTY, DNF, WEATHER, FORMAT.
         data_type: varchar
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['UPGRADE', 'PENALTY', 'DNF', 'WEATHER', 'FORMAT']
       - name: event_severity
         description: Magnitude estimate of the event's impact.
         data_type: double
@@ -841,6 +936,8 @@ models:
               arguments:
                 to: ref('race_to_track')
                 field: race_id
+              config:
+                where: "race_year <= 2025"
       - name: race_slug
         description: Human-readable event name (e.g. azerbaijan_grand_prix).
         data_type: varchar
@@ -895,6 +992,13 @@ models:
           included, since disqualification removes the classification.
         data_type: boolean
         tests: [not_null]
+      - name: is_disqualified
+        description: >
+          TRUE when status is 'Disqualified' (a ruling after the race, not a retirement). Set
+          alongside is_dnf, which still includes these rows. Filter on NOT is_disqualified to
+          exclude them.
+        data_type: boolean
+        tests: [not_null]
       - name: dnf_cause
         description: Coarse cause for DNFs only   'racing' / 'mechanical' / 'non_classified'; NULL for finishers.
         data_type: varchar
@@ -944,6 +1048,8 @@ models:
               arguments:
                 to: ref('race_to_track')
                 field: race_id
+              config:
+                where: "race_year <= 2025"
       - name: race_year
         description: Season year.
         data_type: integer
@@ -958,18 +1064,23 @@ models:
         tests: [not_null]
       - name: relative_distance
         description: >
-          Lap fraction in [0, 1). FastF1 RelativeDistance, or derived from distance_m over the
-          lap's max distance where FastF1 left it NULL (see relative_distance_source). Clamped
-          rather than filtered, so the start/finish bin keeps its samples; relative_clamp flags
-          the clamped rows.
+          Lap fraction in [0, 1), or NULL. FastF1 RelativeDistance where present; otherwise
+          derived from distance_m over the lap's max distance, but only when that max is greater
+          than 0 (see relative_distance_source). NULL when FastF1 left it NULL and no positive lap
+          max exists (relative_distance_source = 'unavailable': 16,708 rows in 41 driver-laps whose
+          distance_m is all 0.0). Never coerced to 0. FastF1 values are clamped rather than
+          filtered, so the start/finish bin keeps its samples; relative_clamp flags the clamped rows.
         data_type: double
       - name: relative_distance_source
-        description: "'fastf1' when FastF1 supplied RelativeDistance; 'derived_from_distance_m' otherwise (16,708 rows)."
+        description: >
+          'fastf1' when FastF1 supplied RelativeDistance; 'derived_from_distance_m' when it was
+          NULL and the lap max distance_m is greater than 0 (0 rows today); 'unavailable' when it
+          was NULL and the lap max distance_m is 0 or NULL (16,708 rows; relative_distance is NULL).
         data_type: varchar
         tests:
           - accepted_values:
               arguments:
-                values: ['fastf1', 'derived_from_distance_m']
+                values: ['fastf1', 'derived_from_distance_m', 'unavailable']
       - name: relative_clamp
         description: "'low' when FastF1 RelativeDistance was below 0 (25,526 rows); 'high' when at or above 1 (158,831 rows); NULL otherwise."
         data_type: varchar
@@ -1047,6 +1158,8 @@ models:
               arguments:
                 to: ref('race_to_track')
                 field: race_id
+              config:
+                where: "race_year <= 2025"
       - name: message_time_s
         description: >
           Session clock of the message. NOT on the same origin as the telemetry
@@ -1105,6 +1218,8 @@ models:
               arguments:
                 to: ref('race_to_track')
                 field: race_id
+              config:
+                where: "race_year <= 2025"
       - name: race_slug
         description: Human-readable event name.
         data_type: varchar
@@ -1142,17 +1257,16 @@ models:
           arguments:
             combination_of_columns: [race_year, race_id, session_time_s, status_code]
 
-  - name: stg_session_status
+  - name: stg_red_flags
     description: >
-      Session lifecycle events from FastF1 session.session_status
-      (Inactive / Started / Aborted / Finished / Finalised). 'Aborted' marks red-flag
-      stoppages, surfaced as is_red_flag_stop. One row per lifecycle event.
+      One row per red-flag event, from FastF1 track_status (Status '5' = Red). Complete where
+      stg_session_status is not: 2025 Belgium has a red flag at 3,390 s in track status and no
+      'Aborted' session row. Other races agree between the two sources.
     meta:
       family: staging
     columns:
-      - name: session_status_id
-        description: Surrogate key   {race_id}_{session_time_s}_{status}.
-          Unique; several statuses can share one timestamp.
+      - name: red_flag_id
+        description: Surrogate key {race_id}_RED_{session_time_s}.
         data_type: varchar
         tests: [not_null, unique]
       - name: race_year
@@ -1160,7 +1274,38 @@ models:
         data_type: integer
         tests: [not_null]
       - name: race_id
-        description: Numeric FastF1 event id cast to string; matches stg_laps.race_id.
+        description: Numeric FastF1 event id cast to string.
+        data_type: varchar
+        tests: [not_null]
+      - name: race_slug
+        description: Human-readable event name.
+        data_type: varchar
+      - name: session_time_s
+        description: Session clock (s) of the red-flag event.
+        data_type: double
+        tests: [not_null]
+      - name: track_message
+        description: FastF1 track status message (Red).
+        data_type: varchar
+
+  - name: stg_red_flags_qualifying
+    description: >
+      One row per qualifying red-flag event, from FastF1 track_status (Status '5' = Red). The
+      qualifying counterpart of stg_red_flags. stg_session_status_qualifying misses some red
+      flags (7 of 72 qualifying sessions with one), so this is the complete source for Q.
+    meta:
+      family: staging
+    columns:
+      - name: red_flag_id
+        description: Surrogate key {race_id}_Q_RED_{session_time_s}.
+        data_type: varchar
+        tests: [not_null, unique]
+      - name: race_year
+        description: Season year.
+        data_type: integer
+        tests: [not_null]
+      - name: race_id
+        description: Numeric FastF1 event id cast to string.
         data_type: varchar
         tests:
           - not_null
@@ -1168,24 +1313,18 @@ models:
               arguments:
                 to: ref('race_to_track')
                 field: race_id
+              config:
+                where: "race_year <= 2025"
       - name: race_slug
         description: Human-readable event name.
         data_type: varchar
       - name: session_time_s
-        description: Session clock (s) at the lifecycle event.
+        description: Session clock (s) of the red-flag event.
         data_type: double
         tests: [not_null]
-      - name: status
-        description: Raw FastF1 session status ('Started', 'Aborted', 'Finished', ...).
+      - name: track_message
+        description: FastF1 track status message (Red).
         data_type: varchar
-        tests: [not_null]
-      - name: is_red_flag_stop
-        description: TRUE when status is 'Aborted' (a red-flag stoppage).
-        data_type: boolean
-    tests:
-      - dbt_utils.unique_combination_of_columns:
-          arguments:
-            combination_of_columns: [race_year, race_id, session_time_s, status]
 
   - name: stg_session_status_qualifying
     description: >
@@ -1214,6 +1353,8 @@ models:
               arguments:
                 to: ref('race_to_track')
                 field: race_id
+              config:
+                where: "race_year <= 2025"
       - name: race_slug
         description: Human-readable event name.
         data_type: varchar
@@ -1273,6 +1414,8 @@ models:
               arguments:
                 to: ref('race_to_track')
                 field: race_id
+              config:
+                where: "race_year <= 2025"
       - name: race_slug
         description: Human-readable event name.
         data_type: varchar
@@ -1356,6 +1499,8 @@ models:
               arguments:
                 to: ref('race_to_track')
                 field: race_id
+              config:
+                where: "race_year <= 2025"
       - name: race_slug
         description: Human-readable event name.
         data_type: varchar
@@ -1385,9 +1530,9 @@ models:
       actually was, per race. compound_label has been RELATIVE since 2019 (Pirelli picks 3 of 5
       physical compounds per weekend), so "SOFT" at one circuit is not the same rubber as "SOFT"
       at another; this model supplies the absolute scale that makes them comparable.
-      One row per (race, label): 151 races x 3 = 453 rows (128 races for 2019-2024, 23 for 2025;
-      the 2025 seed has no Miami row). 2025 values are carried forward from the circuit's 2023 or
-      2024 allocation (source_url = 'carried_from_20xx'), not read from a 2025 Pirelli preview.
+      One row per (race, label): 152 races x 3 = 456 rows (128 races for 2019-2024, 24 for 2025). 2025 values are carried forward from the circuit's 2023 or
+      2024 allocation (source_url = 'carried_from_20xx'), not read from a 2025 Pirelli preview,
+      except 2025 Miami, which is the official nomination C3/C4/C5 (source_url is the formula1.com article).
       Row counts per season and three labels per race are pinned by
       assert_tyre_allocations_rows_per_season.
 

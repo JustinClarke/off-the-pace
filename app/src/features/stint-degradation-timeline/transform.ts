@@ -1,10 +1,14 @@
 import type { DegradationProfileRow } from './queries'
 import type { CIPoint } from '../../ui/charts'
+import { cliffOnsetDisplay } from '../shared/cliffEstimate'
+import type { CliffOnsetDisplay } from '../shared/cliffEstimate'
 
 export interface CompoundProfile {
   compound: string
   points: CIPoint[]
   cliffOnset: number | null
+  /** One lap when measured; IQR range (or label only) when the onset is a class default */
+  cliffOnsetDisplay: CliffOnsetDisplay | null
 }
 
 const COMPOUND_ORDER = ['SOFT', 'MEDIUM', 'HARD']
@@ -34,7 +38,9 @@ export function transform(rows: DegradationProfileRow[]): CompoundProfile[] {
       hi: r.avg_pace_loss_s + r.std_pace_loss_s,
     }))
     const cliffOnset = (laps[0]?.cliff_onset_laps ?? 0) > 0 ? laps[0].cliff_onset_laps : null
-    return { compound, points, cliffOnset }
+    const first = laps[0]
+    const display = cliffOnsetDisplay(cliffOnset, first?.onset_source, first?.onset_iqr_low, first?.onset_iqr_high)
+    return { compound, points, cliffOnset, cliffOnsetDisplay: display }
   })
 }
 
@@ -45,6 +51,7 @@ export function toCsvRows(rows: DegradationProfileRow[]): Record<string, unknown
     avg_pace_loss_s: r.avg_pace_loss_s.toFixed(4),
     std_pace_loss_s: r.std_pace_loss_s.toFixed(4),
     cliff_onset_laps: r.cliff_onset_laps,
+    onset_source: r.onset_source ?? '',
     lap_count: r.lap_count,
   }))
 }

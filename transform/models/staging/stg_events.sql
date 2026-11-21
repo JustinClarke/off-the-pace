@@ -1,4 +1,4 @@
--- Race-level events: damage, engine clipping, retirements, penalties.
+-- Race-level events: upgrades, penalties, DNFs, weather, format changes.
 -- Currently sourced from the raw_dim_events seed (manual entries for 2021).
 -- Expand to a proper source table once automated event detection is in place.
 {{ config(materialized='view') }}

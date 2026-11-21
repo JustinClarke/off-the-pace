@@ -64,7 +64,7 @@ seeds:
       - name: fit_source
         description: >
           The tier the cell's fit was attempted at: cox_km_survival (this season's stints),
-          cross_season_fallback (the venue's stints pooled across seasons), compound_class_default
+          cross_season_fallback (the venue's stints pooled across seasons), pooled_compound_fallback (the same compound pooled across all venues in the window), compound_class_default
           (too few stints for either), or carried_forward_<season> (no fit for this season; that
           earlier season's cell copied unchanged). Cell-level only -- see the three *_source
           columns for where each parameter actually came from.
@@ -85,21 +85,21 @@ seeds:
           - not_null
           - accepted_values:
               arguments:
-                values: ['fitted', 'cross_season_fallback', 'class_default', 'carried_forward']
+                values: ['fitted', 'cross_season_fallback', 'pooled_compound_fallback', 'class_default', 'carried_forward']
       - name: gradient_source
         description: Where compound_wear_gradient came from; same vocabulary and history as onset_source.
         tests:
           - not_null
           - accepted_values:
               arguments:
-                values: ['fitted', 'cross_season_fallback', 'class_default', 'carried_forward']
+                values: ['fitted', 'cross_season_fallback', 'pooled_compound_fallback', 'class_default', 'carried_forward']
       - name: severity_source
         description: Where compound_cliff_severity came from; same vocabulary and history as onset_source.
         tests:
           - not_null
           - accepted_values:
               arguments:
-                values: ['fitted', 'cross_season_fallback', 'class_default', 'carried_forward']
+                values: ['fitted', 'cross_season_fallback', 'pooled_compound_fallback', 'class_default', 'carried_forward']
       - name: fit_date
         description: ISO date when these coefficients were last fitted.
         tests:
@@ -117,8 +117,9 @@ seeds:
     description: >
       Pirelli weekend compound nominations, 2019-2025, one row per race (152 rows: 128 for
       2019-2024, covering every ingested race in that span, plus 24 for 2025, covering all 24
-      ingested 2025 races. 2025_6 Miami is a carried_from_2024 row, C2/C3/C4, added so that its
-      allocation metadata exists; it is NOT evidence of the 2025 Miami lap-level compounds, which
+      ingested 2025 races. 2025_6 Miami is sourced from the official 2025 Pirelli nomination, C3/C4/C5 (formula1.com
+      and Pitpass, both cited in the seed row), not carried forward; it exists so that its
+      allocation metadata is present; it is NOT evidence of the 2025 Miami lap-level compounds, which
       stay unavailable, see stg_lap_tyre_qa). Maps the relative hard/medium/soft badging back to the
       absolute C1-C5 scale, which compound_label alone cannot express since Pirelli picks 3 of 5
       physical compounds per weekend.
@@ -129,7 +130,8 @@ seeds:
       08d's consumers, and expected to be re-sourced later. A URL here is an attribution, not
       evidence. See _improvements/work/08-foundations-repair.md section 08d.
 
-      2025 ROWS ARE CARRIED FORWARD, NOT NOMINATIONS. Every 2025 source_url is the literal
+      2025 ROWS ARE CARRIED FORWARD, NOT NOMINATIONS, EXCEPT MIAMI. Every 2025 source_url except
+      2025_6 Miami (sourced, C3/C4/C5) is the literal
       string 'carried_from_2023' or 'carried_from_2024': the C-codes are that circuit's most
       recent earlier allocation, an assumption rather than a Pirelli 2025 preview. Pirelli can change a
       circuit's nomination between seasons, so a carried row can name the wrong rubber (W50 dropped
@@ -223,6 +225,24 @@ seeds:
           arguments:
             combination_of_columns: [compound_code, era]
 
+  - name: seed_physical_ahead_known_reference_gaps
+    description: >
+      Races whose reference-line sanity flag in assert_physical_ahead_reference_lap_sane is
+      acknowledged and expected, one row per race: 2018_1 and 2018_2 (no race telemetry in
+      the source, so no polyline) and 2021_12 (Belgium, safety-car race with pit-lane windows).
+      The test excludes these races. Add a race only after confirming the cause is real, never
+      to silence a degraded reference line.
+    columns:
+      - name: race_id
+        description: Primary key, the FastF1 event id 'YYYY_R' (typed VARCHAR in dbt_project.yml).
+        tests:
+          - not_null
+          - unique
+      - name: reason
+        description: Why the race is acknowledged.
+        tests:
+          - not_null
+
   - name: race_scheduled_laps
     description: >
       The scheduled race distance in laps, one row per race (WI-05: F6, F32, F52). The fuel
@@ -273,6 +293,11 @@ seeds:
       The weight_penalty_factor is calibrated by fit_weight_penalty.py from
       first-stint regression against actual lap times; the prior was a formula
       based on corner_count and avg_lateral_g.
+
+      REMEASURE: barcelona_grand_prix and spanish_grand_prix_2018_2022 are copies of the
+      spanish_grand_prix physical fields (same track). barcelona_grand_prix is marked
+      not_calibrated (SKIPPED) and its weight penalty is the prior. Its physical numbers
+      are not measured for that event and need a remeasure. Open since 2026-11-19.
     columns:
       - name: circuit_key
         description: Primary key   unique circuit identifier matching stg_laps.circuit_key.

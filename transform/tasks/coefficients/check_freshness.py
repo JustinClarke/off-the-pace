@@ -48,7 +48,6 @@ MANAGED_SEEDS = [
 
 # data/fits/<name>.parquet -> the warehouse model that reads it (for the message).
 MANAGED_FITS = {
-    "constructor_car_fe": "int_constructor_car_fe",
     "degradation_isotonic": "mart_degradation_history_envelope",
 }
 

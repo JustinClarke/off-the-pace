@@ -34,7 +34,7 @@ Graph method: the scratch `target/manifest.json` of that build (110 models, incl
 
 ## B. Model table (110 rows, split by status)
 
-### B1. Done (31)
+### B1. Done (30)
 
 | model | layer | audit verdict | status | what is open | feeds (direct dbt) | downstream (all) | reaches |
 |---|---|---|---|---|---|---|---|
@@ -62,7 +62,6 @@ Graph method: the scratch `target/manifest.json` of that build (110 models, incl
 | dim_circuits | reference | SOUND | ✅ DONE WITH CAVEAT | none | dim_corners, fct_cliff_prediction_features, fct_driver_skill_features, int_lap_fuel_state, int_pit_loss_circuit (+4) | 62 | app, assistant, export; via ML |
 | dim_compounds_season | reference | SOUND | ✅ REALLY DONE | none | fct_cliff_prediction_features, int_compound_cliff_predicted, int_constructor_deg_sensitivity, int_lap_residual_decomposed_qualifying, int_pit_strategy_cost_curve | 51 | app, assistant, export; via ML |
 | dim_corners | reference | SOUND | ✅ REALLY DONE | none | int_corner_lap_measured, int_corner_length_measured, int_corner_metrics, int_microsector_corner_class | 12 | via ML/app/assistant/export |
-| dim_driver_seasons | reference | SOUND | ✅ REALLY DONE | none | - | 0 | none |
 | fct_pit_stop_crosscheck | new_data | SOUND | ✅ DONE WITH CAVEAT | none | - | 0 | none |
 | fct_speed_traps | new_data | SOUND | ✅ REALLY DONE | none | - | 0 | none |
 | fct_speed_traps_season | new_data | SOUND | ✅ REALLY DONE | none | - | 0 | none |
@@ -70,23 +69,126 @@ Graph method: the scratch `target/manifest.json` of that build (110 models, incl
 | fct_track_limits_driver_session | new_data | SOUND | ✅ REALLY DONE | none | - | 0 | none |
 | int_track_geometry | intermediate | WRONG | ✅ DONE WITH CAVEAT | curvature guards G3 present in source; the 8.7e12 figure may predate them; re-check values | - | 0 | none |
 
-#### Temporary list: staging items handed off (2026-11-19, 2018 to 2025 only)
+#### Next list: intermediate models, transform layer (2026-11-19)
 
-Track these here until the build log takes them over. Each item is open unless marked.
+Staging is handed off to the build log. The staging-era items still open are carried below. Order follows the audit priority list in section G, with the blocking decision first. 2026 is out of scope for this list.
 
-- [x] **stg_lap_tyre_qa:** lap-1 pit gives stint 0 on 3 driver-races (`first_stint_number - 1`). Three laps with no stint are marked OK. Fix the stint logic and quarantine NULL-stint laps. Reaches `int_stint_geometry` and about 64 downstream models. Fixed 2026-11-19: lap-1-pit driver-races shift stint ordinals up by one (no stint 0); driver-races with no assigned lap are `quarantined_driver` (pit ordinal); new test `assert_lap_tyre_qa_stint_valid`. Verified on the archived 2026-11-08 warehouse only; downstream 64 models not rebuilt.
-- [x] **stg_tyre_allocations:** 2025 Miami (`2025_6`) has no row, so 1,005 laps have no compound. Needs a Pirelli source, or a labelled carry-forward. Reaches `int_stint_geometry`. Fixed 2026-11-19: labelled carry-forward row `2025 miami_grand_prix C2/C3/C4 carried_from_2024` (152 seed rows, 24 for 2025); 2025 rows remain unverified carry-forwards pending a Pirelli source. Miami lap-level compounds stay NULL because the race is quarantined at source (stale FastF1 stints); new tests pin this. Verified on the bronze-backed scratch build only; downstream models not rebuilt.
-- [x] **stg_weather wet vote:** 870 laps wet with under 10% on wets, 430 dry with at least half on wets. Tyres alone should not decide wet. A NULL tyre share counts as no evidence, not zero votes. Stale samples (over 120 s) should be flagged. Reaches `int_compound_cliff_predicted`, `int_pit_strategy_cost_curve`, `int_track_evolution`.
-  - Done: wet needs tyres plus rain or humidity; NULL tyre share abstains; `weather_sample_stale` flags samples over 120 s. The 870 are now dry (0 left). The 430 laps (most of the field on wets, no rain, humidity under 70%) stay dry by design: owner ruled the rules work as they should. Verified on the bronze scratch build only; downstream not rebuilt.
-- [x] **stg_circuit_info:** file pattern skipped qualifying-session files, so 2018 Australia, Bahrain and Italy and 2026 Monaco had no corners. Fixed: race file preferred, qualifying file used as fallback only where no race file exists (`stg_circuit_info.sql`, new source `raw_circuit_info_quali`, new test `assert_circuit_info_every_race_has_corners`). Verified 2018-25 against bronze. Not yet rebuilt through `dim_corners` in a full run. Reaches `dim_corners`.
-- [x] **stg_telemetry:** scope decided race-only; header corrected (it claimed qualifying sessions, the glob reads race files only). Qualifying telemetry deferred to TX-23 (`stg_telemetry_qualifying`). Runaway distances stay bounded by the existing per-circuit bound. Reaches `int_corner_lap_measured`, `int_corner_metrics`, `int_lap_telemetry_aggregates`.
-- [x] **stg_results_qualifying:** 2025 Miami has no segment times for any driver, so each gets "none". Fixed by flag, not derivation: new `segment_source` column is `missing_from_feed` for that race (derived from null times; position-based derivation disagreed with official times in about 150 rows). Reaches `int_qualifying_segments`, which should skip `missing_from_feed` races. App message tracked as AP-11 in BUILD-ORDER.
-- [x] **stg_sector_times:** sectors with no time were dropped silently (5,553 of 631,980 sector rows, 0.9%). Now kept with `sector_time_missing = TRUE`, so the 3-rows-per-lap grain holds. `int_corner_skill_residuals` filters the flag, so its output is unchanged. 2025 Miami trap speeds are present in bronze race and qualifying laps (1,002 of 1,005 race laps), so the "trap speed missing" note did not reproduce. Reaches `int_corner_skill_residuals`, `int_sector_residual_decomposed`.
-- [x] **stg_telemetry_position:** 16,708 samples had no RelativeDistance and were dropped; they are now kept, with the fraction derived from distance_m over the lap's max distance (`relative_distance_source = 'derived_from_distance_m'`). Derived values are approximate (mean error 0.002 where both exist). Clamps are no longer silent: 25,526 low and 158,831 high are flagged in `relative_clamp` (the old comment said "a handful"). Scratch build: 75,243,066 rows, none null. Reaches `int_lap_proximity`, `int_microsector_corner_class`, `int_microsector_crossings`. Downstream output has NOT been re-measured; 16,708 extra samples may shift proximity results.
-- [ ] **stg_session_status:** 2025 Belgium red flag not recorded as aborted. Source red flags from track status. No direct readers.
-- [ ] **stg_jolpica_pit_stops:** no tests; add them. Only the scratch cross-check reads it.
-- [ ] **Owner rulings needed:** 2021 Belgian GP has no tyre data in bronze (rain-flag test fails); Miami compound source; wet-flag rule; whether qualifying telemetry is in scope.
-- [ ] **Reverted?** The NULL changes in `int_lap_residual_decomposed` (constructor term) and `int_compound_cliff_predicted` (compound term) are still in the working tree and drop about 6,400 laps. Decide before anything else lands.
+- [x] **Reverted? (resolved 2026-11-19, stale):** checked: `int_lap_residual_decomposed` and `int_compound_cliff_predicted` have no uncommitted changes, so the NULL edits this item described are no longer in the working tree. The committed versions are what is in place; reviewing them is the next item below, not a revert.
+- [ ] **int_compound_cliff_predicted (QUESTIONABLE, OPEN):** zero-fill and NULL handling. Feeds `fct_cliff_prediction_features`, `fct_ghost_car_pace`, `int_constructor_deg_sensitivity`, `int_dirty_air_tax_component`, `int_field_pace_curve` and more.
+- [ ] **int_lap_residual_decomposed (QUESTIONABLE, OPEN):** constructor-term NULL change pending the Reverted decision. Feeds `fct_cliff_prediction_features`, `fct_driver_skill_features`, `fct_ghost_car_pace`, `fct_lap_residuals`, `fct_stint_features` and more.
+- [ ] **int_constructor_deg_sensitivity (WRONG, OPEN):** cliff-onset shift units. Feeds `fct_ghost_car_pace`.
+- [ ] **int_qualifying_decomposed (WRONG, OPEN):** 0.0 race-residual fill and dead filters. Feeds `int_qualifying_driver_summary`.
+- [ ] **int_corner_skill_residuals (WRONG, DONE WITH CAVEAT):** mid-corner units. Re-open the caveat. Feeds `int_corner_drift_from_early_stint`, `int_lap_corner_inputs`, `mart_corner_skill_driver`.
+- [ ] **int_track_geometry (WRONG, DONE WITH CAVEAT):** tenth-of-metre positions. Re-check the values, then decide.
+- [ ] **Owner-level, not transform work:** the race_to_track seed gap (the per-model 2025 cap is in place; extending the seed is a separate decision); confirm the owner rulings line; the caveat rebuild for `stg_laps`, `stg_laps_qualifying` and `stg_pits` stays blocked by `data/fits/constructor_car_fe.parquet`.
+
+#### Dim tables (to check; 2026 gap ignored for now)
+
+Dim tables are reference layer, not intermediate. Each needs a check for whether it needs sorting. Consumers counted from the SQL `ref()` calls, layer by layer.
+
+- [x] **dim_constructors:** DONE 2026-11-19. Audi (`audi_pu`, lineage `sauber`) and Cadillac (`ferrari_pu`, lineage `cadillac`) added. Read by 2 marts (`fct_driver_skill_features`, `fct_lap_residuals`) and 1 test (`assert_pu_family_coverage`). Staging and intermediate reference it only in `relationships` tests. dbt compiles it (`dbt compile --profiles-dir profiles --target dev`); the full build and tests are not run yet.
+- [x] **dim_drivers:** DONE 2026-11-19. Read by 2 marts (`fct_driver_skill_features`, `fct_lap_residuals`) by SQL `ref()`. Staging and intermediate reference it only in `relationships` tests. Coverage checked against bronze parquet: 46 driver codes in `results` and 46 in `laps`, identical sets, none missing either way. Read-only check, dbt not run.
+- [ ] **dim_circuits:** 2026-11-19: the 2018–2022 Spanish layout (16 corners) is now its own row, `spanish_grand_prix_2018_2022`. `spanish_grand_prix` stays at 14 for 2023–2025. The row has no races of its own and copies the Spanish physical fields (calibration SKIPPED, same as the Barcelona row). Full scratch build: `dim_circuits` builds and no test on it fails. Decision 2026-11-19: Barcelona copies the Spanish numbers and is accepted as is. A REMEASURE note is in `transform/seeds/schema.yml` (circuit_reference). Open: remeasure Barcelona later.
+- [ ] **dim_compounds_season:** DECIDED 2026-11-19 (backtest, 6,842 held-out stints, 2019–2025). Default cells are about 2x worse than measured cells on cliff lap, and biased 12–16 laps late (HARD 26 late). The pooled tier beats defaults on default cells by 2–10 laps and is as good as measured. Decision: option A + B. Show default cells as an estimate labelled 'no data for this track', with a range (IQR of measured onsets: HARD ~15–26, MEDIUM ~14–23, SOFT ~15–24). Do not show a single cliff lap for them. Not option C. Still open (implementation, not decision): promote the pooled tier only after a trusted build exists and the backtest is rerun on it; the app label and range need building; the 24 cells with no pooled value stay as defaults. Pending pooled seed is not validated (non-trusted copy). Report: scratchpad/choice/. IMPLEMENTED 2026-11-19 on two app pages: tyre cliff survival and stint degradation timeline. Default cells show 'estimate, no data for this track' with the measured IQR range (shared module app/src/features/shared/cliffEstimate.ts). Still open: (1) promote the pooled tier after a trusted build and a backtest rerun; (2) degradation simulator labelling (queries.ts:191-192 averages over defaults; a modelling decision); (3) docs and methodology pages do not yet mention the label.
+- [ ] **dim_corners:** DEFERRED 2026-11-19 (2026-only question). Rebuilt 2026-11-19 in the full scratch build. `assert_corner_window_geometry` passes. Surprise: race `2026_14` has no circuit-info in bronze and no `race_to_track` entry, so it gets no corner geometry, and `assert_microsector_corner_class_covers_panel` fails on it (1 row). The 2026 gap is systemic: all 19 2026 races are missing from `race_to_track`, and that is what skips the cascade. Open: decide whether `2026_14` is a registered exception or needs data. Resolved: the earlier 'circuit-info fix' prerequisite was not found in the repo.
+- [ ] **dim_driver_seasons:** moved to section F (no reader; not done). Decision still needed: keep and give it a reader, or remove with its docs page and test.
+
+#### Intermediate models by complexity
+
+Sorted by straightforwardness, 1 = most straightforward (ranked 2026-11-20 from SQL metrics: CTEs, refs, CASE/WHEN, windows, joins, stats). Thin passthroughs come first; multi-CTE, multi-join and heavily branching models come last. The input columns are the direct `ref()` and `source()` counts from each file. The two deleted models are listed last so the count stays at 53.
+
+The simplest intermediate model is `int_lap_residual_stint_detrend`, at 46 lines and no CTEs. It does one thing: for each stint, it fits a straight line to driver skill residual against lap number, and outputs the slope. It reads a single model, `int_lap_residual_decomposed`, and its output is used by `fct_cliff_prediction_features`.
+
+Tracing its upstream dependencies gives 20 models in this build order (a valid dbt build order, using `ref()` calls only, so bronze sources are not shown):
+
+1. **Staging (raw laps, pits, tyres, results, race control, weather):** `stg_laps`, `stg_pits`, `stg_tyre_allocations`, `stg_results`, `stg_lap_tyre_qa`, `stg_race_control`, `stg_weather`
+2. **Reference:** `dim_circuits`, `dim_compounds_season`
+3. **Stint setup:** `int_stint_geometry` (joins laps, tyre QA, tyre allocations, race control and results into one row per lap with its stint)
+4. **Physics inputs, in parallel:**
+   - `int_lap_fuel_state` (fuel burn per lap)
+   - `int_lap_air_state` (dirty air per lap)
+   - `int_compound_cliff_predicted` (expected compound pace)
+   - `int_event_corrections` (safety car, restart and other lap adjustments)
+5. **Field pace:** `int_field_pace_curve` (the field's pace baseline, from fuel, air and compound inputs)
+6. **Track evolution:** `int_track_evolution` (track speed change over the race)
+7. **Driver and car effects:**
+   - `int_constructor_structural_pace` (constructor pace)
+   - `int_dirty_air_tax_component` (time lost in dirty air)
+8. **Residual:** `int_lap_residual_decomposed` (lap time minus all the components above, leaving the driver skill residual)
+9. **Output:** `int_lap_residual_stint_detrend` (per-stint drift)
+
+The raw data goes through staging, then the stint and physics inputs are built, the field baseline is fitted, and the residual is what is left over. Each step only subtracts what the earlier steps have estimated.
+
+One thing to check: step 4's `int_compound_cliff_predicted` is the seed-derived compound chain that the power-law work deliberately keeps out of its own fits. This detrend model reads `cliff_onset_passed` from the residual, so it is downstream of that chain. The earlier `F2/FD3` guard notes are the context for that.
+
+| # | intermediate model | stg/dim inputs | int inputs | seed inputs | source inputs | CTEs | lines | diff check (2026-11-20) |
+|---|---|---|---|---|---|---|---|---|
+| 1 | int_qualifying_driver_summary | 0 | 1 | 0 | 0 | 0 | 109 | changed: 109 → 176 lines |
+| 2 | int_lap_fuel_state_qualifying | 1 | 0 | 0 | 0 | 0 | 42 | file deleted (git D) |
+| 3 | int_driver_isolation_lap_pace | 0 | 2 | 0 | 0 | 0 | 69 | ok |
+| 4 | int_driver_isolation_lap_values | 0 | 2 | 0 | 0 | 0 | 92 | ok |
+| 5 | int_lap_residual_stint_detrend | 0 | 1 | 0 | 0 | 0 | 46 | ok |
+| 6 | int_lap_corner_drift | 0 | 1 | 0 | 0 | 0 | 83 | ok |
+| 7 | int_lap_corner_inputs | 0 | 1 | 0 | 0 | 0 | 114 | ok |
+| 8 | int_corner_metrics | 2 | 0 | 0 | 0 | 1 | 110 | ok |
+| 9 | int_corner_drift_from_early_stint | 0 | 2 | 0 | 0 | 1 | 145 | ok |
+| 10 | int_qualifying_decomposed | 0 | 2 | 0 | 0 | 3 | 170 | changed: 170 → 168 lines |
+| 11 | int_qualifying_push_laps | 1 | 1 | 0 | 0 | 4 | 145 | ok |
+| 12 | int_driver_season_ratings | 0 | 1 | 0 | 0 | 4 | 134 | ok |
+| 13 | int_power_law_lap | 1 | 2 | 2 | 0 | 3 | 149 | ok |
+| 14 | int_lap_fuel_state | 2 | 1 | 2 | 0 | 6 | 138 | ok |
+| 15 | int_track_evolution | 1 | 1 | 0 | 0 | 7 | 172 | ok |
+| 16 | int_circuit_x_constructor_interaction | 0 | 1 | 2 | 0 | 7 | 159 | ok |
+| 17 | int_lap_thermal_proxy | 1 | 2 | 0 | 0 | 5 | 193 | ok |
+| 18 | int_driver_race_paired_laps | 1 | 4 | 0 | 0 | 5 | 175 | ok |
+| 19 | int_tyre_surface_vs_bulk_decoupling | 0 | 2 | 0 | 0 | 4 | 190 | ok |
+| 20 | int_era_normalized_driver_rating | 0 | 1 | 0 | 0 | 6 | 194 | ok |
+| 21 | int_constructor_structural_pace_qualifying | 0 | 1 | 0 | 0 | 6 | 158 | ok |
+| 22 | int_driver_circuit_affinity | 0 | 1 | 1 | 0 | 6 | 184 | ok |
+| 23 | int_cell_power_law_fit | 0 | 1 | 0 | 0 | 9 | 183 | ok |
+| 24 | int_pit_loss_circuit | 5 | 0 | 0 | 0 | 8 | 154 | ok |
+| 25 | int_synthetic_teammate | 1 | 3 | 0 | 0 | 8 | 189 | ok |
+| 26 | int_driver_circuit_era_affinity | 0 | 1 | 1 | 0 | 6 | 234 | ok |
+| 27 | int_sc_hazard_history | 2 | 0 | 0 | 0 | 7 | 242 | ok |
+| 28 | int_lap_residual_decomposed_qualifying | 2 | 3 | 1 | 0 | 5 | 218 | changed: 218 → 204 lines |
+| 29 | int_sector_residual_decomposed | 3 | 2 | 0 | 0 | 6 | 250 | ok |
+| 30 | int_compound_cliff_predicted | 2 | 1 | 1 | 0 | 5 | 268 | ok |
+| 31 | int_corner_length_measured | 1 | 1 | 0 | 0 | 4 | 107 | ok |
+| 32 | int_constructor_structural_pace | 1 | 5 | 0 | 0 | 8 | 206 | ok |
+| 33 | int_stint_end_regime | 1 | 1 | 0 | 0 | 5 | 278 | ok |
+| 34 | int_event_corrections | 1 | 0 | 1 | 0 | 6 | 278 | ok |
+| 35 | int_lap_telemetry_aggregates | 1 | 1 | 0 | 0 | 8 | 290 | ok |
+| 36 | int_driver_isolation_stint_tyre | 0 | 1 | 0 | 0 | 10 | 236 | ok |
+| 37 | int_driver_race_skill_loro | 1 | 6 | 1 | 0 | 12 | 310 | ok |
+| 38 | int_field_pace_curve | 0 | 4 | 0 | 0 | 13 | 345 | ok |
+| 39 | int_stint_geometry | 5 | 0 | 1 | 0 | 12 | 292 | ok |
+| 40 | int_qualifying_segments | 4 | 0 | 0 | 0 | 16 | 442 | ok |
+| 41 | int_lap_residual_decomposed | 1 | 8 | 0 | 0 | 10 | 468 | ok |
+| 42 | int_lap_anomaly_flags | 0 | 1 | 0 | 0 | 6 | 274 | ok |
+| 43 | int_dirty_air_tax_component | 0 | 7 | 0 | 0 | 11 | 398 | ok |
+| 44 | int_corner_skill_residuals | 2 | 4 | 0 | 0 | 9 | 352 | ok |
+| 45 | int_lap_air_state | 1 | 1 | 0 | 1 | 11 | 432 | ok |
+| 46 | int_constructor_deg_sensitivity | 1 | 2 | 0 | 0 | 17 | 599 | ok |
+| 47 | int_driver_isolation_lap_panel | 0 | 5 | 0 | 0 | 14 | 409 | ok |
+| 48 | int_pit_strategy_cost_curve | 2 | 3 | 2 | 0 | 13 | 496 | ok |
+| 49 | int_lap_proximity | 3 | 1 | 0 | 0 | 11 | 508 | ok |
+| 50 | int_pit_strategy_value | 2 | 6 | 2 | 0 | 21 | 527 | ok |
+| 51 | int_corner_lap_measured | 3 | 0 | 0 | 0 | 25 | 378 | ok |
+| 52 | int_constructor_car_fe | 1 | 4 | 0 | 0 | 0 | 75 | ok |
+| 53 | int_constructor_car_fe_isolation | 0 | 1 | 0 | 0 | 0 | 83 | ok |
+
+### Next set: intermediate models, open and high-impact (2026-11-19)
+
+Order is by downstream count from the model table. Models already in the "Next list" above are not repeated. 2026 is out of scope. The owner-level items (race_to_track seed, caveat rebuild, owner rulings line) are in the "Next list" above.
+
+- [ ] **int_stint_geometry (SOUND, OPEN, 63 downstream):** on the scratch build, `assert_stint_geometry_2018_compound_code_null` fails (1 row) and needs triage. The `race_to_track` relationship fails on 22,178 rows, all 2026, so it is ignored for now. `assert_push_residual_fuel_neutral` and several others error only because upstream tables are missing in scratch; not yet verified.
+- [ ] **int_lap_fuel_state (QUESTIONABLE, OPEN, 48 downstream):** even burn assumed by design, bounded at about 0.05 s per driver. Decide whether the assumption is acceptable or needs a fix.
+- [ ] **int_lap_air_state (QUESTIONABLE, OPEN, 47 downstream):** gap uses follower speed; `dt_s` is unclamped.
+- [ ] **int_track_evolution (QUESTIONABLE, OPEN, 44 downstream):** `LEAST(slope, 0)` turns NULL into 0; rubber clamp (HD25, HD28).
+- [ ] **int_event_corrections (QUESTIONABLE, OPEN, 44 downstream):** outlier thresholds come from one fastest lap; weights 0.3 and 0.6 are unused.
+- [ ] **int_constructor_structural_pace (QUESTIONABLE, OPEN, 34 downstream):** not fuel- or compound-neutral; SE 0 fallback (HD27).
+- [ ] **int_dirty_air_tax_component (QUESTIONABLE, OPEN, 33 downstream):** SE declared at 15%; baseline test `prior_season_labels_frozen` fails.
+- [ ] **int_lap_anomaly_flags (QUESTIONABLE, OPEN, 13 downstream):** unscaled MAD (about 2 sigma); NULL-residual laps are called normal.
 
 ### B2. Pending (79)
 
@@ -99,19 +201,20 @@ Track these here until the build log takes them over. Each item is open unless m
 | int_driver_race_skill_loro | intermediate | SOUND | UNVERIFIED | none | int_driver_circuit_affinity, int_driver_circuit_era_affinity, int_driver_season_ratings, mart_race_coverage, mart_race_driver_summary | 7 | app, export; via assistant |
 | fct_driver_isolation_pair_lap | marts | SOUND | UNVERIFIED | none | fct_driver_isolation_lap, fct_driver_isolation_race, fct_driver_isolation_stint | 3 | via assistant/export |
 | mart_race_coverage | marts | SOUND | OPEN | 2021_12 labelled OK with no rating and no racing laps (logic review) | mart_race_driver_summary | 2 | app, assistant, export |
-| stg_circuit_info | staging | SOUND | OPEN | baseline relationships test fails (274 rows, race_to_track seed gap), untriaged | dim_corners | 13 | via ML/app/assistant/export |
-| stg_jolpica_pit_stops | staging | SOUND | OPEN | no tests | fct_pit_stop_crosscheck | 1 | none |
-| stg_lap_tyre_qa | staging | WRONG | OPEN | stint 0 on 3 driver-races; accepted as DQ-01, no code change | int_pit_strategy_value, int_sector_residual_decomposed, int_stint_geometry, mart_race_coverage | 64 | via ML/app/assistant/export |
+| stg_circuit_info | staging | SOUND | ✅ REALLY DONE | none; scratch re-check 2026-11-19: 8 of 8 tests pass (race_id relationships test capped at race_year <= 2025; assert_corner_window_geometry passes once dim_corners is built) | dim_corners | 13 | via ML/app/assistant/export |
+| stg_jolpica_pit_stops | staging | SOUND | ✅ REALLY DONE | none; scratch re-check 2026-11-19: 13 of 13 tests pass (tests now exist; row previously said none) | fct_pit_stop_crosscheck | 1 | none |
+| stg_red_flags | staging | SOUND | DONE | new 2026-11-19: one row per race red flag from track status (Status '5'), 31 events; fills the 2025 Belgium gap in stg_session_status; no consumers yet | none yet | 0 | none |
+| stg_lap_tyre_qa | staging | SOUND | DONE | stint 0 on 3 driver-races fixed; verified in a bronze-backed scratch build 2026-11-19 (zero stint-0 laps, 17/17 tests pass) | int_pit_strategy_value, int_sector_residual_decomposed, int_stint_geometry, mart_race_coverage | 64 | via ML/app/assistant/export |
 | stg_race_control | staging | SOUND | OPEN | baseline relationships test fails (3346 rows, race_to_track seed gap), untriaged | int_stint_geometry | 64 | via ML/app/assistant/export |
 | stg_results | staging | QUESTIONABLE | OPEN | DNF misses ~69 classified retirements; default cause mechanical | fct_ghost_race_finish, int_lap_proximity, int_pit_loss_circuit, int_stint_end_regime, int_stint_geometry (+2) | 66 | assistant, export; via ML/app |
-| stg_results_qualifying | staging | SOUND | OPEN | baseline relationships test fails (440 and 80 (dim_constructors) rows, race_to_track seed gap), untriaged | int_qualifying_segments | 8 | via ML/app/assistant/export |
-| stg_sector_times | staging | SOUND | OPEN | baseline relationships test fails (65889 rows, race_to_track seed gap), untriaged | int_corner_skill_residuals, int_sector_residual_decomposed | 8 | via ML/app/assistant/export |
-| stg_session_status | staging | SOUND | OPEN | baseline relationships test fails (101 rows, race_to_track seed gap), untriaged | - | 0 | none |
+| stg_results_qualifying | staging | SOUND | DONE | scratch re-check 2026-11-19: race_to_track test passes (2025 and earlier cap). Remaining failure is the constructor_id relationship to dim_constructors, 80 rows, all 2026 Audi and Cadillac, absent from dim_constructors. 2026 ignored for now by owner decision, so counted as DONE | int_qualifying_segments | 8 | via ML/app/assistant/export |
+| stg_sector_times | staging | SOUND | ✅ REALLY DONE | none; scratch re-check 2026-11-19: 7 of 7 tests pass (race_to_track test capped at race_year <= 2025) | int_corner_skill_residuals, int_sector_residual_decomposed | 8 | via ML/app/assistant/export |
+| stg_session_status | staging | SOUND | ✅ REALLY DONE | none; scratch re-check 2026-11-19: 8 of 8 tests pass (race_to_track test capped at race_year <= 2025) | - | 0 | none |
 | stg_session_status_qualifying | staging | SOUND | OPEN | baseline relationships test fails (242 rows, race_to_track seed gap), untriaged | int_qualifying_segments | 8 | via ML/app/assistant/export |
-| stg_telemetry | staging | SOUND | OPEN | baseline relationships test fails (14625196 rows, race_to_track seed gap), untriaged | int_corner_lap_measured, int_corner_metrics, int_lap_telemetry_aggregates | 15 | app (comment only); via ML/assistant/export |
-| stg_telemetry_position | staging | SOUND | OPEN | baseline relationships test fails (7374946 rows, race_to_track seed gap), untriaged | int_lap_proximity, int_microsector_corner_class, int_microsector_crossings | 6 | via ML/app/assistant/export |
+| stg_telemetry | staging | SOUND | ✅ REALLY DONE | none; scratch re-check 2026-11-19: 12 of 12 tests pass (race_to_track test capped at race_year <= 2025) | int_corner_lap_measured, int_corner_metrics, int_lap_telemetry_aggregates | 15 | app (comment only); via ML/assistant/export |
+| stg_telemetry_position | staging | SOUND | ✅ REALLY DONE | none; scratch re-check 2026-11-19: 11 of 11 tests pass (race_to_track test capped at race_year <= 2025) | int_lap_proximity, int_microsector_corner_class, int_microsector_crossings | 6 | via ML/app/assistant/export |
 | stg_track_status | staging | SOUND | OPEN | baseline relationships test fails (350 rows, race_to_track seed gap), untriaged | int_microsector_proximity, int_pit_loss_circuit, int_sc_hazard_history | 9 | app; via ML/assistant/export |
-| stg_weather | staging | SOUND | OPEN | baseline test assert_rain_flag_matches_tyres fails (1 row), untriaged | int_compound_cliff_predicted, int_pit_strategy_cost_curve, int_track_evolution | 50 | via ML/app/assistant/export |
+| stg_weather | staging | SOUND | DONE | assert_rain_flag_matches_tyres: 0 failing rows on the 2026-11-19 bronze-backed scratch build (the 2021 Belgium case abstains); all 14 weather tests pass | int_compound_cliff_predicted, int_pit_strategy_cost_curve, int_track_evolution | 50 | via ML/app/assistant/export |
 | int_circuit_x_constructor_interaction | intermediate | QUESTIONABLE | OPEN | deviation includes car development; SE 0 for n=1 (HD27) | fct_ghost_car_pace | 2 | app, export; via assistant |
 | int_compound_cliff_predicted | intermediate | QUESTIONABLE | OPEN | no-seed-cell laps priced as a free tyre (HD25) | fct_cliff_prediction_features, fct_ghost_car_pace, int_constructor_deg_sensitivity, int_dirty_air_tax_component, int_field_pace_curve (+3) | 48 | export; via ML/app/assistant |
 | int_constructor_car_fe | intermediate | SOUND | NOT CHECKED | values come from external fit, never checked | int_driver_race_skill_loro | 8 | via app/assistant/export |
@@ -134,7 +237,7 @@ Track these here until the build log takes them over. Each item is open unless m
 | int_lap_fuel_state | intermediate | QUESTIONABLE | OPEN | even burn assumed by design; bounded at about 0.05 s per driver (2026-11-19); telemetry proxy tested, not used; fuel_delta_vs_expected removed. Caveat handled, status left OPEN (baseline test assert_fuel_load_matches_scheduled_distance still fails (38)) | fct_power_law_training, fct_stint_features, int_constructor_structural_pace, int_dirty_air_tax_component, int_driver_race_paired_laps (+6) | 48 | via ML/app/assistant/export |
 | int_lap_fuel_state_qualifying | intermediate | QUESTIONABLE | OPEN | hard-coded 12 kg, 0.035 s/kg (HD26) | int_lap_residual_decomposed_qualifying | 5 | via ML/app/assistant/export |
 | int_lap_normalized_pace | intermediate | QUESTIONABLE | OPEN | pooled slope confounded; fallback 0.004 (HD26) | - | 0 | none |
-| int_lap_physical_ahead | intermediate | SOUND | OPEN | 3 warn tests (110, 36, 3 rows), untriaged | int_traffic_exposure_driver_race | 2 | none |
+| int_lap_physical_ahead | intermediate | SOUND | OPEN | FIXED 2026-11-21 (working tree, not committed): (1) placeholder X=Y=0 samples anchored the lap count wrong by one lap in 2018_6, 2018_15, 2019_6, 2019_15 (lapped share 25–42% → 2–11%); fix in python_lib/physical_ahead_core.py; (2) reference lap must close within 60 m (`REFERENCE_MAX_CLOSURE_GAP_M`), changes 2020_1, 2023_5, 2023_13, 2024_24. Flip-rate warning (36 races: 2018–2019, 2019 max 2019_8, 2026 races) documented as a 0.30 s sample-spacing and data effect; valid-lap flip rate ~0.02–0.06%; not changed. Still open: 2026_11 (8.6% flips, reference line suspect), 2026_6 (no usable reference). Downstream traffic chain not rebuilt; scratch-copy values may predate the placeholder fix (unconfirmed) | int_traffic_exposure_driver_race, int_physical_ahead_pairs, int_physical_ahead_pair_race | 2 | none |
 | int_lap_proximity | intermediate | QUESTIONABLE | OPEN | per-lap distance bins; baseline test proximity_agrees_with_blue_flags fails | fct_cliff_prediction_features | 2 | app (comment only); via ML/assistant/export |
 | int_lap_residual_decomposed | intermediate | QUESTIONABLE | OPEN | constructor term 0.0 fill; dirty-air 0.0 where no row (HD25) | fct_cliff_prediction_features, fct_driver_skill_features, fct_ghost_car_pace, fct_lap_residuals, fct_stint_features (+9) | 32 | ML, app (comment only); via assistant/export |
 | int_lap_residual_decomposed_qualifying | intermediate | QUESTIONABLE | OPEN | zero residual for baseless laps; fuel 0.42 s constant (HD25, HD26) | int_qualifying_decomposed | 4 | via ML/app/assistant/export |
@@ -250,13 +353,13 @@ Built from section B (reaches = none), 2026-11-19. Section C's orphan list is a 
 | int_stint_power_law_fit | intermediate | DONE WITH CAVEAT | - | output not read by any model | check whether the power-law app page reads it directly |
 | int_traffic_exposure_driver_race | intermediate | REALLY DONE | int_traffic_exposure_race | chain ends in a model with no reader | add a reader or remove the chain |
 | int_traffic_exposure_race | intermediate | REALLY DONE | - | end of the traffic chain; no reader | add a reader or remove the chain |
-| int_lap_physical_ahead | intermediate | OPEN | int_traffic_exposure_driver_race | feeds the dead traffic chain; 3 warn tests untriaged | same as the traffic chain |
+| int_lap_physical_ahead | intermediate | OPEN | int_traffic_exposure_driver_race | feeds the dead traffic chain; two fixes made 2026-11-21 (placeholder unwrap, 60 m reference closure); flip-rate and 2026 warnings still open | same as the traffic chain |
 | int_lap_normalized_pace | intermediate | OPEN | - | no reader; fallback 0.004 is a constant | remove, or add a reader and fix the constant |
 | int_microsector_proximity | intermediate | OPEN | - | no reader; baseline blue_flags test fails | remove, or add a reader |
 | int_microsector_crossings | intermediate | OPEN | int_microsector_proximity | feeds the dead microsector chain; baseline test fails | same as microsector chain |
 | int_microsector_corner_class | intermediate | OPEN | - | no reader; baseline test fails (2 rows) | remove, or add a reader |
-| int_track_geometry | intermediate | DONE WITH CAVEAT | - | no reader; curvature guards present, values need re-check | re-check values, then decide |
-| dim_driver_seasons | reference | REALLY DONE | - | no reader | remove, or add a reader |
+| int_track_geometry | intermediate | DONE WITH CAVEAT | - | no reader; curvature guards present, values need re-check; tests and docs thinner than the model | re-check values, then decide; fix proposal below |
+| dim_driver_seasons | reference | PARKED, revisit later | - | no reader in SQL, app or ML; its only test reads raw_results and does not query the model, so the model's MIN(driverid) logic is untested | decide later: keep and give it a reader, or remove with its docs page and test |
 | fct_pit_stop_crosscheck | new_data | DONE WITH CAVEAT | - | scratch mart; consumer comes with AP-09 | keep until AP-09, or remove |
 | fct_speed_traps | new_data | REALLY DONE | - | scratch mart; consumer none by design | keep until its consumer is built |
 | fct_speed_traps_season | new_data | REALLY DONE | - | scratch mart; consumer none by design | keep until its consumer is built |
@@ -268,6 +371,19 @@ Notes:
 - Four `new_data` marts are scratch by design, waiting on AP-09 and AX-28.
 - `int_corner_drift_from_early_stint` is not listed here. It has readers: `int_lap_corner_drift` and `fct_cliff_prediction_features`. Those readers reach ML's feature table, but the drift columns are not in the shipped model contract (see the 02h note in section C and the session discussion). It is an unused experiment, not a dead end.
 - `stg_events` and `dim_driver_seasons` have no reader in the graph, so their status says nothing about whether they are needed.
+
+### Fix proposal: int_track_geometry
+
+Nothing reads this model, so none of these is urgent. Do them if a consumer is planned. Ordered smallest first.
+
+1. **Fix the docs page.** The generated page (`docs/reference/models/int/int_track_geometry.mdx`) says gradient uses the previous and next bin; the SQL and `schema.yml` use previous to current. It also says collinear points give NULL curvature, but the Menger formula gives 0. It omits the guard columns. Decide first whether previous-to-current is the intended design (a centred difference would be more symmetric with the curvature), then fix the column descriptions and regenerate with `scripts/gen_dbt_reference.py`.
+2. **Add warn-severity range tests:** curvature in [0, about 0.2]; `abs(gradient_dz_ds)` below about 0.3; `lateral_accel_proxy_ms2` below about 100; `bin_speed_ms` in [0, 120]; `distance_bin` a non-negative multiple of 25. Add not-null checks on `bin_x`, `bin_y`, `bin_z`, `sample_count`, `bin_speed_ms`. Add an accepted-values test on `curvature_guard_reason`, and a test that the lateral-acceleration proxy is NULL exactly when curvature is NULL. The range test would have caught the 10x unit bug.
+3. **Coverage test against `race_to_track`:** every (season, track) for a modelled season has rows, and bin counts sit near lap length / 25. The header promises this; nothing enforces it.
+4. **Replace the hard-coded 8000 m distance cap** with a per-circuit length plus margin or a var. Reuse the per-circuit Spa bound from commit `4320460` if it fits.
+5. **Make the guard thresholds stable.** They are computed across all circuits and seasons, so they move whenever data is added. Use per-track values or fixed floors (for example `sample_count >= 5`) and expose the thresholds.
+6. **Detect coordinate-frame shifts between seasons** (median offset above about 5 m per track). This turns the header's "later work" into a data-driven decision.
+7. **Physics changes, document before doing:** make the 25 m bin a var; use a higher quantile or fastest-lap speed for the lateral-acceleration proxy instead of the median; consider smoothing curvature over neighbouring bins.
+8. **Optional:** add a staging view between `raw_telemetry` and the model, per the layer contract.
 
 ## G. History
 

@@ -1,5 +1,7 @@
 import type { CompoundProfileRow, StintSummaryRow } from './queries'
 import type { KMPoint, StintObservation } from '../../ui/charts/SurvivalCurve'
+import { cliffOnsetDisplay, isClassDefault } from '../shared/cliffEstimate'
+import type { CliffOnsetDisplay } from '../shared/cliffEstimate'
 
 export interface SurvivalTransformResult {
   /** Kaplan-Meier step function points */
@@ -8,8 +10,12 @@ export interface SurvivalTransformResult {
   stintObservations: StintObservation[]
   /** Model fitted cliff onset lap (from dim_compounds_season) */
   cliffOnsetLap: number | null
+  /** How to show the onset: one lap when measured, an IQR range (or label only) when class_default */
+  cliffOnset: CliffOnsetDisplay | null
   /** Model fitted cliff severity (s) */
   cliffSeverity: number | null
+  /** True when severity is the compound-class default (no data for this track) */
+  cliffSeverityIsEstimate: boolean
   /** Fit provenance */
   fitDate: string | null
   dataWindow: string | null
@@ -106,7 +112,11 @@ export function transform(
     kmCurve,
     stintObservations,
     cliffOnsetLap: profile?.compound_cliff_onset_laps ?? null,
+    cliffOnset: profile
+      ? cliffOnsetDisplay(profile.compound_cliff_onset_laps, profile.onset_source, profile.onset_iqr_low, profile.onset_iqr_high)
+      : null,
     cliffSeverity: profile?.compound_cliff_severity ?? null,
+    cliffSeverityIsEstimate: isClassDefault(profile?.severity_source),
     fitDate: profile?.fit_date ?? null,
     dataWindow: profile?.data_window ?? null,
     nStints: profile ? parseNStints(profile.notes) : null,

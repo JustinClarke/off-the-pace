@@ -71,6 +71,26 @@ SELECT
     -- known limit carried, not hidden: car-ahead identity flips between consecutive samples
     SUM(n_ahead_flips) AS n_ahead_flips,
     SUM(n_ahead_pairs) AS n_ahead_pairs,
-    MAX(CAST(zero_xy_guard_on AS INTEGER)) = 1 AS zero_xy_guard_on
+    MAX(CAST(zero_xy_guard_on AS INTEGER)) = 1 AS zero_xy_guard_on,
+
+    -- LAPPED TAG (added; the headline columns above do not use these and are unchanged). Laps classed 'lapped'
+    -- (the car ahead is on a different lap) are reported on their own, non-neutralised laps only, as the headline
+    -- is. lapped_time_close_behind_s = time within 1 s behind a car on a different lap; the denominator is the
+    -- known-sample time of those laps. Never added to time_close_behind_s / time_measured_s.
+    ROUND(SUM(lapped_seconds_within_1s) FILTER (
+        WHERE validity_class = 'lapped' AND NOT is_neutralised_lap
+    ), 3) AS lapped_time_close_behind_s,
+    ROUND(SUM(lapped_time_measured_s) FILTER (
+        WHERE validity_class = 'lapped' AND NOT is_neutralised_lap
+    ), 3) AS lapped_time_measured_s,
+    ROUND(
+        SUM(lapped_seconds_within_1s) FILTER (WHERE validity_class = 'lapped' AND NOT is_neutralised_lap)
+        / NULLIF(SUM(lapped_time_measured_s) FILTER (
+            WHERE validity_class = 'lapped' AND NOT is_neutralised_lap
+        ), 0), 4
+    ) AS lapped_share_time_close_behind,
+    COUNT(*) FILTER (
+        WHERE validity_class = 'lapped' AND NOT is_neutralised_lap AND lapped_gap_phys_min_s < 1.0
+    ) AS n_laps_lapped_within_1s
 FROM laps
 GROUP BY race_id, driver_id

@@ -15,6 +15,7 @@ its column types are pinned in `dbt_project.yml`.
 | `raw_dim_events.csv` | event | Manual (2021 season only) | Expand as automated detection is built |
 | `seed_manual_lap_exceptions.csv` | driver × lap | Manual correction-weight overrides, read by `int_event_corrections`; rows with `event_type = 'exclude'` also force `is_valid_lap = FALSE` in `stg_laps` (HD22; one row today) | As needed |
 | `driver_isolation_method_scores.csv` | rating | Written by `scripts/validate_driver_isolation.py --write-seed` | When the isolation validation reruns |
+| `seed_physical_ahead_known_reference_gaps.csv` | race | Manual: races with an acknowledged reference-line gap, excluded from `assert_physical_ahead_reference_lap_sane` | Only when a new race is confirmed as a real, understood gap |
 | `label_stability_baseline.csv` | season | Frozen per-season label snapshot that `assert_prior_season_labels_frozen` compares against | Only when the label version bumps |
 
 ## Promotion workflow

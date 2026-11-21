@@ -18,7 +18,7 @@
 -- the snake-cased earliest name the team has in the data (2018 onward):
 --   force_india: Force India -> Racing Point -> Aston Martin
 --   toro_rosso:  Toro Rosso -> AlphaTauri -> RB -> Racing Bulls
---   sauber:      Sauber -> Alfa Romeo Racing -> Alfa Romeo -> Kick Sauber
+--   sauber:      Sauber -> Alfa Romeo Racing -> Alfa Romeo -> Kick Sauber -> Audi
 --   renault:     Renault -> Alpine
 -- Every other team is its own lineage.
 {{ config(materialized='table') }}
@@ -44,7 +44,9 @@ WITH constructors AS (
         ('Alfa Romeo', 'ferrari_pu', 'sauber'),
         ('Kick Sauber', 'ferrari_pu', 'sauber'),
         ('Renault', 'renault_pu', 'renault'),
-        ('Alpine', 'renault_pu', 'renault')
+        ('Alpine', 'renault_pu', 'renault'),
+        ('Audi', 'audi_pu', 'sauber'),
+        ('Cadillac', 'ferrari_pu', 'cadillac')
     -- the t(...) column-list alias names the VALUES columns; load-bearing
     ) AS t (constructor_id, pu_family, constructor_lineage_id)  -- noqa: AL05
 )

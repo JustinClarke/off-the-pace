@@ -27,7 +27,7 @@ PYTHON ?= ./.venv/bin/python
 	setup setup-check ml-setup app-install \
 	ingest-all ingest-recent ingest-jolpica verify-bronze monitor-ingest manifest-report ingest-plan season-seeds-check simulate \
 	test test-integration cov-python \
-	coefficients-fit coefficients-promote coefficients-status coefficients-check car-fe-fit car-fe-isolation-fit deg-iso-fit \
+	coefficients-fit coefficients-promote coefficients-status coefficients-check deg-iso-fit \
 	dbt-dev dbt-dev-full dbt-prod dbt-test dbt-docs query \
 	lint lint-fix lint-oracle-snapshot lint-oracle-check \
 	test-all test-fast transform-check data-profile-snapshot data-profile-check dq-test \
@@ -151,16 +151,6 @@ coefficients-status:  ## Show current seed state
 coefficients-check:  ## Warn (non-fatal) if seeds are stale vs the data window
 	cd transform && ../.venv/bin/python -m tasks.coefficients.check_freshness || true
 
-car-fe-fit:  ## Fit de-biased constructor car FE → data/fits/constructor_car_fe.parquet
-	cd transform && ../.venv/bin/dbt run --profiles-dir profiles --target dev \
-	  --select +int_lap_fuel_state +int_field_pace_curve +int_event_corrections +int_track_evolution +stg_laps
-	cd transform && ../.venv/bin/python -m tasks.coefficients.fit_constructor_car_fe
-
-car-fe-isolation-fit:  ## Fit driver-isolation car term (WI-16a) → data/fits/constructor_car_fe_isolation.parquet
-	cd transform && ../.venv/bin/dbt run --profiles-dir profiles --target dev \
-	  --select +int_driver_isolation_lap_panel
-	cd transform && ../.venv/bin/python -m tasks.coefficients.fit_constructor_car_fe --panel isolation
-
 deg-iso-fit:  ## Fit isotonic tyre-deg curves + modulation coefs → data/fits/degradation_isotonic.parquet
 	cd transform && ../.venv/bin/python -m tasks.coefficients.fit_degradation_isotonic
 
@@ -171,7 +161,7 @@ deg-iso-fit:  ## Fit isotonic tyre-deg curves + modulation coefs → data/fits/d
 dbt-dev:  ## Build all dbt models + run their tests → data/dev.duckdb
 	cd transform && ../.venv/bin/dbt build --profiles-dir profiles --target dev
 
-dbt-dev-full: coefficients-check car-fe-fit car-fe-isolation-fit  ## Seed check → car-FE refits (Ghost Standings, driver isolation) → full dbt build (models + tests)
+dbt-dev-full: coefficients-check  ## Seed check → full dbt build (models + tests)
 	cd transform && ../.venv/bin/dbt build --profiles-dir profiles --target dev
 
 dbt-prod:  ## Prod build (Fabric deferred runs against dev for now)

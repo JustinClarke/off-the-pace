@@ -62,4 +62,20 @@ describe('tyre survival profile lookup on the published data', () => {
     expect(p!.compound_cliff_severity).not.toBeNull()
     expect(p!.compound_wear_gradient).not.toBeNull()
   })
+
+  // Miami 2024 SOFT has no stints: class_default onset, shown as the SOFT measured-onset IQR.
+  it('carries the source tag and the compound onset IQR for a class_default cell', () => {
+    const p = profileFor('2024_6', 'SOFT')
+    expect(p).not.toBeNull()
+    expect(p!.onset_source).toBe('class_default')
+    expect(p!.onset_iqr_low).not.toBeNull()
+    expect(p!.onset_iqr_high!).toBeGreaterThan(p!.onset_iqr_low!)
+  })
+
+  it('gives a range for every dry compound with enough measured onsets', () => {
+    for (const compound of ['SOFT', 'MEDIUM', 'HARD']) {
+      const p = profileFor('2023_1', compound)
+      expect(p?.onset_iqr_low, compound).not.toBeNull()
+    }
+  })
 })

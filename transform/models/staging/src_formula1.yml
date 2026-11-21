@@ -425,6 +425,14 @@ sources:
             tests:
               - not_null
 
+      - name: raw_track_status_qualifying
+        meta:
+          external_location: "{{ var('bronze_base', '../data/bronze') }}/track_status/*/*/session=Q/*.parquet"
+        description: >
+          FastF1 session.track_status for qualifying sessions. Sourced separately from
+          raw_track_status because of the extra session=Q Hive partition, same split as
+          raw_session_status_qualifying. Status '5' = Red. Used by stg_red_flags_qualifying.
+
       - name: raw_session_status_qualifying
         meta:
           external_location: "{{ var('bronze_base', '../data/bronze') }}/session_status/*/*/session=Q/*.parquet"

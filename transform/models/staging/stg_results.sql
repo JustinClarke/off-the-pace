@@ -22,7 +22,11 @@ ranked AS (
         CASE
             WHEN status = 'Disqualified' THEN NULL
             ELSE TRY_CAST(classifiedposition AS INTEGER)
-        END AS classified_rank
+        END AS classified_rank,
+        -- TODO(check back): classification 'R' is a retirement, but two 2026 rows
+        -- (STR at 2026_1, ALB at 2026_7) carry status 'Lapped' with 'R'. Treated as
+        -- DNF for now; confirm against the official result for both races.
+        (CAST(classifiedposition AS VARCHAR) = 'R') AS retired_code
     FROM source
 )
 
@@ -72,9 +76,12 @@ SELECT
     -- 'Finished' and '+N Lap(s)' are completions; anything else that fails to
     -- classify is a retirement.
     (
-        classified_rank IS NULL
-        AND status NOT LIKE '%Lap%'
-        AND status <> 'Finished'
+        (
+            classified_rank IS NULL
+            AND status NOT LIKE '%Lap%'
+            AND status <> 'Finished'
+        )
+        OR (retired_code AND status <> 'Disqualified')
     ) AS is_dnf,
 
     -- is_retired: the car stopped on track, whatever the classification. A
@@ -85,16 +92,28 @@ SELECT
     -- (a disqualification is a ruling, not a retirement). is_classified,
     -- classified_rank and is_dnf are unchanged.
     (
-        status <> 'Finished'
-        AND status NOT LIKE '%Lap%'
-        AND status <> 'Disqualified'
+        (
+            status <> 'Finished'
+            AND status NOT LIKE '%Lap%'
+            AND status <> 'Disqualified'
+        )
+        OR (retired_code AND status <> 'Disqualified')
     ) AS is_retired,
+
+    -- is_disqualified: a ruling after the race, not a retirement. Read from
+    -- status, the same source as is_retired. is_dnf is unchanged and still
+    -- counts disqualified drivers, so a consumer that wants them out must
+    -- filter on NOT is_disqualified.
+    (status = 'Disqualified') AS is_disqualified,
 
     -- Coarse DNF cause split for the DNF hazard model: mechanical vs
     -- racing-incident. Crash/collision/accident/spun → racing; the rest of the
     -- non-finishes are treated as mechanical/other. Read from status
     -- regardless of classification, so a classified retirement has a cause.
     CASE
+        -- TODO(check back): 2026 STR and ALB carry status 'Lapped' with 'R'; cause is
+        -- unknown, so they are non_classified until the official result is checked.
+        WHEN retired_code AND status LIKE '%Lap%' THEN 'non_classified'
         WHEN status LIKE '%Lap%' OR status = 'Finished' THEN NULL
         WHEN
             REGEXP_MATCHES(

@@ -1,16 +1,17 @@
 -- Qualifying lap residual decomposition.
--- Applies the same 7-term identity as int_lap_residual_decomposed but for quali
--- sessions.
+-- Applies the race identity minus the fuel term, for quali sessions.
 --
 -- Key physical differences from race decomposition:
---  -fuel_component_s ≈ 0 (12 kg flat, no burnoff)
+--  -no fuel term: qualifying fuel load is not observable in our data, and
+--   track evolution / wind vary lap to lap, so no fixed or dynamic estimate is
+--   applied. Any fuel effect is absorbed into the driver skill residual.
 --  -compound_component_s: tyre age is low (push lap); cliff dynamics suppressed
 --  -constructor_component_s: qualifying-trim coefficient
 --  -dirty_air_tax_s: typically zero in quali (clear track for push laps)
 --  -driver_skill_residual_s: purer single-lap pace signal
 --
 -- Residual identity (seconds, positive = slower):
---   quali_pace_delta_s = fuel + compound + rubber + ambient
+--   quali_pace_delta_s = compound + rubber + ambient
 --                      + constructor + dirty_air_tax + driver_skill +
 --                      unexplained
 --
@@ -51,14 +52,6 @@ WITH quali_laps AS (
     WHERE
         p.is_push_lap = TRUE
         AND p.lap_time_s IS NOT NULL
-),
-
-fuel AS (
-    SELECT
-        lap_id,
-        fuel_mass_kg,
-        fuel_component_s
-    FROM {{ ref('int_lap_fuel_state_qualifying') }}
 ),
 
 -- Segment median push lap as the field-pace baseline (no lap-number smoothing
@@ -106,8 +99,6 @@ combined AS (
         q.segment_best_s,
         q.driver_segment_best_s,
         q.ratio_to_segment_best,
-        f.fuel_mass_kg,
-        f.fuel_component_s,
         fp.segment_median_s AS base_track_pace_s,
         -- Qualifying runs in a single session with controlled conditions.
         -- No race-day track evolution applies; rubber and ambient terms are set
@@ -134,7 +125,6 @@ combined AS (
         0.0 AS dirty_air_tax_s,
         0.0 AS dirty_air_tax_se_s
     FROM quali_laps AS q
-    LEFT JOIN fuel AS f ON q.lap_id = f.lap_id
     LEFT JOIN
         field_pace AS fp
         ON
@@ -163,8 +153,7 @@ with_residual AS (
         - COALESCE(base_track_pace_s, lap_time_s) AS quali_pace_delta_s,
 
         -- Total physics explained
-        COALESCE(fuel_component_s, 0.0)
-        + COALESCE(compound_component_s, 0.0)
+        COALESCE(compound_component_s, 0.0)
         + COALESCE(rubber_component_s, 0.0)
         + COALESCE(ambient_component_s, 0.0)
         + COALESCE(constructor_component_s, 0.0)
@@ -172,7 +161,6 @@ with_residual AS (
 
         -- Driver skill residual: closed form
         (lap_time_s - COALESCE(base_track_pace_s, lap_time_s))
-        - COALESCE(fuel_component_s, 0.0)
         - COALESCE(compound_component_s, 0.0)
         - COALESCE(rubber_component_s, 0.0)
         - COALESCE(ambient_component_s, 0.0)
@@ -199,8 +187,6 @@ SELECT
     ratio_to_segment_best,
     base_track_pace_s,
     quali_pace_delta_s,
-    fuel_mass_kg,
-    fuel_component_s,
     compound_component_s,
     rubber_component_s,
     ambient_component_s,

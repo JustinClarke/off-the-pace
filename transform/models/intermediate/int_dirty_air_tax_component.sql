@@ -209,7 +209,7 @@ evolution AS (
         race_id,
         lap_number,
         rainfall_flag
-    FROM {{ ref('int_track_evolution') }}
+    FROM {{ ref('int_lap_rain_state') }}
 ),
 
 panel_base AS (
@@ -306,7 +306,7 @@ calibration_panel AS (
     WHERE
         partial_residual_s IS NOT NULL
         AND COALESCE(correction_weight, 1.0) = 1.0
-        AND COALESCE(rainfall_flag, FALSE) = FALSE
+        AND rainfall_flag = FALSE
         -- F5: frozen fit window (dbt_project.yml var), not "every ingested
         -- season" -- see that var's comment for why.
         AND race_year <= {{ var('theta_air_fit_season_max') }}

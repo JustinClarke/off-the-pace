@@ -110,7 +110,7 @@ WITH ego_laps AS (
     -- partial-race drivers retain a usable sample; the weight feeds lap
     -- confidence below.
     AND lr.correction_weight >= 0.6
-    AND COALESCE(lr.rainfall_flag, FALSE) = FALSE
+    AND lr.rainfall_flag = FALSE
     -- WI-01/F1: driver_skill_residual_s (equivalently, compound_component_s or
     -- base_track_pace_s) can be NULL for an unmeasured lap. The recombination
     -- below COALESCEs several inputs to 0.0 as a defensive default for a

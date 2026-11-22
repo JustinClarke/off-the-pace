@@ -1,0 +1,59 @@
+version: 2
+
+# is_training_eligible on fct_cliff_prediction_features is the one flag ml/src/features.py
+# reads (WHERE is_training_eligible). Three laps of one stint, identical in every input
+# except base_pace_status: age_in_stint 4+, anomaly_class normal, not after a restart.
+# The MEASURED lap stays eligible; the THIN_CELL and NO_CELL laps are not, because no field
+# base pace was measured for them. All three rows are still emitted (the exclusion is a
+# flag, not a filter). Fixture year 2099.
+unit_tests:
+  - name: training_eligibility_requires_measured_base_pace
+    description: >
+      Same stint, same age, same anomaly class; only base_pace_status differs.
+      MEASURED -> TRUE (rule unchanged), THIN_CELL -> FALSE, NO_CELL -> FALSE.
+      The rows stay in the mart.
+    model: fct_cliff_prediction_features
+    given:
+      - input: ref('int_lap_residual_decomposed')
+        rows:
+          - {lap_id: l4, stint_id: s1, race_year: 2099, race_id: '2099_1', driver_id: AAA, constructor_id: TEAM, lap_number: 4, lap_in_stint: 4, age_in_stint: 4, compound: MEDIUM, fuel_mass_kg: 50.0, correction_weight: 1.0, is_lap_after_restart: false, base_pace_status: MEASURED, driver_skill_residual_s: 0.0625}
+          - {lap_id: l5, stint_id: s1, race_year: 2099, race_id: '2099_1', driver_id: AAA, constructor_id: TEAM, lap_number: 5, lap_in_stint: 5, age_in_stint: 5, compound: MEDIUM, fuel_mass_kg: 49.0, correction_weight: 1.0, is_lap_after_restart: false, base_pace_status: THIN_CELL, driver_skill_residual_s: null}
+          - {lap_id: l6, stint_id: s1, race_year: 2099, race_id: '2099_1', driver_id: AAA, constructor_id: TEAM, lap_number: 6, lap_in_stint: 6, age_in_stint: 6, compound: MEDIUM, fuel_mass_kg: 48.0, correction_weight: 1.0, is_lap_after_restart: false, base_pace_status: NO_CELL, driver_skill_residual_s: null}
+      - input: ref('int_lap_anomaly_flags')
+        rows:
+          - {lap_id: l4, anomaly_class: normal, cliff_candidate_flag: false, is_rain_lap: false}
+          - {lap_id: l5, anomaly_class: normal, cliff_candidate_flag: false, is_rain_lap: false}
+          - {lap_id: l6, anomaly_class: normal, cliff_candidate_flag: false, is_rain_lap: false}
+      - input: ref('int_compound_cliff_predicted')
+        rows: []
+      - input: ref('int_lap_thermal_proxy')
+        rows: []
+      - input: ref('int_lap_air_state')
+        rows: []
+      - input: ref('int_lap_proximity')
+        rows: []
+      - input: ref('int_lap_corner_inputs')
+        rows: []
+      - input: ref('int_lap_corner_drift')
+        rows: []
+      - input: ref('int_event_corrections')
+        rows: []
+      - input: ref('int_qualifying_driver_summary')
+        rows: []
+      - input: ref('int_sc_hazard_history')
+        rows: []
+      - input: ref('int_lap_residual_stint_detrend')
+        rows: []
+      - input: ref('int_lap_telemetry_aggregates')
+        rows: []
+      - input: ref('race_to_track')
+        rows: []
+      - input: ref('dim_compounds_season')
+        rows: []
+      - input: ref('dim_circuits')
+        rows: []
+    expect:
+      rows:
+        - {lap_id: l4, is_training_eligible: true}
+        - {lap_id: l5, is_training_eligible: false}
+        - {lap_id: l6, is_training_eligible: false}

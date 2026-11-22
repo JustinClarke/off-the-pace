@@ -10,6 +10,8 @@
 -- almost no dry running at all -- on the CI fixtures, whose 2024 season is the one
 -- race 2024 São Paulo, run entirely on intermediates/wets. Until WI-05's F26 fix the
 -- rain flag read 36% of that race as dry and fed it to this panel.
+-- Constructors with a NULL coefficient (no measured dry panel) are not counted toward
+-- the two-constructor threshold, so a season with no measured coefficients is not asserted.
 WITH per_season AS (
     SELECT
         race_year,
@@ -17,7 +19,8 @@ WITH per_season AS (
         SUM(CASE WHEN constructor_structural_pace_ci_low_s
                       < constructor_structural_pace_ci_high_s
                  THEN 1 ELSE 0 END)                                     AS identified_n,
-        COUNT(DISTINCT constructor_id)                                  AS constructors_n
+        COUNT(DISTINCT CASE WHEN constructor_structural_pace_s IS NOT NULL
+                            THEN constructor_id END)                    AS constructors_n
     FROM {{ ref('int_constructor_structural_pace') }}
     GROUP BY race_year
 )

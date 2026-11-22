@@ -1,0 +1,70 @@
+version: 2
+
+# base_pace_status / base_eligible_lap_count on int_lap_residual_decomposed.
+# Every value is a dyadic fraction so the identity is exact. Fixture year 2099.
+# Race 2099_1 has three laps for one driver:
+#   lap 1  curve row on 5 cars with a base            -> MEASURED
+#   lap 2  curve row on 3 cars, low_sample_flag       -> THIN_CELL
+#   lap 3  no curve row at all (zero eligible laps)   -> NO_CELL
+# Only lap 1 has an int_track_evolution row, so laps 2 and 3 are
+# NO_EVOLUTION_ROW with NULL rubber/ambient. All three have a DRY weather
+# reading: rain_state is decided by the weather alone, not by the base.
+unit_tests:
+  - name: base_pace_status_measured_thin_and_no_cell
+    description: >
+      Lap 1 MEASURED: base 90.0, pace_delta 1.0, and the identity holds
+      (1.0 = 0.25 + 0.5 + 0.125 + 0.0625 + 0.0625). Lap 2 THIN_CELL: the cell has
+      3 cars, so base_track_pace_s and pace_delta_s are NULL, rain_state stays DRY and
+      the reason is NO_EVOLUTION_ROW. Lap 3 NO_CELL: no curve row, base_eligible_lap_count
+      NULL. total_explained_s is numeric on all three (0.9375): it does not read the
+      base (documented, accepted behaviour). ambient_component_s is NOT zero-filled here: it
+      is NULL where there is no evolution row (the zero-fill lives in int_track_evolution).
+    model: int_lap_residual_decomposed
+    given:
+      - input: ref('int_field_pace_curve')
+        rows:
+          - {race_year: 2099, race_id: '2099_1', lap_number: 1, field_pace_smoothed_s: 90.0, eligible_lap_count: 5, low_sample_flag: false}
+          - {race_year: 2099, race_id: '2099_1', lap_number: 2, field_pace_smoothed_s: null, eligible_lap_count: 3, low_sample_flag: true}
+      - input: ref('int_lap_fuel_state')
+        rows:
+          - {lap_id: l1, stint_id: s1, race_year: 2099, race_id: '2099_1', driver_id: AAA, lap_number: 1, lap_time_s: 91.0, weight_corrected_lap_time: 90.75, fuel_mass_kg: 50.0, weight_penalty_s: 0.25}
+          - {lap_id: l2, stint_id: s1, race_year: 2099, race_id: '2099_1', driver_id: AAA, lap_number: 2, lap_time_s: 91.0, weight_corrected_lap_time: 90.75, fuel_mass_kg: 49.0, weight_penalty_s: 0.25}
+          - {lap_id: l3, stint_id: s1, race_year: 2099, race_id: '2099_1', driver_id: AAA, lap_number: 3, lap_time_s: 91.0, weight_corrected_lap_time: 90.75, fuel_mass_kg: 48.0, weight_penalty_s: 0.25}
+      - input: ref('int_stint_geometry')
+        rows:
+          - {lap_id: l1, stint_id: s1, race_year: 2099, race_id: '2099_1', driver_id: AAA, lap_number: 1, lap_in_stint: 1, valid_lap_in_stint: 1, age_in_stint: 1, compound_in_stint: MEDIUM, stint_length_actual: 3, stint_length_valid: 3}
+          - {lap_id: l2, stint_id: s1, race_year: 2099, race_id: '2099_1', driver_id: AAA, lap_number: 2, lap_in_stint: 2, valid_lap_in_stint: 2, age_in_stint: 2, compound_in_stint: MEDIUM, stint_length_actual: 3, stint_length_valid: 3}
+          - {lap_id: l3, stint_id: s1, race_year: 2099, race_id: '2099_1', driver_id: AAA, lap_number: 3, lap_in_stint: 3, valid_lap_in_stint: 3, age_in_stint: 3, compound_in_stint: MEDIUM, stint_length_actual: 3, stint_length_valid: 3}
+      - input: ref('stg_laps')
+        rows:
+          - {lap_id: l1, constructor_id: TEAM, position: 1}
+          - {lap_id: l2, constructor_id: TEAM, position: 1}
+          - {lap_id: l3, constructor_id: TEAM, position: 1}
+      - input: ref('int_compound_cliff_predicted')
+        rows:
+          - {lap_id: l1, race_year: 2099, race_id: '2099_1', driver_id: AAA, lap_number: 1, compound: MEDIUM, age_in_stint: 1, expected_compound_pace_s: 0.5}
+          - {lap_id: l2, race_year: 2099, race_id: '2099_1', driver_id: AAA, lap_number: 2, compound: MEDIUM, age_in_stint: 2, expected_compound_pace_s: 0.5}
+          - {lap_id: l3, race_year: 2099, race_id: '2099_1', driver_id: AAA, lap_number: 3, compound: MEDIUM, age_in_stint: 3, expected_compound_pace_s: 0.5}
+      - input: ref('int_track_evolution')
+        rows:
+          - {race_year: 2099, race_id: '2099_1', lap_number: 1, rubber_component_s: 0.25, ambient_component_s: 0.0, unexplained_residual_s: 0.0, track_temp_c: 30.0, rubber_status: MEASURED}
+      - input: ref('int_lap_rain_state')
+        rows:
+          - {race_year: 2099, race_id: '2099_1', lap_number: 1, rainfall_flag: false, rain_state: DRY}
+          - {race_year: 2099, race_id: '2099_1', lap_number: 2, rainfall_flag: false, rain_state: DRY}
+          - {race_year: 2099, race_id: '2099_1', lap_number: 3, rainfall_flag: false, rain_state: DRY}
+      - input: ref('int_constructor_structural_pace')
+        rows:
+          - {race_year: 2099, race_id: '2099_1', constructor_id: TEAM, constructor_structural_pace_s: 0.125}
+      - input: ref('int_dirty_air_tax_component')
+        rows:
+          - {lap_id: l1, dirty_air_tax_s: 0.0625}
+          - {lap_id: l2, dirty_air_tax_s: 0.0625}
+          - {lap_id: l3, dirty_air_tax_s: 0.0625}
+      - input: ref('int_event_corrections')
+        rows: []
+    expect:
+      rows:
+        - {lap_id: l1, base_pace_status: MEASURED, base_eligible_lap_count: 5, base_track_pace_s: 90.0, pace_delta_s: 1.0, total_explained_s: 0.9375, driver_skill_residual_s: 0.0625, rain_state: DRY, track_evolution_unavailable_reason: null, rubber_component_s: 0.25, ambient_component_s: 0.0}
+        - {lap_id: l2, base_pace_status: THIN_CELL, base_eligible_lap_count: 3, base_track_pace_s: null, pace_delta_s: null, total_explained_s: 0.9375, driver_skill_residual_s: null, rain_state: DRY, track_evolution_unavailable_reason: NO_EVOLUTION_ROW, rubber_component_s: null, ambient_component_s: null}
+        - {lap_id: l3, base_pace_status: NO_CELL, base_eligible_lap_count: null, base_track_pace_s: null, pace_delta_s: null, total_explained_s: 0.9375, driver_skill_residual_s: null, rain_state: DRY, track_evolution_unavailable_reason: NO_EVOLUTION_ROW, rubber_component_s: null, ambient_component_s: null}

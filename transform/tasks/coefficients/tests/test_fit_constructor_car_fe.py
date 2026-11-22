@@ -244,6 +244,14 @@ def _race_weighted_mean(out: pd.DataFrame) -> pd.Series:
     )
 
 
+def _single_race_pre_era_panel() -> pd.DataFrame:
+    """make_isolation_panel with its first era cut to one race (every driver once there);
+    the second era keeps all its races."""
+    panel = make_isolation_panel()
+    keep = (panel.era != "pre2022") | (panel.race_id == "2020_1")
+    return panel[keep].reset_index(drop=True)
+
+
 class TestIsolationPanel:
     def test_lap_weighted_mean_is_zero_in_every_race(self):
         from tasks.coefficients.fit_constructor_car_fe import fit_car_fe_isolation
@@ -358,6 +366,94 @@ class TestIsolationPanel:
             for team in fitted.index:
                 assert fitted[team] - fitted["mid_a"] == pytest.approx(
                     truth[team] - truth["mid_a"], abs=1e-8)
+
+    def test_single_race_era_is_not_estimated_and_does_not_crash(self):
+        """An era with one race and every driver once: all driver FEs are singletons and
+        pyfixest would abort natively. The guard skips the fit: NULL car term, reason
+        'not_estimated', and the note names the era and the zero count."""
+        from tasks.coefficients.fit_constructor_car_fe import fit_car_fe_isolation
+
+        panel = _single_race_pre_era_panel()
+        out, note = fit_car_fe_isolation(panel)
+        cells = panel[panel.era == "pre2022"][["race_year", "race_id", "constructor_id"]].drop_duplicates()
+        pre = out[out.era == "pre2022"]
+        assert len(pre) == len(cells) > 0
+        assert pre.car_fe_raw_s.isna().all()
+        assert pre.car_iso_s.isna().all()
+        assert set(pre.car_term_source) == {"not_estimated"}
+        assert "pre2022: 0 drivers with >=2 races; not estimable" in note
+
+    def test_degenerate_era_does_not_change_the_normal_era(self):
+        from tasks.coefficients.fit_constructor_car_fe import fit_car_fe_isolation
+
+        panel = _single_race_pre_era_panel()
+        mixed, note = fit_car_fe_isolation(panel)
+        alone, alone_note = fit_car_fe_isolation(panel[panel.era == "post2022"])
+        key = ["race_year", "race_id", "constructor_id"]
+        post = mixed[mixed.era == "post2022"].reset_index(drop=True)
+        pd.testing.assert_frame_equal(post, alone.reset_index(drop=True), atol=1e-9)
+        assert set(post.car_term_source) == {"driver_id"}
+        assert post.car_iso_s.notna().all()
+        assert set(mixed[mixed.era == "pre2022"].car_term_source) == {"not_estimated"}
+        assert "post2022" in note and "not estimable" not in alone_note
+
+    def test_empty_panel_returns_empty_frame_with_output_columns(self):
+        from tasks.coefficients.fit_constructor_car_fe import (
+            ISOLATION_COLUMNS, fit_car_fe_isolation,
+        )
+
+        empty = make_isolation_panel().iloc[0:0]
+        out, note = fit_car_fe_isolation(empty)
+        assert out.empty
+        assert list(out.columns) == ISOLATION_COLUMNS
+        assert note == ""
+
+    def test_output_columns_are_exactly_isolation_columns_normal_and_degenerate(self):
+        from tasks.coefficients.fit_constructor_car_fe import (
+            ISOLATION_COLUMNS, fit_car_fe_isolation,
+        )
+
+        for panel in (make_isolation_panel(), _single_race_pre_era_panel()):
+            out, _ = fit_car_fe_isolation(panel)
+            assert not out.empty
+            assert list(out.columns) == ISOLATION_COLUMNS
+            assert "not_estimable" not in out.columns
+
+    def test_era_coverage_counts_race_id_repeated_across_years_as_two_races(self):
+        from tasks.coefficients.fit_constructor_car_fe import _era_coverage
+
+        panel = pd.DataFrame({
+            "driver_id": ["A", "A", "B"],
+            "race_year": [2020, 2021, 2020],
+            "race_id": ["1", "1", "1"],
+        })
+        cov = _era_coverage(panel)
+        assert cov["estimable"] is True
+        assert cov["drivers_multi_race_n"] == 1
+        assert cov["races_n"] == 2
+
+    def test_era_coverage_duplicate_rows_of_one_race_are_not_two_races(self):
+        from tasks.coefficients.fit_constructor_car_fe import _era_coverage
+
+        panel = pd.DataFrame({
+            "driver_id": ["A", "A", "B"],
+            "race_year": [2020, 2020, 2021],
+            "race_id": ["1", "1", "1"],
+        })
+        cov = _era_coverage(panel)
+        assert cov["estimable"] is False
+        assert cov["drivers_multi_race_n"] == 0
+        assert cov["races_n"] == 2
+
+    def test_genuine_fit_error_still_propagates(self, monkeypatch):
+        from tasks.coefficients import fit_constructor_car_fe as m
+
+        def boom(*a, **k):
+            raise RuntimeError("synthetic pyfixest failure")
+
+        monkeypatch.setattr(m.pf, "feols", boom)
+        with pytest.raises(RuntimeError, match="synthetic pyfixest failure"):
+            m.fit_car_fe_isolation(make_isolation_panel())
 
     def test_row_order_does_not_move_the_car_term(self):
         """The warehouse returns the panel in a different physical order after each

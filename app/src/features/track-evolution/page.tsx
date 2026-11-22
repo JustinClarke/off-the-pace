@@ -42,19 +42,19 @@ export default function TrackEvolutionPage() {
   return (
     <FeaturePage
       title="Track Evolution"
-      hook="How does the track surface evolve over a race? Rubber buildup and ambient drift are extracted lap by lap, revealing when the track is fastest and how rain resets the grip window."
+      hook="How does field pace change over a race? A linear pace trend and an ambient drift are extracted lap by lap from the field baseline."
       badges={[
         {
           label: 'What It Means',
-          content: 'As cars lay rubber on the racing line, grip improves and lap times fall. The rubber component captures this progressive surface change, independent of tyre degradation.',
+          content: 'The pace trend is the fitted straight-line change in fuel- and compound-corrected field pace over the race, relative to the race mean. Positive means slower than the race mean, negative faster. It is usually read as rubber build, but it is not a direct measurement of rubber.',
         },
         {
           label: 'Why It Matters',
-          content: 'Temperature and humidity change over the race window. The ambient component isolates this effect, which can be decisive in late-session qualifying or day-to-night races.',
+          content: 'Track temperature changes over the race window. The ambient component is the pace residual that tracks track temperature (fitted on track temperature only).',
         },
         {
           label: "How It's Calculated",
-          content: 'Rainfall clears rubber and resets track state. Laps during flagged rainfall windows are marked. The subsequent rubbering-in process restarts.',
+          content: 'One slope per race, fitted to the field baseline and capped at zero. Where a race has too few laps for a slope, the trend is not measured and the chart shows a gap. Laps flagged wet are marked; laps with no weather reading are neither wet nor dry.',
         },
       ]}
       methodology={methodologyContent}
@@ -103,19 +103,20 @@ export default function TrackEvolutionPage() {
             </p>
           )}
           <section className="rounded-xl border border-border bg-white/[0.015] p-4 sm:p-5">
-            <h2 className="text-sm font-semibold tracking-tight mb-1">Rubber buildup</h2>
+            <h2 className="text-sm font-semibold tracking-tight mb-1">Pace trend over the race</h2>
             <p className="text-xs text-muted/70 mb-3">
-              Lap-by-lap rubber component higher = more rubber laid, faster track
+              Linear pace trend vs the race mean (s). Positive = slower than the race mean, usually
+              early in the race; negative = faster, usually late. Blank where not measured.
             </p>
             <LineWithCIRibbon
               data={result.rubberPoints}
               xLabel="lap"
-              yLabel="rubber component (s)"
-              seriesLabel="rubber"
+              yLabel="pace vs race mean (s)"
+              seriesLabel="pace trend"
               secondaryLabel="ambient"
               color="#34d399"
               secondaryColor="#fbbf24"
-              yFormatter={v => `${v >= 0 ? '+' : ''}${v.toFixed(3)}s`}
+              yFormatter={v => (typeof v === 'number' && Number.isFinite(v) ? `${v >= 0 ? '+' : ''}${v.toFixed(3)}s` : '')}
               height={280}
             />
           </section>

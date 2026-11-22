@@ -1002,11 +1002,60 @@ models:
       - name: smoothing_window_last_lap
         description: Lap number of the last cell averaged into field_pace_smoothed_s; NULL when the base is NULL.
 
+  - name: int_lap_rain_state
+    description: >
+      Rain state of every race lap, decided by the weather observation alone (stg_weather), never by
+      whether the lap has a pace reference. Grain is (race_year, race_id, lap_number), one row for
+      every lap in stg_laps. rain_state is DRY (a reading exists, rainfall_flag FALSE), WET (a reading
+      exists, rainfall_flag TRUE) or NO_WEATHER (no reading for any car on the lap, rainfall_flag NULL).
+      A missing reading is never DRY. Read by int_track_evolution and by the dry-only consumers, which
+      select rainfall_flag = FALSE; this replaces reading the flag from int_track_evolution, which has
+      no row for a lap whose pace cell is thin and so lost the weather of those laps.
+    tags: [intermediate]
+    meta:
+      family: pace-baselines
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [race_year, race_id, lap_number]
+    columns:
+      - name: race_year
+        description: Race year
+        tests: [not_null]
+      - name: race_id
+        description: Race identifier
+        tests: [not_null]
+      - name: lap_number
+        description: Lap number within the race
+        tests: [not_null]
+      - name: track_temp_c
+        description: Track temperature of the one weather reading chosen for the lap; NULL for NO_WEATHER.
+      - name: humidity_pct
+        description: Humidity of the one weather reading chosen for the lap; NULL for NO_WEATHER.
+      - name: rainfall_flag
+        description: >
+          stg_weather wet-conditions verdict for the lap. TRUE wet, FALSE dry, NULL only when no
+          weather reading exists (NO_WEATHER). NULL is not dry.
+      - name: rain_state
+        description: DRY, WET or NO_WEATHER. NO_WEATHER if and only if rainfall_flag IS NULL.
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['DRY', 'WET', 'NO_WEATHER']
+          - dbt_utils.expression_is_true:
+              arguments:
+                expression: "= CASE WHEN rainfall_flag IS NULL THEN 'NO_WEATHER' WHEN rainfall_flag THEN 'WET' ELSE 'DRY' END"
+
   - name: int_track_evolution
     description: >
-      Track temperature and grip evolution over race. Grain is (race_year, race_id, lap_number).
-      Tracks ambient and track surface temperature, and grip envelope changes over the race
-      due to rubber lay-down and fuel load shedding.
+      Track evolution over a race: a linear pace trend and a track-temperature ambient component, both
+      split out of the field pace base. Grain is (race_year, race_id, lap_number), one row per lap that
+      has a non-thin field-pace cell. The pace trend (rubber_component_s) is one straight-line fit of
+      field pace on lap number per race with its slope capped at zero; it is often read as rubber build
+      but also absorbs anything else that moves field pace steadily. The ambient component is fitted on
+      track temperature only (humidity is carried but not fitted) and is 0.0 where the race has no
+      usable temperature fit. rainfall_flag and rain_state are carried from int_lap_rain_state.
     tags: [intermediate]
     meta:
       family: pace-baselines
@@ -1046,6 +1095,64 @@ models:
       - name: lap_number
         description: Lap number within race
         tests: [not_null]
+      - name: rainfall_flag
+        description: >
+          Rain flag from the one weather reading chosen for the lap (stg_weather). TRUE wet,
+          FALSE dry, NULL when the lap has no weather row. Unchanged, kept for compatibility.
+          NULL is NOT dry: a dry-only population selects rainfall_flag = FALSE, never
+          COALESCE(rainfall_flag, FALSE) = FALSE. See rain_state.
+      - name: rain_state
+        description: >
+          Three-valued rain state of the lap. DRY: a weather reading exists and rainfall_flag is
+          FALSE. WET: a reading exists and rainfall_flag is TRUE. NO_WEATHER: no reading
+          (rainfall_flag NULL). Missing weather is never DRY. Same grain as the model.
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['DRY', 'WET', 'NO_WEATHER']
+          - dbt_utils.expression_is_true:
+              arguments:
+                expression: "= CASE WHEN rainfall_flag IS NULL THEN 'NO_WEATHER' WHEN rainfall_flag THEN 'WET' ELSE 'DRY' END"
+      - name: rubber_slope_raw_s_per_lap
+        description: >
+          Unclamped OLS slope of field_pace_smoothed_s on lap_number over the race's fit cells,
+          seconds per lap, repeated on every row of the race. Sign: NEGATIVE = lap times fall as
+          the race goes on (the pace the track gains, read as rubber build); POSITIVE = the field
+          gets slower over the race (fuel-corrected pace is not monotone with rubber; tyre wear,
+          traffic or weather). NULL when the race has fewer than 2 distinct fit laps.
+      - name: rubber_slope_s_per_lap
+        description: >
+          Published rubber slope, seconds per lap: CASE WHEN raw IS NULL THEN NULL ELSE
+          LEAST(raw, 0.0) END, so always <= 0 or NULL. Equals rubber_slope_raw_s_per_lap when the
+          raw slope is <= 0 and 0.0 when it is positive (CLAMPED_POSITIVE). Drives
+          rubber_component_s = slope * (lap_number - race mean lap). NULL for INSUFFICIENT_LAPS;
+          the pre-observability model published 0.0 there (LEAST skipped the NULL).
+        tests:
+          - dbt_utils.expression_is_true:
+              arguments:
+                expression: "<= 0"
+      - name: rubber_fit_lap_count
+        description: >
+          Number of non-thin cells with a field-pace base that entered this race's rubber fit,
+          repeated on every row of the race (0 when none). Count of laps, not seconds.
+        tests:
+          - not_null
+      - name: rubber_status
+        description: >
+          How the rubber slope for this row was obtained. MEASURED: fitted raw slope <= 0 (a
+          measured zero stays 0.0 and is MEASURED), published = raw. CLAMPED_POSITIVE: raw > 0,
+          published clamped to 0.0 (the clamp policy is unchanged). INSUFFICIENT_LAPS: fewer than
+          2 distinct fit laps, raw and published slope NULL, rubber_component_s NULL.
+          NO_FIELD_BASE: this lap row has no field-pace base, rubber_component_s and
+          the track-state residual NULL; it is excluded from the fit (defensive:
+          thin cells are filtered before the fit, so no such row exists today). NO_FIELD_BASE
+          takes precedence over the race-level statuses.
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['MEASURED', 'CLAMPED_POSITIVE', 'INSUFFICIENT_LAPS', 'NO_FIELD_BASE']
 
   - name: int_synthetic_teammate
     description: >
@@ -1133,8 +1240,10 @@ models:
       compound_component_s + constructor_component_s + dirty_air_tax_s + driver_skill_residual_s.
       rubber_component_s and ambient_component_s are carried as informational columns only (F22 --
       subtracting them again on top of the base would double-count them). Driver skill residual =
-      what remains after removing fuel/compound/car/dirty-air. NULL (not a fabricated number)
-      wherever base_track_pace_s or compound_component_s is itself unmeasured (F1).
+      what remains after removing fuel/compound/car/dirty-air. driver_skill_residual_s is NULL (not a
+      fabricated number) wherever base_track_pace_s or compound_component_s is itself unmeasured (F1);
+      total_explained_s is NULL only for an unknown compound or dirty-air term, not for a missing
+      base. base_pace_status (MEASURED / THIN_CELL / NO_CELL) says why a base is missing.
     tags: [intermediate, causal_decomposition]
     meta:
       family: residual
@@ -1173,24 +1282,34 @@ models:
           step e). Not part of the identity; no model reads it as a number.
       - name: rubber_component_s
         description: >
-          Track-rubber evolution component from int_track_evolution, informational (inside
-          base_track_pace_s, not in the identity). NULL where int_track_evolution has no row for
-          the lap (track_evolution_unavailable_reason); no longer filled with 0.0 (TX-30 step e).
+          Linear pace-trend component (historical name rubber) from int_track_evolution, informational
+          (inside base_track_pace_s, not in the five-term identity). NULL where unmeasured, with the
+          reason in track_evolution_unavailable_reason: NO_EVOLUTION_ROW (the lap has no non-thin
+          pace cell, so int_track_evolution has no row), INSUFFICIENT_LAPS (fewer than 2 distinct fit
+          laps in the race, no slope) or NO_FIELD_BASE (the row has no field-pace base). No longer
+          filled with 0.0 (TX-30 step e).
       - name: ambient_component_s
         description: >
-          Ambient/weather component from int_track_evolution, informational like
-          rubber_component_s. NULL under the same condition and reason; no longer 0.0.
+          Ambient component from int_track_evolution, fitted on track temperature only, informational
+          like rubber_component_s. NULL only where int_track_evolution has no row for the lap
+          (NO_EVOLUTION_ROW). It is NOT NULL for INSUFFICIENT_LAPS or NO_FIELD_BASE rows: int_track_evolution
+          zero-fills ambient_component_s (COALESCE(..., 0.0)) where the race has no usable
+          track-temperature fit or the lap has no track temperature, so a 0.0 here can be
+          "not fitted", not a measured zero.
       - name: track_evolution_unavailable_reason
         description: >
-          TX-30 step e. Why rubber_component_s and ambient_component_s are NULL:
-          NO_EVOLUTION_ROW (int_track_evolution has no row for the race lap). NULL when measured.
+          TX-30 step e. Why rubber_component_s is NULL. NO_EVOLUTION_ROW: int_track_evolution has
+          no row for the race lap, so rubber_component_s and ambient_component_s are both NULL.
+          INSUFFICIENT_LAPS / NO_FIELD_BASE: the row exists but the rubber trend is unmeasured
+          (int_track_evolution.rubber_status); rubber_component_s is NULL and ambient_component_s
+          is the upstream value (zero-filled there, unchanged). NULL when rubber is measured.
         tests:
           - accepted_values:
               arguments:
-                values: ['NO_EVOLUTION_ROW']
+                values: ['NO_EVOLUTION_ROW', 'INSUFFICIENT_LAPS', 'NO_FIELD_BASE']
           - dbt_utils.expression_is_true:
               arguments:
-                expression: "IS NULL AND rubber_component_s IS NOT NULL AND ambient_component_s IS NOT NULL OR track_evolution_unavailable_reason IS NOT NULL AND rubber_component_s IS NULL AND ambient_component_s IS NULL"
+                expression: "IS NULL AND rubber_component_s IS NOT NULL AND ambient_component_s IS NOT NULL OR track_evolution_unavailable_reason IS NOT NULL AND track_evolution_unavailable_reason = 'NO_EVOLUTION_ROW' AND rubber_component_s IS NULL AND ambient_component_s IS NULL OR track_evolution_unavailable_reason IS NOT NULL AND track_evolution_unavailable_reason IN ('INSUFFICIENT_LAPS', 'NO_FIELD_BASE') AND rubber_component_s IS NULL"
       - name: dirty_air_tax_s
         description: >
           Per-lap dirty-air slowdown cost from int_dirty_air_tax_component.
@@ -1223,11 +1342,51 @@ models:
           - not_null:
               config:
                 where: "pace_delta_s IS NOT NULL AND compound_component_s IS NOT NULL AND dirty_air_tax_s IS NOT NULL"
+      - name: base_pace_status
+        description: >
+          Why base_track_pace_s is or is not there, read from the lap's int_field_pace_curve row.
+          MEASURED: a curve row built on 5 or more cars, so base_track_pace_s is a number.
+          THIN_CELL: a curve row exists but is built on fewer than 5 cars (low_sample_flag), so
+          there is no base. NO_CELL: no curve row at all (zero eligible laps in the cell). Never
+          NULL. base_track_pace_s and pace_delta_s are NULL exactly when this is not MEASURED.
+          It does not gate rain_state, which comes from the weather observation alone.
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [MEASURED, THIN_CELL, NO_CELL]
+          - dbt_utils.expression_is_true:
+              arguments:
+                expression: "<> 'MEASURED' OR base_track_pace_s IS NOT NULL"
+      - name: base_eligible_lap_count
+        description: >
+          Count (laps, unitless) of eligible laps behind the lap's pace cell, from
+          int_field_pace_curve.eligible_lap_count. Below 5 the cell is THIN_CELL. NULL only when
+          base_pace_status is NO_CELL (no curve row); never negative.
+        tests:
+          - dbt_utils.expression_is_true:
+              arguments:
+                expression: ">= 0"
+              config:
+                where: "base_eligible_lap_count IS NOT NULL"
+          - dbt_utils.expression_is_true:
+              arguments:
+                expression: "IS NULL"
+              config:
+                where: "base_pace_status = 'NO_CELL'"
+          - dbt_utils.expression_is_true:
+              arguments:
+                expression: "IS NOT NULL"
+              config:
+                where: "base_pace_status <> 'NO_CELL'"
       - name: total_explained_s
         description: >
           Sum of fuel + compound + constructor + dirty_air_tax (rubber/ambient are already inside
           base_track_pace_s, WI-01/F22, and are informational columns only, not part of this sum).
-          NULL under the same conditions as driver_skill_residual_s.
+          Does NOT read the pace base, so it is numeric even where base_pace_status is not
+          MEASURED (THIN_CELL or NO_CELL): on those rows it is not a fully measured decomposition.
+          NULL only when compound_component_s is NULL (unknown tyre age, F39) or dirty_air_tax_s
+          is NULL (FD6 / CO-04). Check base_pace_status = 'MEASURED' before treating it as measured.
         tests:
           - not_null:
               config:
@@ -1262,6 +1421,19 @@ models:
       - name: lap_id
         description: Foreign key to stg_laps
         tests: [not_null, unique]
+      - name: rain_state
+        description: >
+          Pass-through of int_lap_rain_state.rain_state (DRY, WET, NO_WEATHER) via
+          int_lap_residual_decomposed. NO_WEATHER means no weather reading (rainfall_flag NULL).
+          is_rain_lap stays two-valued ("not known wet"), so is_rain_lap = FALSE does NOT mean
+          DRY: a NO_WEATHER lap has is_rain_lap FALSE and remains trainable (owner decision).
+          Read rain_state when a diagnostic needs to tell DRY from NO_WEATHER. It changes no
+          eligibility, anomaly_class or usable_for_modelling value.
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [DRY, WET, NO_WEATHER]
       - name: race_year
         description: Season year.
         tests: [not_null]

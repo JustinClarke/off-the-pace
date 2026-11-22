@@ -59,7 +59,7 @@ corrections AS (
 
 evolution AS (
     SELECT race_year, race_id, lap_number, rainfall_flag
-    FROM {{ ref('int_track_evolution') }}
+    FROM {{ ref('int_lap_rain_state') }}
 ),
 
 -- Corner residuals restricted to push / clean laps (no rain, standard validity
@@ -94,7 +94,7 @@ push_corners AS (
         AND NOT lm.is_red_flag_lap
         AND NOT lm.is_pit_lap
         AND COALESCE(cor.correction_weight, 1.0) = 1.0
-        AND COALESCE(e.rainfall_flag, FALSE) = FALSE
+        AND e.rainfall_flag = FALSE
 ),
 
 -- Per-(race, constructor, corner): sum and count of residuals across ALL

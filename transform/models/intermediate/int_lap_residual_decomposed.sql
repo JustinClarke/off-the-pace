@@ -41,7 +41,13 @@
 -- fabricated. pace_delta_s is NULL when int_field_pace_curve has no measured
 -- value for (race_year, race_id, lap_number); compound_component_s is NULL
 -- when the tyre age is unknown (F39). Either one makes
--- driver_skill_residual_s and total_explained_s NULL.
+-- driver_skill_residual_s NULL. total_explained_s does NOT read the pace base
+-- (it sums fuel, compound, constructor and dirty-air tax only), so a missing
+-- base leaves it numeric; only a NULL compound_component_s or a NULL
+-- dirty_air_tax_s makes it NULL. A numeric total_explained_s is therefore not
+-- proof of a measured decomposition: check base_pace_status = 'MEASURED'.
+-- base_pace_status (MEASURED / THIN_CELL / NO_CELL) says why the base is
+-- missing; base_eligible_lap_count is the cell's car count (NULL for NO_CELL).
 -- CO-04: "no measured value" now also covers a cell built on fewer than 5
 -- cars (W44, low_sample_flag) and the two 2018 races with no telemetry, where
 -- no lap other than the leader's is known to be in clean air (FD6). See
@@ -87,7 +93,10 @@ WITH field_pace AS (
         -- "the residual never reads low_sample_flag" half of W44.
         CASE
             WHEN NOT low_sample_flag THEN field_pace_smoothed_s
-        END AS field_pace_smoothed_s
+        END AS field_pace_smoothed_s,
+        -- Why the base is or is not there (base_pace_status, combined below).
+        eligible_lap_count,
+        low_sample_flag
     FROM {{ ref('int_field_pace_curve') }}
 ),
 
@@ -157,8 +166,22 @@ evolution AS (
         ambient_component_s,
         unexplained_residual_s AS track_unexplained_s,
         track_temp_c,
-        rainfall_flag
+        rubber_status
     FROM {{ ref('int_track_evolution') }}
+),
+
+-- Rain state comes from the weather observation (int_lap_rain_state), not from
+-- int_track_evolution: a lap with weather but no non-thin pace cell has no
+-- evolution row yet still has a rain reading. Race-lap grain, unique, so the
+-- join below cannot multiply laps.
+rain AS (
+    SELECT
+        race_year,
+        race_id,
+        lap_number,
+        rainfall_flag,
+        rain_state
+    FROM {{ ref('int_lap_rain_state') }}
 ),
 
 constructor_struct AS (
@@ -252,6 +275,23 @@ combined AS (
         -- window)
         fp.field_pace_smoothed_s AS base_track_pace_s,
 
+        -- Why base_track_pace_s is or is not there, read from the curve row
+        -- itself (no proxy). NO_CELL: int_field_pace_curve has no row for the
+        -- lap (zero eligible laps in its cell). THIN_CELL: a row exists but it
+        -- is built on fewer than 5 cars (low_sample_flag), so it has no base.
+        -- MEASURED: a row with a base. A row that is not thin always has a
+        -- base (its smoothing window contains its own >= 5-car trimmed mean);
+        -- tested by assert_field_curve_non_thin_has_base, and the final ELSE
+        -- keeps such a row out of MEASURED instead of inventing a fourth value.
+        CASE
+            WHEN fp.eligible_lap_count IS NULL THEN 'NO_CELL'
+            WHEN fp.low_sample_flag THEN 'THIN_CELL'
+            WHEN fp.field_pace_smoothed_s IS NOT NULL THEN 'MEASURED'
+            ELSE 'THIN_CELL'
+        END AS base_pace_status,
+        -- Cars behind that cell's base; NULL only for NO_CELL.
+        fp.eligible_lap_count AS base_eligible_lap_count,
+
         -- Track evolution components (TX-30 step e, owner ruling 2026-11-18):
         -- NULL where int_track_evolution has no row for the lap, no longer
         -- filled with 0.0. Both are informational and sit outside the
@@ -260,10 +300,19 @@ combined AS (
         e.ambient_component_s,
         CASE
             WHEN e.lap_number IS NULL THEN 'NO_EVOLUTION_ROW'
+            -- An evolution row exists but its rubber trend is unmeasured
+            -- (int_track_evolution.rubber_status). rubber_component_s is NULL
+            -- there; ambient_component_s keeps its own zero-fill upstream.
+            WHEN e.rubber_status IN ('INSUFFICIENT_LAPS', 'NO_FIELD_BASE')
+                THEN e.rubber_status
         END AS track_evolution_unavailable_reason,
         e.track_unexplained_s,
         e.track_temp_c,
-        e.rainfall_flag,
+        rn.rainfall_flag,
+        -- rain_state: from int_lap_rain_state, decided by the weather
+        -- observation alone. NO_WEATHER only where no weather reading exists
+        -- for the lap (rainfall_flag NULL <=> NO_WEATHER), never DRY.
+        COALESCE(rn.rain_state, 'NO_WEATHER') AS rain_state,
 
         -- Constructor structural pace: the per-race grouped-aggregation
         -- coefficient alone (F35: no circuit interaction on top, see above).
@@ -351,6 +400,11 @@ combined AS (
             f.race_year = e.race_year
             AND f.race_id = e.race_id
             AND f.lap_number = e.lap_number
+    LEFT JOIN rain AS rn
+        ON
+            f.race_year = rn.race_year
+            AND f.race_id = rn.race_id
+            AND f.lap_number = rn.lap_number
     LEFT JOIN constructor_struct AS cs
         ON
             f.race_year = cs.race_year
@@ -417,6 +471,8 @@ SELECT
     lap_time_s,
     weight_corrected_lap_time,
     base_track_pace_s,
+    base_pace_status,
+    base_eligible_lap_count,
     pace_delta_s,
 
     -- Additive components (all in seconds, positive = slower contribution)
@@ -440,6 +496,7 @@ SELECT
     ambient_temp_delta,
     track_temp_c,
     rainfall_flag,
+    rain_state,
     constructor_component_se_s,
     constructor_pace_is_filled,
     track_evolution_unavailable_reason,

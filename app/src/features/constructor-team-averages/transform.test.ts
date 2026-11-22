@@ -7,6 +7,8 @@ const mkRow = (constructor_id: string, overrides: Partial<TeamAverageRow> = {}):
   drivers_n: 2,
   laps_n: 400,
   avg_car_component_s: 0.1,
+  constructor_measured_laps_n: 400,
+  constructor_filled_share: 0,
   avg_dirty_air_tax_s: 0.05,
   n_dirty_air_laps: 300,
   avg_driver_skill_residual_s: -0.02,
@@ -36,6 +38,44 @@ describe('transform', () => {
     const [e] = transform([mkRow('MERCEDES', { avg_dirty_air_tax_s: 0.2, n_dirty_air_laps: 120 })])
     expect(e.dirty_air_s).toBe(0.2)
     expect(e.n_dirty_air_laps).toBe(120)
+  })
+})
+
+describe('transform: measured car term', () => {
+  it('gives a null rank and null car term to a team with no measured car laps', () => {
+    const [e] = transform([mkRow('WILLIAMS', { avg_car_component_s: null, constructor_measured_laps_n: 0, constructor_filled_share: 1 })])
+    expect(e.rank).toBeNull()
+    expect(e.car_s).toBeNull()
+    expect(e.constructor_measured_laps_n).toBe(0)
+    expect(e.constructor_filled_share).toBe(1)
+  })
+
+  it('never surfaces a stale 0.0 car average when no lap is measured', () => {
+    const [e] = transform([mkRow('HAAS', { avg_car_component_s: 0, constructor_measured_laps_n: 0, constructor_filled_share: 1 })])
+    expect(e.car_s).toBeNull()
+    expect(e.rank).toBeNull()
+  })
+
+  it('ranks skip teams without a measured car term', () => {
+    const out = transform([
+      mkRow('A'),
+      mkRow('B', { avg_car_component_s: null, constructor_measured_laps_n: 0, constructor_filled_share: 1 }),
+      mkRow('C'),
+    ])
+    expect(out.map(e => e.rank)).toEqual([1, null, 2])
+  })
+
+  it('writes blank CSV cells for a null rank and null car term, and carries the new columns', () => {
+    const csv = toCsvRows(transform([
+      mkRow('A', { constructor_measured_laps_n: 350, constructor_filled_share: 0.125 }),
+      mkRow('B', { avg_car_component_s: null, constructor_measured_laps_n: 0, constructor_filled_share: 1 }),
+    ]))
+    expect(csv[0].constructor_measured_laps_n).toBe(350)
+    expect(csv[0].constructor_filled_share).toBe('0.125')
+    expect(csv[1].rank).toBe('')
+    expect(csv[1].car_component_avg_s).toBe('')
+    expect(csv[1].constructor_measured_laps_n).toBe(0)
+    expect(csv[1].constructor_filled_share).toBe('1.000')
   })
 })
 

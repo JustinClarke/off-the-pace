@@ -77,6 +77,14 @@ tolerance. Mutation-checked: flipping the paired delta's sign fails the F40 fixt
 | `assert_field_pace_smoothing_respects_boundaries.sql` | CO-04 (W43, W44): no smoothed field-base cell's window spans an SC/VSC/red-flag lap number, a neutralised cell averages only itself, a cell under 5 cars has no base, and every base is reproduced from the non-thin trimmed means inside its recorded span | `int_field_pace_curve`, `int_stint_geometry` | ✅ Active |
 | `assert_field_pace_restart_cells_own_mean.sql` | CO-04 (W43, owner decision 2026-10-15): the first `field_restart_adjacent_laps` green laps (two until v16, four since v17, W10) after an SC or red flag (re-derived from `int_stint_geometry`) take their own trimmed mean as base, and no other cell's window reaches them, so a restart cell never averages with the green laps either side | `int_field_pace_curve`, `int_stint_geometry` | ✅ Active |
 | `assert_residual_skips_thin_field_cells.sql` | CO-04 (W44): no residual is measured against a field-base cell built on fewer than 5 cars (base, pace delta and driver-skill residual all NULL there) | `int_lap_residual_decomposed`, `int_field_pace_curve` | ✅ Active |
+| `assert_base_pace_status_matches_field_curve.sql` | `base_pace_status` agrees with the lap's own `int_field_pace_curve` row: NO_CELL = no curve row, THIN_CELL = `low_sample_flag`, MEASURED = a base; `base_eligible_lap_count` equals the curve's `eligible_lap_count` | `int_lap_residual_decomposed`, `int_field_pace_curve` | ✅ Active |
+| `assert_non_measured_laps_not_training_eligible.sql` | No lap with `base_pace_status` THIN_CELL or NO_CELL (or no status) is `is_training_eligible` (the flag `ml/src/features.py` reads); status read from `int_lap_residual_decomposed` because it is not in the mart's enforced contract | `fct_cliff_prediction_features`, `int_lap_residual_decomposed` | ✅ Active |
+| `assert_training_exclusion_keeps_analytical_rows.sql` | The exclusion is a flag, not a filter: `fct_lap_residuals` and `fct_cliff_prediction_features` hold exactly the laps `int_lap_residual_decomposed` holds (count and lap_id set) | `fct_lap_residuals`, `int_lap_residual_decomposed`, `fct_cliff_prediction_features` | ✅ Active |
+| `assert_field_curve_non_thin_has_base.sql` | A non-thin `int_field_pace_curve` row always has a smoothed base (the premise of the MEASURED/THIN_CELL split) | `int_field_pace_curve` | ✅ Active |
+| `assert_residual_null_without_base.sql` | Where `base_pace_status` is not MEASURED, `base_track_pace_s`, `pace_delta_s` and `driver_skill_residual_s` are all NULL | `int_lap_residual_decomposed` | ✅ Active |
+| `assert_residual_identity_preserved_without_base.sql` | Five-term identity to 1e-6 s wherever every term is non-NULL, with no `base_pace_status` filter | `int_lap_residual_decomposed` | ✅ Active |
+| `assert_total_explained_numeric_without_base.sql` | Accepted behaviour: `total_explained_s` does not read the pace base (numeric on THIN_CELL/NO_CELL rows), and is NULL only when fuel, compound, constructor or dirty-air tax is NULL | `int_lap_residual_decomposed` | ✅ Active |
+| `assert_track_evolution_components_unchanged.sql` | `rubber_component_s` and `ambient_component_s` are NULL on NO_EVOLUTION_ROW laps; ambient is non-NULL (zero-filled upstream) wherever an evolution row exists | `int_lap_residual_decomposed` | ✅ Active |
 | `assert_dirty_air_tax_null_only_when_unmeasured.sql` | CO-04 (FD6): the lagged dirty-air share, and so the tax, is NULL exactly when the stint's previous lap has an unmeasured air state, and never otherwise | `int_dirty_air_tax_component`, `int_lap_air_state`, `int_stint_geometry` | ✅ Active |
 | `assert_mart_positions_gained_pit_lane.sql` | CO-01 (T5): `positions_gained` is NULL for a pit-lane start (`grid_position = 0`) and equals grid - finish elsewhere. Vacuity guard: fails once if no pit-lane start exists | `mart_race_driver_summary`, `stg_results` | ✅ Active |
 | `assert_compound_pace_units.sql` | T32 (F42a, WI-01): `expected_compound_pace_s = compound_wear_s + 0.005 * ambient_temp_delta` exactly -- no third, unitless constant (`compound_grip_peak`, a 0.95-1.09 ratio) added as if it were seconds | `int_compound_cliff_predicted` | ✅ Active |
@@ -94,6 +102,8 @@ tolerance. Mutation-checked: flipping the paired delta's sign fails the F40 fixt
 | `assert_constructor_coefficient_signs.sql` | Every season has at least one constructor genuinely faster than the field (`MIN(constructor_structural_pace_s) < 0`) and at least one identified (non-degenerate) CI. Seasons whose dry panel holds fewer than two constructors are skipped (a lone constructor is centred on itself); since WI-05's wet-flag fix that is the CI fixtures' all-wet 2024 São Paulo | `int_constructor_structural_pace` | ✅ Active |
 | `assert_aero_penalty_negative.sql` | Dirty-air tax is always a penalty, never a bonus: theta_air, the fitted coefficient dirty_air_tax_s's clamp is built from, must be >= 0. F34: the old body checked the PUBLISHED `dirty_air_tax_s` column, which is CLAMPed to [0, 5.0] and so can never be negative by construction (vacuous). This re-derives theta_air from any lap whose clamp did not bind, plus a second check for the degenerate case where every positive-exposure lap clamps to exactly 0 and there is nothing left to recover it from | `int_dirty_air_tax_component` | ✅ Active |
 | `assert_thermal_variance_positive.sql` | Track temperature genuinely varies within a race (range ≥ 0.1 °C), catching a stalled or missing thermal join | `int_track_evolution` | ✅ Active |
+| `assert_track_evolution_rain_state_consistent.sql` | `rain_state` is DRY / WET / NO_WEATHER and agrees with `rainfall_flag` (NO_WEATHER iff the flag is NULL); a lap with no weather reading is never DRY | `int_track_evolution`, `stg_weather` | ✅ Active |
+| `assert_track_evolution_rubber_status_consistent.sql` | `rubber_status` pins the raw, published and component columns (MEASURED keeps a zero slope; CLAMPED_POSITIVE publishes 0.0; INSUFFICIENT_LAPS and NO_FIELD_BASE give NULL), `rubber_fit_lap_count` is one value per race, grain is unique and equals the non-thin `int_field_pace_curve` cells (no padding) | `int_track_evolution`, `int_field_pace_curve` | ✅ Active |
 | `assert_fuel_curve_monotonicity.sql` | Fuel weight penalty strictly decreases as fuel burns off within a stint | `int_lap_fuel_state` | ✅ Active |
 | `assert_stint_boundaries_match_pits.sql` | T19 (WI-05, F24; replaces `assert_stint_boundaries_correct`, which passed on all three races whose stint numbering ignores the pit stops): every race was cross-checked against `stg_pits`; a served stint change has an in-lap within the window before it (or a red flag); a quarantined unit's stint changes sit on the pit record and it serves no compound or tyre age; no race still served from bronze misses the quarantine share of its racing stops (since CO-09 read on the feed's own numbering, `stg_lap_tyre_qa`, because served stints are tyre runs and a same-tyre drive-through has no served change); tyre age rises strictly within a stint | `int_stint_geometry`, `stg_pits`, `stg_lap_tyre_qa`, `int_lap_residual_decomposed` | ✅ Active |
 | `assert_stint1_includes_lap1.sql` | T20 (WI-05, F25): lap 1 is on the driver's first stint, that stint's `lap_in_stint` counts from lap 1, and its tyre age rises by one a lap over laps 1-3 (the 2018 lap-1 gap filled with its TyreLife offset) | `int_stint_geometry` | ✅ Active |
@@ -210,6 +220,20 @@ Three races are committed:
 - Bahrain 2023 clean dry race, multiple compounds
 - Italy 2020 low-energy circuit, sprint-style strategy
 - São Paulo 2024 wet/mixed conditions
+
+A fourth directory, `laps/season=2025/race=miami_grand_prix` (race `2025_6`), is a
+deliberately incomplete laps-only fixture: it has no weather, results, telemetry, race
+control or track-status files, and it is not to be expanded. Because it has no weather,
+all of its race-laps are `NO_WEATHER` in `int_lap_rain_state` (57 laps), so it drops out
+of every dry-only panel by design (in the CI build `int_driver_race_skill_loro` has rows
+only for 2020 and 2023). It must be kept separate from real-data coverage reporting:
+rain-state counts and coverage are read from the 2018 to 2025 bronze build, never from
+this fixture. It also explains part of the CI baseline row-count movement: `stg_laps`
+goes from 3117 to 4122 and `fct_lap_residuals` from 2562 to 3419 with the extra race,
+while rating-chain tables such as `int_driver_race_skill_loro` (58 to 40) and
+`mart_race_driver_summary` (56 to 40) fall, since the fixture's laps carry no weather and
+so cannot enter a dry panel (the baseline diff also carries other uncommitted model
+changes, so the fall is not attributed to Miami alone).
 
 See [fixtures/README.md](fixtures/README.md) for how to refresh fixture files.
 

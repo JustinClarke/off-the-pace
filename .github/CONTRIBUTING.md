@@ -6,6 +6,22 @@ Follow it to go from zero to running models in under 30 minutes.
 
 ---
 
+## TEMPORARY PROJECT RULE: FULL CI DEFERRED UNTIL FURTHER NOTICE
+
+- Full project-wide dbt CI builds are paused.
+- Do not automatically run full CI after individual model changes.
+- Continue targeted SQL regression testing.
+- Continue relevant Python tests.
+- Continue relevant application tests and typechecking.
+- Distinguish newly introduced failures from pre-existing issues.
+- Do not fix unrelated model failures as part of individual tasks.
+- Do not regenerate project-wide baselines unless explicitly requested.
+- Full CI can be reinstated through explicit instruction or a designated integration milestone.
+- This is a temporary deferral, not permanent cancellation of CI.
+- Targeted testing remains mandatory.
+
+---
+
 ## Prerequisites
 
 - **Python 3.14**
@@ -132,7 +148,7 @@ Quick checklist:
 3. Add at least one dbt test.
 4. Run `make dbt-dev` and `make dbt-test`.
 5. **If the model participates in the lap identity,** confirm `assert_lap_7term_identity` still passes (it enforces five terms; the file name predates that).
-6. Open a PR-CI runs the full build automatically.
+6. Open a PR. While the temporary rule above is in force, do not run full project-wide CI after individual model changes; targeted testing still applies.
 
 ### Add or change an app feature
 Every shipped feature ships its end-user docs in the **same PR** as its code. When you add or

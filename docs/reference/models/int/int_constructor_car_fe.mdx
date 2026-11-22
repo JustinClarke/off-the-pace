@@ -8,12 +8,17 @@ description: "De-biased constructor car pace (constructor×race fixed effect), o
 
 <Note>Part of the [Skill](/transform/families/skill) family.</Note>
 
-De-biased constructor car pace (constructor×race fixed effect), one row per (race_year, race_id, constructor_id). A thin reader over data/fits/constructor_car_fe.parquet, fitted by tasks/coefficients/fit_constructor_car_fe.py via a two-way FE regression (pace_delta_s ~ 1 | driver_id + constructor_race) on the clean lap panel. car_fe_s estimates car pace net of driver skill (global driver anchor), so subtracting it removes the car without crediting a weak driver's slowness as skill. Consumed only by int_driver_race_skill_loro.driver_skill_field_s → int_driver_circuit_era_affinity (Ghost Car Standings). Negative = faster than field.
+De-biased constructor car pace (constructor×race fixed effect), one row per (race_year, race_id, constructor_id). Fitted in-warehouse on every build (models/intermediate/int_constructor_car_fe.py, which reuses fit_car_fe from tasks/coefficients/fit_constructor_car_fe.py) via a two-way FE regression (pace_delta_s ~ 1 | driver_id + constructor_race) on the clean lap panel. car_fe_s estimates car pace net of driver skill (global driver anchor), so subtracting it removes the car without crediting a weak driver's slowness as skill. Consumed only by int_driver_race_skill_loro.driver_skill_field_s → int_driver_circuit_era_affinity (Ghost Car Standings). Negative = faster than field.
 
 ## Lineage
 
 ```mermaid
 flowchart LR
+  int_event_corrections --> int_constructor_car_fe
+  int_field_pace_curve --> int_constructor_car_fe
+  int_lap_fuel_state --> int_constructor_car_fe
+  int_track_evolution --> int_constructor_car_fe
+  stg_laps --> int_constructor_car_fe
   int_constructor_car_fe --> int_driver_race_skill_loro
   style int_constructor_car_fe fill:#e40404,stroke:#e40404,color:#fff
 ```
@@ -26,6 +31,7 @@ flowchart LR
 | Family | [Skill](/transform/families/skill) |
 | Contract enforced | No |
 | Tags | `causal_decomposition`, `constructor` |
+| Upstream | [`int_lap_fuel_state`](./int_lap_fuel_state), [`int_field_pace_curve`](./int_field_pace_curve), [`stg_laps`](../stg/stg_laps), [`int_event_corrections`](./int_event_corrections), [`int_track_evolution`](./int_track_evolution) |
 
 **8 tests** [guard](/transform/ci/overview) this model  -  8 generic, 0 singular.
 

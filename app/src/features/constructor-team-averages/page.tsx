@@ -48,7 +48,7 @@ export default function ConstructorTeamAveragesPage() {
         },
         {
           label: 'Blank Cells',
-          content: 'An empty cell means no measured reading for that team. It is not zero.',
+          content: 'An empty cell means no measured reading for that team. It is not zero. The car term uses measured laps only, so a team with none has no car term and no rank.',
         },
       ]}
       methodology={methodologyContent}
@@ -69,10 +69,16 @@ export default function ConstructorTeamAveragesPage() {
           <RankedTable
               rows={entries}
               columns={[
-                { key: 'rank', header: '#', align: 'right' },
+                { key: 'rank', header: '#', align: 'right', render: v => (v === null || v === undefined ? '' : String(v)) },
                 { key: 'constructor', header: 'Constructor', align: 'left' },
                 { key: 'drivers', header: 'Drivers', align: 'right' },
                 { key: 'laps', header: 'Laps', align: 'right', cellClass: () => 'text-muted' },
+                {
+                  key: 'constructor_measured_laps_n',
+                  header: 'Car laps',
+                  align: 'right',
+                  cellClass: () => 'text-muted',
+                },
                 {
                   key: 'car_s',
                   header: 'Car term',

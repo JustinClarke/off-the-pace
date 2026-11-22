@@ -144,7 +144,7 @@ corrections AS (
 ),
 evolution AS (
     SELECT race_year, race_id, lap_number, rainfall_flag
-    FROM int_track_evolution
+    FROM int_lap_rain_state
 )
 SELECT
     f.race_year,
@@ -165,7 +165,7 @@ LEFT JOIN evolution e
       AND f.lap_number = e.lap_number
 WHERE f.lap_time_s IS NOT NULL
   AND COALESCE(cor.correction_weight, 1.0) = 1.0
-  AND COALESCE(e.rainfall_flag, FALSE) = FALSE
+  AND e.rainfall_flag = FALSE
 """
 
 
@@ -456,6 +456,29 @@ def _fit_cell_fe(panel: pd.DataFrame, driver_col: str) -> pd.Series:
     return fe
 
 
+def _era_coverage(era_panel: pd.DataFrame) -> dict:
+    """Precheck for one era's race-level panel: is any driver in two or more races?
+    Without one, every driver FE is a singleton and pyfixest panics natively
+    (src/demean.rs), so the era must not reach feols."""
+    if era_panel.empty:
+        return {"estimable": False, "races_n": 0, "drivers_n": 0,
+                "drivers_multi_race_n": 0, "rows_n": 0}
+    # Distinct (race_year, race_id) pairs: a race_id may repeat across years, and one race
+    # in one year is one race however many rows it has.
+    races_per_driver = (
+        era_panel[["driver_id", "race_year", "race_id"]].drop_duplicates()
+        .groupby("driver_id").size()
+    )
+    multi = int((races_per_driver >= 2).sum())
+    return {
+        "estimable": multi > 0,
+        "races_n": int(era_panel[["race_year", "race_id"]].drop_duplicates().shape[0]),
+        "drivers_n": int(len(races_per_driver)),
+        "drivers_multi_race_n": multi,
+        "rows_n": int(len(era_panel)),
+    }
+
+
 def _era_needs_fallback(era_row: pd.Series) -> bool:
     return bool(
         era_row.races_unidentified_n > 0 or era_row.multi_constructor_components_n > 1
@@ -474,6 +497,10 @@ def fit_car_fe_isolation(lap_panel: pd.DataFrame) -> tuple[pd.DataFrame, str]:
     the identified cells of each race (negative = faster). A cell in a race's minor
     component gets NULL ('unidentified'); a cell pyfixest dropped as a singleton gets
     NULL ('not_estimated')."""
+
+    if lap_panel.empty:
+        log.warning("Isolation panel has no rows; emitting an empty car term frame.")
+        return pd.DataFrame({c: pd.Series(dtype="object") for c in ISOLATION_COLUMNS}), ""
 
     # Aggregate to race level to avoid lap-level noise
     race_panel = aggregate_to_race_level(lap_panel)
@@ -496,8 +523,22 @@ def fit_car_fe_isolation(lap_panel: pd.DataFrame) -> tuple[pd.DataFrame, str]:
             )
             log.info("Connectivity %s", notes[-1])
 
-        # Fit the car FE for this era
-        fe_era = _fit_cell_fe(era_panel, "driver_id")
+        # Fit the car FE for this era. An era where no driver appears in two races has
+        # every driver FE dropped as a singleton and pyfixest aborts natively, so it is
+        # not fitted at all: its cells get NULL with 'not_estimated', never 0.
+        coverage = _era_coverage(era_panel)
+        era_cells["not_estimable"] = not coverage["estimable"]
+        if coverage["estimable"]:
+            fe_era = _fit_cell_fe(era_panel, "driver_id")
+        else:
+            fe_era = pd.Series(dtype=float)
+            notes.append(f"{era}: 0 drivers with >=2 races; not estimable")
+            log.warning(
+                "Era %s not estimable: %d race(s), %d driver(s), %d driver(s) with >=2 "
+                "races, %d row(s); skipping the fit, car term NULL (not_estimated).",
+                era, coverage["races_n"], coverage["drivers_n"],
+                coverage["drivers_multi_race_n"], coverage["rows_n"],
+            )
         era_cells["car_fe_raw_s"] = era_cells.constructor_race.map(fe_era)
         era_cells["car_term_source"] = "driver_id"
 
@@ -545,6 +586,9 @@ def fit_car_fe_isolation(lap_panel: pd.DataFrame) -> tuple[pd.DataFrame, str]:
     cells.loc[unidentified, "car_term_source"] = "unidentified"
     not_estimated = cells.car_fe_raw_s.isna() & ~unidentified
     cells.loc[not_estimated, "car_term_source"] = "not_estimated"
+    # An era skipped for insufficient coverage: not_estimated, not 'unidentified' (its
+    # cells sit in separate components only because nothing was fitted).
+    cells.loc[cells.not_estimable.astype(bool), "car_term_source"] = "not_estimated"
 
     # Lap-weighted re-centring inside each race, over the cells that have a car term.
     w = cells.n_laps.where(cells.car_fe_raw_s.notna(), 0).astype(float)

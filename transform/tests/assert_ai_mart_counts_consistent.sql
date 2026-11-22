@@ -14,7 +14,11 @@
 --     the driver has laps for in fct_lap_residuals that season.
 --   benchmark: every (metric, season) of fct_lap_residuals has a row, and
 --     sample_size is the non-NULL count of that metric over the season's
---     ml_eligible laps. dirty_air_tax_s is recounted by
+--     ml_eligible laps. The constructor_component_s arm leaves out prior-filled
+--     laps (constructor_pace_is_filled), so its sample_size is the measured
+--     count; a season with zero measured laps has no benchmark row and is
+--     correct (expected 0), while a missing row with measured laps is a
+--     failure. dirty_air_tax_s is recounted by
 --     assert_dirty_air_mean_excludes_unmeasured (its row counts measured
 --     laps only), so it is left out here.
 -- Fails per offending row, and once if any of the three marts is empty.
@@ -84,7 +88,9 @@ bench_ref AS (
     SELECT
         race_year,
         'constructor_component_s' AS metric_name,
-        COUNT(constructor_component_s) AS n
+        COUNT(constructor_component_s) FILTER (
+            WHERE NOT constructor_pace_is_filled
+        ) AS n
     FROM clean_laps
     GROUP BY race_year
     UNION ALL
@@ -216,7 +222,7 @@ SELECT
 FROM bench_ref AS br
 LEFT JOIN bench AS b
     ON br.race_year = b.race_year AND br.metric_name = b.metric_name
-WHERE b.sample_size IS DISTINCT FROM br.n
+WHERE COALESCE(b.sample_size, 0) IS DISTINCT FROM br.n
 
 UNION ALL
 

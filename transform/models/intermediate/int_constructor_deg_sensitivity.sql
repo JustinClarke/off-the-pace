@@ -177,7 +177,7 @@ WITH clean_laps AS (
     FROM {{ ref('int_lap_residual_decomposed') }}
     WHERE
         correction_weight = 1.0
-        AND COALESCE(rainfall_flag, FALSE) = FALSE
+        AND rainfall_flag = FALSE
         AND compound IN ('SOFT', 'MEDIUM', 'HARD')
         AND valid_lap_in_stint > 1
         AND COALESCE(cliff_onset_passed, FALSE) = FALSE
@@ -304,7 +304,7 @@ clean_laps_cliff AS (
         ON lr.lap_id = cp.lap_id
     WHERE
         lr.correction_weight = 1.0
-        AND COALESCE(lr.rainfall_flag, FALSE) = FALSE
+        AND lr.rainfall_flag = FALSE
         AND lr.compound IN ('SOFT', 'MEDIUM', 'HARD')
         AND lr.valid_lap_in_stint > 1
         AND lr.driver_skill_residual_s IS NOT NULL

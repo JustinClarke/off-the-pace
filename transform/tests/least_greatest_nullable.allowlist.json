@@ -104,12 +104,6 @@
       "reason": "The CASE NULL-tests actual_pit_lap and pick_optimal_cost_s but not pick_actual_cost_s; a NULL there reads as a 0.0 opportunity cost. Ruled 0.0 (W11, 2026-09-29 watch sweep), for the same reason as the race-horizon clip beside it: 0.0 is this model's one convention for a stint it cannot grade. Does not fire: 0 of the 5,112 stints graded with a stop on the 2026-09-25 dev build (after WI-13's F31 fix)."
     },
     {
-      "file": "models/intermediate/int_track_evolution.sql",
-      "call": "LEAST(SUM( (c.lap_number - rm.mean_lap) * (c.field_pace_smoothed_s - rm.mean_pace) ) / NULLIF(SUM(POWER(c.lap_number - rm.mean_lap, 2)), 0), 0.0)",
-      "verdict": "not_null",
-      "reason": "The OLS slope is NULL only for a race whose field curve has fewer than two distinct laps (SUM of squares 0); 0 such races on the 2026-09-24 dev build. A zero slope would also be the right reading for such a race."
-    },
-    {
       "file": "models/intermediate/int_tyre_surface_vs_bulk_decoupling.sql",
       "call": "GREATEST(0.0, LEAST( 1.0, ( 1.0 / (1.0 + EXP(-2.0 * (COALESCE(surface_bulk_ratio, 0.5) - 0.5))) ) * (1.0 / (1.0 + 0.1 * GREATEST(laps_past_cliff, 0.0))) ))",
       "verdict": "not_null",

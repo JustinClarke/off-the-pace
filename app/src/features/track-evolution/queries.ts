@@ -4,10 +4,12 @@ import { registerParquet } from '../../data/duckdb/register'
 
 export interface TrackEvolutionRow {
   lap_number: number
-  rubber_component_s: number
-  ambient_component_s: number
-  track_state_index_s: number
-  rainfall_flag: boolean
+  // NULL = not measured (no field-pace base, or too few laps for a slope; no
+  // weather reading for rainfall_flag). Never read NULL as 0 or as dry.
+  rubber_component_s: number | null
+  ambient_component_s: number | null
+  track_state_index_s: number | null
+  rainfall_flag: boolean | null
 }
 
 interface Params {

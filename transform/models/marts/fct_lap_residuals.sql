@@ -68,6 +68,9 @@ SELECT
     -- not a fabricated number -- is explainable from this mart directly)
     b.base_track_pace_s,
     b.pace_delta_s,
+    -- Why base_track_pace_s is NULL: MEASURED, THIN_CELL or NO_CELL
+    b.base_pace_status,
+    b.base_eligible_lap_count,
 
     -- Additive decomposition components (seconds, positive = slower)
     b.fuel_component_s,
@@ -75,6 +78,9 @@ SELECT
     b.rubber_component_s,
     b.ambient_component_s,
     b.constructor_component_s,
+    -- TRUE where constructor_component_s is the 0.0 fill (unmeasured); not
+    -- part of ml_eligible. Aggregates of the car term leave these laps out.
+    b.constructor_pace_is_filled,
     b.total_explained_s,
 
     -- Residuals

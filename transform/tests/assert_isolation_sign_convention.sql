@@ -47,6 +47,21 @@ candidates AS (
         AND ABS(rf.dirty_air_tax_s - rs.dirty_air_tax_s) < 0.25
         -- Teammates share a car term, so both are NULL or neither is.
         AND fa.pace_isolated_gain_s IS NOT NULL
+),
+
+evidence_nonempty AS (
+    SELECT COUNT(*) > 0 AS ok
+    FROM {{ ref('int_constructor_car_fe_isolation') }}
+),
+
+evidence_all_not_estimated AS (
+    SELECT COALESCE(BOOL_AND(car_term_source = 'not_estimated'), FALSE) AS ok
+    FROM {{ ref('int_constructor_car_fe_isolation') }}
+),
+
+evidence_no_estimate AS (
+    SELECT COUNT(car_iso_s) = 0 AS ok
+    FROM {{ ref('int_constructor_car_fe_isolation') }}
 )
 
 SELECT
@@ -74,4 +89,12 @@ SELECT
     NULL AS fast_p,
     NULL AS slow_p
 FROM candidates
-HAVING COUNT(*) < {{ 25 if target.name == 'ci' else 100 }}
+HAVING
+    COUNT(*) < {{ 25 if target.name == 'ci' else 100 }}
+    -- Below threshold passes only on explicit evidence that the panel is
+    -- genuinely non-estimable (all three conditions must hold).
+    AND NOT (
+        (SELECT ok FROM evidence_nonempty)
+        AND (SELECT ok FROM evidence_all_not_estimated)
+        AND (SELECT ok FROM evidence_no_estimate)
+    )

@@ -27,6 +27,18 @@ export interface CIPoint {
   y2?: number
 }
 
+/** A CIPoint whose values may be unmeasured. null renders as a gap, never as 0. Every CIPoint is assignable. */
+export interface MaybeCIPoint {
+  x: number | string
+  y: number | null
+  lo: number | null
+  hi: number | null
+  y2?: number | null
+}
+
+const isNum = (v: number | null | undefined): v is number =>
+  typeof v === 'number' && Number.isFinite(v)
+
 export interface EraMarker {
   /** x value at which the era boundary falls */
   x: number | string
@@ -39,7 +51,7 @@ export interface AnnotationPoint {
 }
 
 export interface LineWithCIRibbonProps {
-  data: CIPoint[]
+  data: MaybeCIPoint[]
   xLabel?: string
   yLabel?: string
   seriesLabel?: string
@@ -54,7 +66,7 @@ export interface LineWithCIRibbonProps {
   /** Point annotations (driver labels, notable events) */
   annotations?: AnnotationPoint[]
   height?: number
-  renderTooltip?: (point: CIPoint) => ReactNode
+  renderTooltip?: (point: MaybeCIPoint) => ReactNode
 }
 
 const GRID = 'rgba(255,255,255,0.05)'
@@ -62,14 +74,14 @@ const AXIS_STYLE = { fontSize: 11, fill: 'rgb(var(--color-text-muted))' }
 
 function DefaultTooltip({ active, payload }: TooltipContentProps<number, string>) {
   if (!active || !payload?.length) return null
-  const d = payload[0].payload as CIPoint
+  const d = payload[0].payload as MaybeCIPoint
   return (
     <div className="bg-[#13151a] border border-white/15 rounded px-3 py-2 text-xs shadow-xl">
       <p className="font-semibold mb-1">{String(d.x)}</p>
       <p className="text-muted">
-        value: <span className="font-mono text-[rgb(var(--color-text))]">{d.y.toFixed(3)}</span>
+        value: <span className="font-mono text-[rgb(var(--color-text))]">{isNum(d.y) ? d.y.toFixed(3) : 'not measured'}</span>
       </p>
-      {d.lo !== undefined && (
+      {isNum(d.lo) && isNum(d.hi) && (
         <p className="text-muted">
           CI: <span className="font-mono text-[rgb(var(--color-text))]">[{d.lo.toFixed(3)}, {d.hi.toFixed(3)}]</span>
         </p>
@@ -82,9 +94,9 @@ function CustomTooltipWrapper({
   active,
   payload,
   renderTooltip,
-}: TooltipContentProps<number, string> & { renderTooltip: (p: CIPoint) => ReactNode }) {
+}: TooltipContentProps<number, string> & { renderTooltip: (p: MaybeCIPoint) => ReactNode }) {
   if (!active || !payload?.length) return null
-  return <>{renderTooltip(payload[0].payload as CIPoint)}</>
+  return <>{renderTooltip(payload[0].payload as MaybeCIPoint)}</>
 }
 
 export default function LineWithCIRibbon({
@@ -109,11 +121,12 @@ export default function LineWithCIRibbon({
   // so we use two Areas stacked: a transparent base up to lo, then the ribbon from lo to hi.
   const remapped = data.map(p => ({
     ...p,
-    _ciLo: p.lo,
-    _ciDelta: p.hi-p.lo,
+    // null - null is 0 in JS: a missing bound must stay a gap, not a zero-width ribbon at 0.
+    _ciLo: isNum(p.lo) && isNum(p.hi) ? p.lo : null,
+    _ciDelta: isNum(p.lo) && isNum(p.hi) ? p.hi - p.lo : null,
   }))
 
-  const hasSecondary = data.some(p => p.y2 !== undefined)
+  const hasSecondary = data.some(p => isNum(p.y2))
 
   return (
     <ResponsiveContainer width="100%" height={height}>

@@ -30,6 +30,9 @@ WITH residuals AS (
         fuel_mass_kg,
         correction_weight,
         is_lap_after_restart,
+        -- Training gate only: read by is_training_eligible, never selected
+        -- into the final SELECT (the enforced contract is unchanged).
+        base_pace_status,
         driver_skill_residual_s
     FROM {{ ref('int_lap_residual_decomposed') }}
 ),
@@ -375,6 +378,8 @@ base AS (
         -- FD2: internal only (read by is_training_eligible, not in the
         -- final SELECT, so the enforced contract is unchanged).
         r.is_lap_after_restart,
+        -- Training gate only (not in the final SELECT, contract unchanged).
+        r.base_pace_status,
 
         -- Cliff prediction
         c.expected_compound_pace_s,
@@ -1016,7 +1021,14 @@ SELECT
         AND COALESCE(anomaly_class, 'normal') NOT IN (
             'mistake', 'conditions', 'event_driven'
         )
-        AND NOT COALESCE(is_lap_after_restart, FALSE),
+        AND NOT COALESCE(is_lap_after_restart, FALSE)
+        -- Field base pace must be measured for the lap's race and lap
+        -- number. THIN_CELL and NO_CELL laps keep their rows and their
+        -- numeric total_explained_s, but their driver_skill_residual_s
+        -- (the label source) is NULL for want of a base, so they never
+        -- enter a training population. A NULL status (no residual row)
+        -- is not MEASURED, so it is excluded too.
+        AND base_pace_status = 'MEASURED',
         FALSE
     ) AS is_training_eligible
 

@@ -60,9 +60,16 @@ unit_tests:
       - input: ref('int_event_corrections')
         rows:
           - {lap_id: a4, correction_weight: 0.5}
-      - input: ref('int_track_evolution')
+      # Rain state comes from the weather observation (int_lap_rain_state), not
+      # from the pace reference. Laps 1-4 are dry, lap 5 is wet. A lap with no
+      # row here has no weather reading (NO_WEATHER) and is not in the dry panel.
+      - input: ref('int_lap_rain_state')
         rows:
-          - {race_year: 2099, race_id: '2099_1', lap_number: 5, rainfall_flag: true}
+          - {race_year: 2099, race_id: '2099_1', lap_number: 1, rainfall_flag: false, rain_state: DRY}
+          - {race_year: 2099, race_id: '2099_1', lap_number: 2, rainfall_flag: false, rain_state: DRY}
+          - {race_year: 2099, race_id: '2099_1', lap_number: 3, rainfall_flag: false, rain_state: DRY}
+          - {race_year: 2099, race_id: '2099_1', lap_number: 4, rainfall_flag: false, rain_state: DRY}
+          - {race_year: 2099, race_id: '2099_1', lap_number: 5, rainfall_flag: true, rain_state: WET}
       - input: ref('race_to_track')
         rows:
           - {race_id: '2099_1', track_id: fixture_grand_prix}
@@ -128,9 +135,16 @@ unit_tests:
       - input: ref('int_event_corrections')
         rows:
           - {lap_id: a4, correction_weight: 0.5}
-      - input: ref('int_track_evolution')
+      # Rain state comes from the weather observation (int_lap_rain_state), not
+      # from the pace reference. Laps 1-4 are dry, lap 5 is wet. A lap with no
+      # row here has no weather reading (NO_WEATHER) and is not in the dry panel.
+      - input: ref('int_lap_rain_state')
         rows:
-          - {race_year: 2099, race_id: '2099_1', lap_number: 5, rainfall_flag: true}
+          - {race_year: 2099, race_id: '2099_1', lap_number: 1, rainfall_flag: false, rain_state: DRY}
+          - {race_year: 2099, race_id: '2099_1', lap_number: 2, rainfall_flag: false, rain_state: DRY}
+          - {race_year: 2099, race_id: '2099_1', lap_number: 3, rainfall_flag: false, rain_state: DRY}
+          - {race_year: 2099, race_id: '2099_1', lap_number: 4, rainfall_flag: false, rain_state: DRY}
+          - {race_year: 2099, race_id: '2099_1', lap_number: 5, rainfall_flag: true, rain_state: WET}
       # Tyre component (compound_component_s). Lap 1: equal, so no adjustment.
       # Lap 2: b2 has no value (unknown tyre), so the adjusted gap is NULL, not
       # the raw gap. Lap 3: BBB's tyre is 0.25 s cheaper, so AAA's -0.5 s gap
@@ -179,3 +193,74 @@ unit_tests:
       rows:
         - {driver_id: AAA, circuit_name: Circuit X, shrunk_affinity_s: -0.421875, global_driver_mean_s: -0.375, affinity_vs_driver_mean_s: -0.046875}
         - {driver_id: AAA, circuit_name: Circuit Y, shrunk_affinity_s: -0.328125, global_driver_mean_s: -0.375, affinity_vs_driver_mean_s: 0.046875}
+
+  # Rubber slope observability and rain_state for int_track_evolution. Every
+  # value is a dyadic fraction so the OLS arithmetic is exact. int_field_pace_curve
+  # is mocked with only the columns the model reads.
+  - name: track_evolution_rubber_status_and_rain_state
+    description: >
+      Four races on one model. R1 (laps 1-3, pace 90.0, 89.5, 89.0): raw slope
+      -0.5, MEASURED, published = raw. R2 (pace 90.0, 90.5, 91.0): raw slope
+      +0.5, CLAMPED_POSITIVE, published 0.0 and every rubber_component_s 0.0.
+      R3 (flat 90.0): measured zero stays 0.0 and is MEASURED. R4 (one lap):
+      fewer than 2 distinct laps, so raw and published slope are NULL,
+      INSUFFICIENT_LAPS (rubber_component_s is checked in the next test and by
+      assert_track_evolution_rubber_status_consistent; the zero-slope components are
+      signed zeros, which the fixture comparison cannot tell apart). Weather: R1 lap 1
+      dry, lap 2 wet, lap 3 has no weather row; the missing row is NO_WEATHER
+      with a NULL rainfall_flag, never DRY.
+    model: int_track_evolution
+    given:
+      - input: ref('int_field_pace_curve')
+        rows:
+          - {race_year: 2099, race_id: '2099_1', lap_number: 1, field_pace_smoothed_s: 90.0, low_sample_flag: false}
+          - {race_year: 2099, race_id: '2099_1', lap_number: 2, field_pace_smoothed_s: 89.5, low_sample_flag: false}
+          - {race_year: 2099, race_id: '2099_1', lap_number: 3, field_pace_smoothed_s: 89.0, low_sample_flag: false}
+          - {race_year: 2099, race_id: '2099_2', lap_number: 1, field_pace_smoothed_s: 90.0, low_sample_flag: false}
+          - {race_year: 2099, race_id: '2099_2', lap_number: 2, field_pace_smoothed_s: 90.5, low_sample_flag: false}
+          - {race_year: 2099, race_id: '2099_2', lap_number: 3, field_pace_smoothed_s: 91.0, low_sample_flag: false}
+          - {race_year: 2099, race_id: '2099_3', lap_number: 1, field_pace_smoothed_s: 90.0, low_sample_flag: false}
+          - {race_year: 2099, race_id: '2099_3', lap_number: 2, field_pace_smoothed_s: 90.0, low_sample_flag: false}
+          - {race_year: 2099, race_id: '2099_3', lap_number: 3, field_pace_smoothed_s: 90.0, low_sample_flag: false}
+          - {race_year: 2099, race_id: '2099_4', lap_number: 1, field_pace_smoothed_s: 90.0, low_sample_flag: false}
+          # A thin cell is not a row of this model (grain preserved, not padded).
+          - {race_year: 2099, race_id: '2099_4', lap_number: 2, field_pace_smoothed_s: null, low_sample_flag: true}
+      - input: ref('int_lap_rain_state')
+        rows:
+          - {race_year: 2099, race_id: '2099_1', lap_number: 1, track_temp_c: 30.0, humidity_pct: 50.0, rainfall_flag: false, rain_state: DRY}
+          - {race_year: 2099, race_id: '2099_1', lap_number: 2, track_temp_c: 30.0, humidity_pct: 50.0, rainfall_flag: true, rain_state: WET}
+    expect:
+      rows:
+        - {race_id: '2099_1', lap_number: 1, rain_state: DRY, rainfall_flag: false, rubber_slope_raw_s_per_lap: -0.5, rubber_slope_s_per_lap: -0.5, rubber_fit_lap_count: 3, rubber_status: MEASURED}
+        - {race_id: '2099_1', lap_number: 2, rain_state: WET, rainfall_flag: true, rubber_slope_raw_s_per_lap: -0.5, rubber_slope_s_per_lap: -0.5, rubber_fit_lap_count: 3, rubber_status: MEASURED}
+        - {race_id: '2099_1', lap_number: 3, rain_state: NO_WEATHER, rainfall_flag: null, rubber_slope_raw_s_per_lap: -0.5, rubber_slope_s_per_lap: -0.5, rubber_fit_lap_count: 3, rubber_status: MEASURED}
+        - {race_id: '2099_2', lap_number: 1, rain_state: NO_WEATHER, rainfall_flag: null, rubber_slope_raw_s_per_lap: 0.5, rubber_slope_s_per_lap: 0.0, rubber_fit_lap_count: 3, rubber_status: CLAMPED_POSITIVE}
+        - {race_id: '2099_2', lap_number: 2, rain_state: NO_WEATHER, rainfall_flag: null, rubber_slope_raw_s_per_lap: 0.5, rubber_slope_s_per_lap: 0.0, rubber_fit_lap_count: 3, rubber_status: CLAMPED_POSITIVE}
+        - {race_id: '2099_2', lap_number: 3, rain_state: NO_WEATHER, rainfall_flag: null, rubber_slope_raw_s_per_lap: 0.5, rubber_slope_s_per_lap: 0.0, rubber_fit_lap_count: 3, rubber_status: CLAMPED_POSITIVE}
+        - {race_id: '2099_3', lap_number: 1, rain_state: NO_WEATHER, rainfall_flag: null, rubber_slope_raw_s_per_lap: 0.0, rubber_slope_s_per_lap: 0.0, rubber_fit_lap_count: 3, rubber_status: MEASURED}
+        - {race_id: '2099_3', lap_number: 2, rain_state: NO_WEATHER, rainfall_flag: null, rubber_slope_raw_s_per_lap: 0.0, rubber_slope_s_per_lap: 0.0, rubber_fit_lap_count: 3, rubber_status: MEASURED}
+        - {race_id: '2099_3', lap_number: 3, rain_state: NO_WEATHER, rainfall_flag: null, rubber_slope_raw_s_per_lap: 0.0, rubber_slope_s_per_lap: 0.0, rubber_fit_lap_count: 3, rubber_status: MEASURED}
+        - {race_id: '2099_4', lap_number: 1, rain_state: NO_WEATHER, rainfall_flag: null, rubber_slope_raw_s_per_lap: null, rubber_slope_s_per_lap: null, rubber_fit_lap_count: 1, rubber_status: INSUFFICIENT_LAPS}
+
+  - name: track_evolution_no_field_base_rows_have_null_components
+    description: >
+      A row that reaches the model with no field-pace base (field_pace_smoothed_s
+      NULL on a non-thin cell; defensive, since thin cells are filtered upstream
+      of the fit) is NO_FIELD_BASE with NULL rubber_component_s and NULL
+      track_state_index_s, and it does not enter the fit: the two measured laps
+      still give slope -0.5 over rubber_fit_lap_count 2.
+    model: int_track_evolution
+    given:
+      - input: ref('int_field_pace_curve')
+        rows:
+          - {race_year: 2099, race_id: '2099_1', lap_number: 1, field_pace_smoothed_s: 90.0, low_sample_flag: false}
+          - {race_year: 2099, race_id: '2099_1', lap_number: 2, field_pace_smoothed_s: 89.5, low_sample_flag: false}
+          - {race_year: 2099, race_id: '2099_1', lap_number: 3, field_pace_smoothed_s: null, low_sample_flag: false}
+      - input: ref('int_lap_rain_state')
+        rows:
+          - {race_year: 2099, race_id: '2099_1', lap_number: 1, track_temp_c: 30.0, humidity_pct: 50.0, rainfall_flag: false, rain_state: DRY}
+    expect:
+      rows:
+        - {lap_number: 1, track_state_index_s: 90.0, rubber_slope_raw_s_per_lap: -0.5, rubber_fit_lap_count: 2, rubber_status: MEASURED, rubber_component_s: 0.25}
+        - {lap_number: 2, track_state_index_s: 89.5, rubber_slope_raw_s_per_lap: -0.5, rubber_fit_lap_count: 2, rubber_status: MEASURED, rubber_component_s: -0.25}
+        - {lap_number: 3, track_state_index_s: null, rubber_slope_raw_s_per_lap: -0.5, rubber_fit_lap_count: 2, rubber_status: NO_FIELD_BASE, rubber_component_s: null}

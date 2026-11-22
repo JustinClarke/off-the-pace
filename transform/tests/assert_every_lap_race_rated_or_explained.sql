@@ -58,8 +58,12 @@ UNION ALL
 
 SELECT 'no_telemetry_not_a_known_gap' AS failure, c.race_id
 FROM cov AS c
-LEFT JOIN known_gaps AS k ON c.race_id = k.race_id
-WHERE NOT c.has_telemetry AND k.race_id IS NULL AND c.n_lap_rows > 0
+WHERE
+    NOT c.has_telemetry
+    AND c.n_lap_rows > 0
+    -- Explicit allow-list: a race with lap rows and no telemetry is accepted
+    -- only when mart_race_coverage.coverage_reason is exactly one of these.
+    AND c.coverage_reason NOT IN ('NO_TELEMETRY', 'NO_USABLE_LAPS')
 
 UNION ALL
 

@@ -3,7 +3,9 @@
 -- TX-03: the dirty_air_tax_s row is over laps with a MEASURED dirty-air tax
 -- only (a row in int_dirty_air_tax_component with a non-NULL tax).
 -- fct_lap_residuals writes 0.0 on laps with no such row; counting those as
--- clean air pulled the mean down. The other five metrics are unchanged.
+-- clean air pulled the mean down. The constructor_component_s row likewise
+-- leaves out laps whose car term is the 0.0 fill (constructor_pace_is_filled).
+-- The other metrics are unchanged.
 {{ config(materialized='table') }}
 
 WITH clean AS (
@@ -35,6 +37,7 @@ long AS (
         'constructor_component_s' AS metric_name,
         constructor_component_s AS v
     FROM clean
+    WHERE NOT constructor_pace_is_filled
     UNION ALL
     SELECT
         c.race_year,

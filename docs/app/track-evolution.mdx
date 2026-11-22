@@ -1,36 +1,36 @@
 ---
 title: "How much did the track speed up during the race?"
 sidebarTitle: "Track Evolution"
-description: "The lap-time baseline split into rubber buildup and ambient drift, showing how much the circuit itself changed underneath the field over a race."
+description: "The lap-time baseline split into a linear pace trend and ambient drift, showing how field pace changed over a race."
 ---
 
-A circuit is not a fixed stopwatch it rubbers in and gets faster, and the ambient conditions drift underneath the cars. Track evolution decomposes the lap-time baseline into those two time-varying components, both split out of the field baseline (`base_track_pace_s`) over clean laps. Because they live inside the baseline every lap is measured against, they are informational and are not terms of the additive identity. It separates "the track got quicker" from "the cars got quicker".
+A circuit is not a fixed stopwatch: field pace usually drifts over a race, and the ambient conditions drift underneath the cars. Track evolution decomposes the lap-time baseline into those two time-varying components, a linear pace trend and an ambient drift, both split out of the field pace baseline (`field_pace_smoothed_s`, carried onto each lap as `base_track_pace_s`). Because they live inside the baseline every lap is measured against, they are informational and are not terms of the additive identity. It separates a change in field pace from a change in any single car's pace. The pace trend is usually read as rubber build, but it is not a direct measurement of rubber: it also absorbs anything else that moves field pace steadily.
 
 ## What it shows
 
 The chart splits the moving baseline into two curves plus a weather overlay:
 
-- **Rubber component (`rubber_component_s`)**: how much the surface improves as rubber is laid down over the race. A positive offset early means the track is slow; as it rubbers in, the offset shrinks.
-- **Ambient component**: temperature and humidity drift over the race window, extracted as a separate time-varying offset. Usually small, but it can matter in night races or under changing cloud cover.
-- **Rainfall**: laps tagged with the rainfall flag are highlighted; the track state resets substantially after rain.
+- **Pace trend (`rubber_component_s`)**: the fitted straight-line change in fuel- and compound-corrected field pace over the race, relative to the race mean, from one slope per race capped at zero. Positive means slower than the race mean (early laps); negative means faster (late laps). Where a race has too few laps for a fit the value is not measured and the chart shows a gap.
+- **Ambient component**: the part of the remaining pace residual that tracks the lap's track temperature, fitted per race on track temperature only (humidity is carried as a column but is not in the fit). Where a race has no usable track-temperature spread the component is 0.0, not a measured zero.
+- **Rainfall**: laps tagged with the rainfall flag are highlighted. Wet laps are not removed from the fit, so the single per-race fit does not treat rain as a break. `rain_state` is a separate column carried from the weather reading; a lap with no weather reading is neither wet nor dry (`rain_state` is `NO_WEATHER`).
 
 <Note>
-  Both components come from clean laps only, so safety-car and anomaly laps don't distort the evolution curve.
+  Both components are fitted on the field pace baseline (`int_field_pace_curve`), not on every lap. That baseline uses laps that are not out-laps, are not the last two valid laps of a non-final stint, are within 107% of the fastest lap at the same lap number, run in free air or a tow, and have a known tyre cost; the middle 80% of those laps is averaged. Safety-car, VSC and red-flag lap numbers are treated as boundaries when the baseline is smoothed, and wet laps are not removed from the fit, so a race with rain mixes dry and wet pace in one trend.
 </Note>
 
 ## How to use it
 
-1. **Select a race** from the filter bar; the rubber and ambient curves load.
-2. **Read the rubber curve's slope** a steep early improvement means a green track that came to the field quickly.
-3. **Watch the ambient curve** for evening cool-down or warming that shifts pace independently of rubber.
-4. **Note rainfall highlights** a reset in the track state after rain explains a sudden pace swing.
+1. **Select a race** from the filter bar; the pace-trend and ambient curves load.
+2. **Read the pace trend's slope**: a steep fall from slower-than-mean early laps to faster-than-mean late laps means field pace improved strongly over the race, which is commonly (not only) rubber build.
+3. **Watch the ambient curve** for evening cool-down or warming that shifts pace independently of the trend.
+4. **Note rainfall highlights**: wet laps stay in the fit, so a pace swing around rain reflects wet and dry pace mixed in one trend.
 
 ## Reading the signal correctly
 
-These offsets are **field-wide baseline shifts**, not any single car's pace they describe the track everyone shares. Rubber and ambient are estimated from the fuel- and compound-corrected field baseline, so they reflect what's left after fuel and tyre effects are removed.
+These offsets are **field-wide baseline shifts**, not any single car's pace they describe the track everyone shares. The pace trend and ambient drift are estimated from the fuel- and compound-corrected field baseline, so they reflect what's left after fuel and tyre effects are removed.
 
 <Warning>
-  On short or interrupted races there may be too few clean laps to resolve the ambient component cleanly, and it can absorb residual rubber signal. Treat a noisy ambient curve as low-confidence. See the [decomposition limitations](/decomposition/limitations).
+  On short or interrupted races there may be too few clean laps to resolve the ambient component cleanly, and it can absorb residual pace-trend signal. Treat a noisy ambient curve as low-confidence. See the [decomposition limitations](/decomposition/limitations).
 </Warning>
 
 ## Data source
@@ -39,11 +39,11 @@ The chart queries `int_track_evolution` via DuckDB-Wasm in the browser, for a si
 
 | Column | Meaning |
 |---|---|
-| `rubber_component_s` | Time-varying surface-grip offset (rubbering in) |
-| `ambient_component_s` | Time-varying temperature/humidity offset |
-| `rainfall_flag` | Whether the lap was rain-affected (highlighted) |
+| `rubber_component_s` | Linear pace trend vs the race mean (positive = slower than the race mean, negative = faster); NULL where not measured |
+| `ambient_component_s` | Track-temperature-driven offset (fitted on track temperature only); 0.0 where the race has no usable temperature fit |
+| `rainfall_flag` | Whether the lap was rain-affected (highlighted); NULL where there is no weather reading |
 | `lap_number` | The race lap, the x-axis |
 
-This is a **single-race** view across **2018–2025** data.
+This is a **single-race** view across **2018–2025** data. The model applies no year filter of its own. Races with no field pace base have no rows: 2018_1 (Australia) and 2018_2 (Bahrain) have no race telemetry in bronze, so every one of their pace cells is thin and both are excluded from the field base. Only laps with a non-thin field pace cell get a row.
 
 For the full model definition, see the [`int_track_evolution` reference](/reference/models/int/int_track_evolution).

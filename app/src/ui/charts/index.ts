@@ -5,7 +5,7 @@ export { default as RankedTable } from './RankedTable'
 export type { RankedTableColumn, RankedTableProps } from './RankedTable'
 
 export { default as LineWithCIRibbon, EraRegion } from './LineWithCIRibbon'
-export type { CIPoint, EraMarker, AnnotationPoint, LineWithCIRibbonProps } from './LineWithCIRibbon'
+export type { CIPoint, MaybeCIPoint, EraMarker, AnnotationPoint, LineWithCIRibbonProps } from './LineWithCIRibbon'
 
 export { default as QuantileFanChart } from './QuantileFanChart'
 export type { FanPoint, QuantileFanChartProps } from './QuantileFanChart'

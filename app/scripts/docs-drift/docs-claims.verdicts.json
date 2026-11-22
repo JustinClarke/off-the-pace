@@ -340,14 +340,14 @@
       }
     },
     "docs/app/track-evolution.mdx": {
-      "782ad61930c776e97f8b3aaca1356c0976a9212a42eff8bc6a5599af7b7ed3eb": {
+      "4b5a0d7b2a0291971f5a1bdaa9eff26078a991097d843236d9c65655eaef4c78": {
         "reviewer": "docs-claims-reviewer",
-        "recordedAt": "2026-10-22T07:44:24.418Z",
+        "recordedAt": "2026-11-22T05:44:07.166Z",
         "claims": {
           "reading-signal-track-evolution": {
             "verdict": "PASS",
-            "evidence": "Field-wide offsets from fuel- and compound-corrected field pace (int_field_pace_curve.sql:2-3, int_track_evolution.sql:2-12), low-sample laps excluded, ambient is residual after linear rubber fit; summary carries the caveat.",
-            "at": "2026-10-22T07:44:24.418Z"
+            "evidence": "Field-wide and fuel/compound-corrected statements match int_track_evolution.sql:4-5,23-30 and int_field_pace_curve.sql:5-10,205; warning matches int_field_pace_curve.sql:41-45 (thin cells) and int_track_evolution.sql:145-177 (ambient fitted on residual after linear trend); AI copy pageSummaries.generated.json pages/track-evolution carries both sentences and the WARNING.",
+            "at": "2026-11-22T05:44:07.166Z"
           }
         }
       }

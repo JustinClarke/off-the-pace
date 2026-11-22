@@ -1,7 +1,7 @@
 {
   "schema_version": 2,
   "project": "off the pace AI integration v2 (assistant data access)",
-  "updated": "2026-11-19T16:30:00+04:00",
+  "updated": "2026-11-22T00:00:00+04:00",
   "pointer": "TX-15",
   "stage_vocabulary": {
     "SPEC": "Reverified and specced in its WI doc. Nothing run.",
@@ -2170,6 +2170,30 @@
       "cost": "0.5d",
       "model": "sonnet-5",
       "note": "Added 2026-11-19. Transform side done (stg_results_qualifying.segment_source, scratch build). App side needs a new qualifying column on mart_race_coverage (changes its hash baseline) and an app/public/data re-export, both owner calls."
+    },
+    {
+      "id": "TX-33",
+      "group": "0a-bronze-honesty",
+      "stage": "MEASURED",
+      "depends_on": [
+        "TX-30"
+      ],
+      "title": "int_track_evolution: rainfall source, slope observability, base-pace coverage status, ML training exclusion of non-measured pace bases",
+      "sources": [
+        "transform/models/intermediate/int_track_evolution.sql",
+        "transform/models/intermediate/int_lap_rain_state.sql",
+        "transform/models/intermediate/int_lap_anomaly_flags.sql",
+        "transform/models/intermediate/int_lap_residual_decomposed.sql",
+        "transform/models/marts/fct_lap_residuals.sql",
+        "transform/models/marts/fct_cliff_prediction_features.sql",
+        "transform/tests/model_hashes.ci.baseline.json",
+        "app/src/features/track-evolution/",
+        "docs/app/track-evolution.mdx"
+      ],
+      "doc": null,
+      "cost": "done in working tree",
+      "model": "opus-5",
+      "note": "Working tree only, nothing committed. Stage MEASURED: fixes applied and acceptance numbers exist on the CI fixture (PASS=1781 WARN=2 ERROR=0; byte-stable fct_* hash check) and on 2018-2025 bronze (scratch build, 2026 excluded). The orchestrator has not re-run the definition of done. (1) Rain state: int_lap_rain_state gives every lap DRY/WET/NO_WEATHER independent of the pace curve. It restores 11,896 DRY driver-laps that were wrongly NO_WEATHER; 1,001 WET laps stay WET. NO_WEATHER is absent on real data. (2) Slope observability: rubber_slope_raw_s_per_lap, rubber_slope_s_per_lap (explicit CASE, clamp unchanged), rubber_fit_lap_count, rubber_status. (3) Coverage: int_track_evolution stays sparse (no generated rows, no fallbacks); base_pace_status MEASURED/THIN_CELL/NO_CELL and base_eligible_lap_count added to the residual. Real data: MEASURED 148,509; THIN_CELL 6,495; NO_CELL 6,402 valid driver-laps. (4) ML training: is_training_eligible requires base_pace_status = 'MEASURED'. Real data 124,370 -> 120,441 (3,929 laps; 3,575 in 2018-2024, the rest is the 2025 holdout). No non-measured lap is training-eligible. Feature contract (39 features) unchanged. Analytical fct_lap_residuals.ml_eligible unchanged and still includes 6,577 non-measured laps (open HD35). Three CI baseline hashes changed: fct_cliff_prediction_features (this change) and fct_lap_residuals, int_lap_residual_decomposed (earlier pass; open HD39). Not closed: see HD35-HD39. Evidence: scratchpad/review/handover_ml_eligibility.md and the scratchpad closure reports, both outside the repo."
     }
   ],
   "decisions": [
@@ -2893,6 +2917,90 @@
       "option": "A 5 laps (existing var) / B ref_depth / C other",
       "resolved": null,
       "resolution": null
+    },
+    {
+      "id": "HD35",
+      "raised": "2026-11-22",
+      "blocking": [
+        "TX-33"
+      ],
+      "status": "OPEN",
+      "title": "Analytical ml_eligible flag on fct_lap_residuals: keep, or require a measured base",
+      "question": "fct_lap_residuals.ml_eligible still includes 6,577 non-measured laps (2,179 NO_CELL, 4,398 THIN_CELL). It feeds the mart_* summaries and benchmarks, not ML training. Should it also require base_pace_status = 'MEASURED'?",
+      "context": "Review in scratchpad/review/handover_ml_eligibility.md. Excluding the laps moves avg_lap_time_s by up to 1.44 s per driver-race (mean 0.07 s), benchmark means by up to 0.43 s, and constructor filled_share by up to 0.18. Ranks and primary team do not change. About eight consumers would move by roughly 5%. assert_ml_eligible_unchanged_by_flag pins the formula. The docs call the flag 'training-quality for ML inputs', which is stale.",
+      "recommendation": "Keep the flag unchanged and reword it as an analytical lap-quality gate (fct_lap_residuals.sql:4,20-21; schema.yml:1498,1657). Two flags is the right design: ml_eligible is analytical, is_training_eligible is ML.",
+      "option": "A keep and reword (recommended) / B require measured base / C split into a new flag",
+      "resolved": null,
+      "resolution": null
+    },
+    {
+      "id": "HD36",
+      "raised": "2026-11-22",
+      "blocking": [],
+      "status": "OPEN",
+      "title": "Python ML test failures: aggregation-scope audit and ONNX files",
+      "question": "Four ML tests fail, and all four also fail on the unchanged HEAD, so none is caused by TX-33. Tests 1 and 2 (test_features.py:99 test_no_undeclared_aggregation_scope; test_features.py:256 test_the_corner_instance_left_the_survey_by_being_fixed_not_by_being_hidden) report 11 undeclared aggregation scopes on five models. Do these need a real scope fix or a schema exemption? Test 3 (test_features.py:421) is a fixture too small to reach the +/-50 s clip. Test 4 (test_manifest_contract.py:152) needs make app-models.",
+      "context": "scratchpad/review/handover_ml_eligibility.md section 3.",
+      "recommendation": "Do not block closure of TX-33 on these. Run make app-models for test 4. Treat tests 1 and 2 as a separate audit task.",
+      "option": "A separate audit task (recommended) / B fix now",
+      "resolved": null,
+      "resolution": null
+    },
+    {
+      "id": "HD37",
+      "raised": "2026-11-22",
+      "blocking": [
+        "TX-33"
+      ],
+      "status": "OPEN",
+      "title": "Re-record the dev hash baseline and the data-profile baseline",
+      "question": "transform/tests/model_hashes.baseline.json (161,040 rows against 161,406 now) and transform/tests/data_profile.baseline.json (is_training_eligible true-share 0.7745 against 0.7462, a 2.8-point drop against a 1-point tolerance; row-count tolerance 0 already fails) are both stale. CI runs both (.github/workflows/pipeline.yml:80,92). Re-record them now, or defer?",
+      "context": "The owner has said not to regenerate or overwrite the dev baseline without approval. Regenerating it needs a full dev build (make dbt-dev-full) on a copy, not data/dev.duckdb.",
+      "recommendation": "Re-record the data-profile baseline only after HD35 and HD38 are done. Defer the dev hash baseline until a full dev build is approved.",
+      "option": "A re-record both / B defer both / C re-record data-profile only",
+      "resolved": null,
+      "resolution": null
+    },
+    {
+      "id": "HD38",
+      "raised": "2026-11-22",
+      "blocking": [
+        "TX-33"
+      ],
+      "status": "OPEN",
+      "title": "Driver-workload page and model card: approve documentation for the training population change",
+      "question": "app/src/features/driver-workload/queries.ts:34 filters on is_training_eligible, so 168 of 171 driver-seasons change lap count (largest shift 0.069 in average push residual; 0.71 points in cliff-flag share). docs/app/driver-workload.mdx:19 does not mention the measured-base term. ml/model_card.yml, ml/src/card.py:75, ml/models/model_card.json and ml/README.md:49 describe only the older exclusions. Approve the wording changes?",
+      "context": "Wording in scratchpad/review/handover_ml_eligibility.md section 6. The card should state the 124,370 to 120,441 reduction (2018-2025) and that models trained on the old population are not directly comparable.",
+      "recommendation": "Approve: add the measured-base term to driver-workload.mdx, add a training-population note to card.py and regenerate the three card files, then run docs-drift.",
+      "option": "A approve (recommended) / B approve docs only / C defer",
+      "resolved": null,
+      "resolution": null
+    },
+    {
+      "id": "HD39",
+      "raised": "2026-11-22",
+      "blocking": [],
+      "status": "OPEN",
+      "title": "Baseline hashes changed by an earlier pass: fct_lap_residuals and int_lap_residual_decomposed",
+      "question": "Two of the three changed CI baseline hashes (fct_lap_residuals, int_lap_residual_decomposed) came from the base_pace_status and base_eligible_lap_count edits, which were made after the backup baseline was recorded. They were re-recorded in the same step as the TX-33 training change. Keep them as a separate, labelled baseline step?",
+      "context": "Backup: scratchpad/mltrain/ci.baseline.before_mltrain.json. The working-tree baseline already differs from HEAD in about 90 hashes and 60 row counts from earlier uncommitted work.",
+      "recommendation": "Keep all three values and record the two earlier-pass changes as one step, citing the base_pace_status columns; record fct_cliff_prediction_features as a separate step.",
+      "option": "A two labelled steps (recommended) / B revert the two to backup",
+      "resolved": null,
+      "resolution": null
+    },
+    {
+      "id": "HD40",
+      "raised": "2026-11-21",
+      "blocking": [],
+      "status": "RESOLVED",
+      "title": "total_explained_s on non-MEASURED laps: NULL it, or keep the numeric value",
+      "question": "total_explained_s sums fuel, compound, constructor and dirty-air terms and does not read the pace base, so it is numeric on 10,078 THIN_CELL and NO_CELL laps. Should it be NULL when the base is not measured?",
+      "context": "Real-data counts from the base_pace_status pass.",
+      "recommendation": "Keep it numeric and document that it is not a fully measured decomposition on those rows.",
+      "option": "A keep numeric and document / B NULL it",
+      "resolved": "2026-11-22",
+      "resolution": "Owner decision: preserve numeric values and document the limitation. Documented in schema.yml and the int_lap_residual_decomposed.sql header. Pinned by assert_total_explained_numeric_without_base."
     }
   ],
   "history": [
@@ -4465,6 +4573,87 @@
         "dbt run and dbt test on staging models, from transform/ with the scratch profile"
       ],
       "next_command": "Owner decisions: Reverted? NULL changes in int_lap_residual_decomposed and int_compound_cliff_predicted; then the intermediate list in transform.md (int_constructor_deg_sensitivity first). Owner to confirm the owner rulings line. Caveat rebuild blocked by data/fits/constructor_car_fe.parquet."
+    },
+    {
+      "date": "2026-11-21",
+      "session": "Constructor measured-only fix (TX-30 DM-03: carry constructor_pace_is_filled through fct_lap_residuals and the marts; constructor averages and ranks measured-only). Working tree only, nothing committed, nothing run.",
+      "landed": [],
+      "verified": [
+        "Read-only review of the uncommitted SQL diff: no blocking defects. Non-critical items applied: benchmark empty-year comparison in assert_ai_mart_counts_consistent (COALESCE to 0), two over-80 lines wrapped in the race and season marts, benchmark and sample_size docs, test line length, and the standard-error NULL check moved from the flag test to the schema-level contract.",
+        "New singular test assert_fct_constructor_filled_se_null checks the mart output: filled rows have constructor_component_s = 0.0 and constructor_component_se_s NULL. No model logic touched in that step."
+      ],
+      "assumed": [
+        "Nothing executed: dbt build, dbt test, vitest, app typecheck, warehouse queries, baseline regeneration and app export were all not run.",
+        "ml_eligible and the residual identity are unchanged by inspection only (the fill stays at 0.0; only the added flag column is selected in fct_lap_residuals).",
+        "The flag is derived from the structural pace estimate being NULL, not from the SE being NULL. The SE NULL check therefore covers only rows the flag marks as filled."
+      ],
+      "gates_run": [],
+      "next_command": "Review the diff, then: cd transform && dbt build --profiles-dir profiles --target ci --vars '{\"bronze_base\": \"../transform/tests/fixtures/bronze\", \"fits_base\": \"../transform/tests/fixtures/fits\"}' ; then regenerate model hashes and data_profile.baseline.json through the documented workflow (do not hand-edit); re-export app data; run vitest for constructor-team-averages; check docs/findings/sao-paulo-2021.mdx car-term and rank figures against the measured-only build (not yet re-verified)."
+    },
+    {
+      "date": "2026-11-21",
+      "session": "TX-30 (DM-03) constructor measured-only fix: final CI-target build and post-build regeneration. Working tree only, nothing committed or staged. TX-30 is NOT closed.",
+      "landed": [],
+      "verified": [
+        "Full CI-target dbt build: PASS=1754 WARN=2 ERROR=0 SKIP=0 TOTAL=1759, BUILD_EXIT=0. Both summary marts built. The seven new constructor SQL tests pass, and so do assert_ai_mart_counts_consistent, the residual identity tests, the ML-eligibility test, and the coverage and isolation sign tests.",
+        "The two previously failing tests now pass for the right reasons: the Miami no-telemetry case passes only through the explicit NO_TELEMETRY or NO_USABLE_LAPS allow-list; the isolation sign test passes only with explicit not_estimated evidence (20 rows, all not_estimated, no non-NULL car_iso_s).",
+        "Focused Python tests for the coefficient fitter: 21 passed. Constructor-team-averages Vitest: 11 of 11. App typecheck: exit 0.",
+        "CI model-hash baseline (tests/model_hashes.ci.baseline.json) regenerated with the documented generator; the --check run passes. 88 hashes changed, 18 models added, 2 removed.",
+        "transform/models/.../status/transform.md restored from HEAD (byte-identical). Its accidental deletion is still unexplained; the owner should confirm."
+      ],
+      "assumed": [
+        "The CI baseline absorbs drift from earlier commits and the fixture growth as well as TX-30. The owner has to confirm that is intended.",
+        "int_constructor_car_fe rows fell from 1697 to 37 in the CI build. Probably the intended effect of the in-warehouse constructor-race fit, but not confirmed.",
+        "Sao Paulo 2021 findings are unverified. They need a query on race 2021_19 against a real dev build; the car-term figures will probably move."
+      ],
+      "gates_run": [
+        "dbt build --target ci (full): PASS=1754 WARN=2 ERROR=0 SKIP=0",
+        "snapshot_model_hashes --check --baseline tests/model_hashes.ci.baseline.json: pass",
+        "app typecheck: exit 0",
+        "app Vitest (constructor-team-averages): 11 of 11",
+        "app npm run test -- --run: 3 failed, 1346 passed (src/assistant/honesty/sources.node.test.ts, stale line citations)",
+        "docs drift (docsDrift.mjs): exit 1 (7 FAIL, 6 NEEDS REVIEW), mostly predating TX-30"
+      ],
+      "blocked": [
+        "Dev model-hash baseline: needs a real dev build. data/dev.duckdb is a 274 KB stub.",
+        "Data-profile baseline: its only documented generator runs against dev.duckdb.",
+        "App parquet export: default source is dev.duckdb, which lacks the TX-30 build.",
+        "Reference docs: gen_dbt_reference.py fails on int_physical_ahead_pairs_lapped (no meta.family in transform/models/**/schema.yml). One page was partly rewritten (int/int_constructor_car_fe.mdx)."
+      ],
+      "next_command": "Owner decisions needed before TX-30 can close: (1) is a real dev warehouse build available, and where? (2) approve the meta.family fix for int_physical_ahead_pairs_lapped. (3) approve updating the three stale schema.yml line citations in the app test sources.node.test.ts. (4) confirm the CI baseline absorbing unrelated drift. (5) decide whether docs drift and the nav gaps are in scope. Then: dev build; make data-profile-snapshot; make app-data; dev hash snapshot; gen_dbt_reference.py; re-run app tests; recheck Sao Paulo 2021 claims."
+    },
+    {
+      "date": "2026-11-22",
+      "session": "int_track_evolution closure: rainfall source, slope observability, base-pace coverage status and ML training exclusion of non-measured pace bases. Working tree only; nothing committed or staged. TX-33 is MEASURED, not closed.",
+      "landed": [],
+      "verified": [
+        "CI fixture build (--target ci, fixture vars), full: PASS=1781 WARN=2 ERROR=0 SKIP=0 NO-OP=3. The two warns are assert_physical_ahead_reference_lap_sane and assert_traffic_exposure_low_measured_share (pre-existing).",
+        "Focused fixture tests green: 12 of 12 for the eligibility and residual set, plus the rain-state and track-evolution singular tests and unit tests.",
+        "Real 2018-2025 bronze (2026 excluded, scratch build, read-only SQL): rain state restores 11,896 DRY driver-laps (were NO_WEATHER); 1,001 WET laps stay WET. base_pace_status MEASURED 148,509, THIN_CELL 6,495, NO_CELL 6,402. Identity holds with zero violations. Training-eligible before 124,370, after 120,441; zero non-MEASURED laps eligible after the change.",
+        "snapshot_model_hashes.py --check against the CI baseline: OK, all 17 fct_* models byte-stable. Exactly three baseline hashes changed (see HD39).",
+        "Feature contract unchanged: 39 features; base_pace_status not in ml/src/schema.py or the mart's enforced final SELECT.",
+        "Python: weight_penalty and compound_cliff tests 70 passed. The four ML test failures are pre-existing (all four also fail on unchanged HEAD).",
+        "App: vitest track-evolution and era-ratings-timeline 28 passed; npm run typecheck clean. Chart renders NULL as a gap; no toFixed on null."
+      ],
+      "assumed": [
+        "Owner decisions in this session: wet laps are excluded from dry-condition ML training but stay in the warehouse as WET; NO_WEATHER laps stay trainable; THIN_CELL and NO_CELL laps are excluded from ML training; the analytical ml_eligible flag is out of this change until HD35 is decided; total_explained_s stays numeric (HD40).",
+        "The 2025 Miami CI fixture is laps-only by design and is documented as such in transform/tests/README.md; it is not real-data coverage.",
+        "Real-data before/after counts for the training change use a SQL replica of the old predicate, not a stored value. The replica matched the MEASURED rows exactly."
+      ],
+      "blocked": [
+        "Full downstream mart validation on real data has not been run; only fct_lap_residuals, fct_cliff_prediction_features and the rain-state chain were built on the 2018-2025 scratch data.",
+        "Dev baseline (transform/tests/model_hashes.baseline.json) and data-profile baseline are stale; re-recording is HD37.",
+        "Analytical ml_eligible decision is HD35. Docs and model card wording are HD38.",
+        "Four Python ML test failures are pre-existing; the aggregation-scope pair needs a separate owner decision (HD36)."
+      ],
+      "gates_run": [
+        "dbt build --target ci with fixture vars, full: PASS=1781 WARN=2 ERROR=0",
+        "dbt test --indirect-selection cautious on the rain-state, track-evolution, residual and eligibility sets: all pass on the fixture",
+        "snapshot_model_hashes.py --check against the CI baseline: OK, 17 fct_* byte-stable",
+        "npx vitest run src/features/track-evolution src/features/era-ratings-timeline: 28 passed; npm run typecheck: clean",
+        "PYTHONPATH=transform:. pytest weight_penalty and compound_cliff tests: 70 passed"
+      ],
+      "next_command": "Owner decisions HD35 to HD39 in this file. Then the mandatory steps: reword ml_eligible (if HD35 A), add the model card and driver-workload notes (HD38), record the two earlier-pass hashes as a labelled step (HD39), and run the full CI. Evidence is in scratchpad/review/handover_ml_eligibility.md, outside the repo."
     }
   ],
   "watch_vocabulary": {

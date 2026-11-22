@@ -102,7 +102,7 @@ def main():
             race_id,
             lap_number,
             rainfall_flag
-        FROM int_track_evolution
+        FROM int_lap_rain_state
     ),
 
     panel AS (
@@ -135,7 +135,7 @@ def main():
         WHERE
             f.lap_time_s IS NOT NULL
             AND COALESCE(c.correction_weight, 1.0) = 1.0
-            AND COALESCE(e.rainfall_flag, FALSE) = FALSE
+            AND e.rainfall_flag = FALSE
             AND partial_residual_s IS NOT NULL
     )
 

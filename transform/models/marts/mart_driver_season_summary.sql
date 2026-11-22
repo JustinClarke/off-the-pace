@@ -16,6 +16,10 @@
 -- rating_se_s, rating_confidence, total_clean_laps_n and the two anchor flags
 -- are carried unchanged from int_era_normalized_driver_rating. Component
 -- means are over ml_eligible laps only (seconds, positive = slower);
+-- mean_constructor_component_s and constructor_rank only over laps whose car
+-- term is measured (constructor_pace_is_filled = FALSE); NULL with
+-- constructor_rank_status = NO_MEASURED_LAPS when none is. The measured count
+-- and filled share are at constructor x season grain;
 -- mean_dirty_air_tax_s (TX-03) only over those with a measured dirty-air tax
 -- (a row in int_dirty_air_tax_component with a non-NULL tax), since
 -- fct_lap_residuals writes 0.0 where there is none. NULL with
@@ -30,7 +34,8 @@
 WITH laps AS (
     SELECT
         race_year, driver_id, constructor_id, fuel_component_s,
-        compound_component_s, constructor_component_s, dirty_air_tax_s
+        compound_component_s, constructor_component_s,
+        constructor_pace_is_filled, dirty_air_tax_s
     FROM {{ ref('fct_lap_residuals') }}
     WHERE ml_eligible = TRUE
 ),
@@ -71,7 +76,11 @@ components AS (
         driver_id,
         AVG(fuel_component_s) AS mean_fuel_component_s,
         AVG(compound_component_s) AS mean_compound_component_s,
-        AVG(constructor_component_s) AS mean_constructor_component_s,
+        AVG(
+            CASE
+                WHEN NOT constructor_pace_is_filled THEN constructor_component_s
+            END
+        ) AS mean_constructor_component_s,
         AVG(dirty_air_tax_s) AS mean_dirty_air_tax_s
     FROM laps
     GROUP BY race_year, driver_id
@@ -140,15 +149,31 @@ unrated AS (
     GROUP BY f.race_year, f.driver_id
 ),
 
+constructor_agg AS (
+    SELECT
+        race_year,
+        constructor_id,
+        COUNT(*) FILTER (WHERE NOT constructor_pace_is_filled)
+            AS constructor_measured_laps_n,
+        COUNT(*) FILTER (WHERE constructor_pace_is_filled) * 1.0 / COUNT(*)
+            AS constructor_filled_share,
+        AVG(CASE WHEN NOT constructor_pace_is_filled
+            THEN constructor_component_s END) AS measured_mean_s
+    FROM laps
+    GROUP BY race_year, constructor_id
+),
+
 constructor_rank AS (
     SELECT
         race_year,
         constructor_id,
-        RANK() OVER (
-            PARTITION BY race_year ORDER BY AVG(constructor_component_s)
-        ) AS constructor_rank
-    FROM laps
-    GROUP BY race_year, constructor_id
+        constructor_measured_laps_n,
+        constructor_filled_share,
+        CASE WHEN constructor_measured_laps_n > 0 THEN RANK() OVER (
+            PARTITION BY race_year, (constructor_measured_laps_n > 0)
+            ORDER BY measured_mean_s
+        ) END AS constructor_rank
+    FROM constructor_agg
 )
 
 SELECT
@@ -166,6 +191,13 @@ SELECT
     CASE WHEN t.teammate_id IS NOT NULL THEN k.rating_s END AS teammate_gap_s,
     p.constructor_id,
     cr.constructor_rank,
+    COALESCE(cr.constructor_measured_laps_n, 0) AS constructor_measured_laps_n,
+    cr.constructor_filled_share,
+    CASE
+        WHEN COALESCE(cr.constructor_measured_laps_n, 0) = 0
+            THEN 'NO_MEASURED_LAPS'
+        ELSE 'OK'
+    END AS constructor_rank_status,
     c.mean_fuel_component_s,
     c.mean_compound_component_s,
     c.mean_constructor_component_s,

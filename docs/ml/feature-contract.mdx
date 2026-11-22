@@ -108,6 +108,8 @@ than a pattern hidden in NaNs.
   **Three target spans.** The quantile trio trains on **95,513 laps** that carry the degradation target, the cliff classifier on **132,265** and the stint-life regressor on **139,947**. The spans differ because a lap can carry a cliff label or a valid stint-life count even where its next-lap jump is undefined.
 </Info>
 
+**Training population and rain.** Training reads `is_training_eligible` rows only. A lap also needs `base_pace_status` MEASURED in `int_lap_residual_decomposed` to be in it: THIN_CELL and NO_CELL laps (no field base pace) are excluded from training but stay in every analytical output. `base_pace_status` is not an ML feature and not a column of the mart. WET laps (`rain_state` WET in `int_lap_rain_state`) are classed `conditions` and are excluded from this dry-condition training set; they stay in the warehouse with their WET classification. NO_WEATHER laps (no weather reading for the lap) remain trainable. DRY means a reading exists and `rainfall_flag` is FALSE.
+
 Ordinal encoding handles categoricals: the training map assigns each seen value an integer; NULL or unseen values get `−1` (the `MISSING_ORDINAL` sentinel). Continuous features keep `NaN` as `NaN` XGBoost learns the best split direction for missing values natively.
 
 ## Excluded columns

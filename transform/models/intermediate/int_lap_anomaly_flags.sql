@@ -36,6 +36,7 @@ WITH residuals AS (
         driver_skill_residual_s,
         track_unexplained_s,
         rainfall_flag,
+        rain_state,
         correction_class,
         correction_weight,
         is_safety_car_lap,
@@ -213,7 +214,15 @@ SELECT
     -- Boundary flags
     is_out_lap,
     is_in_lap,
+    -- is_rain_lap keeps its two-valued meaning "not known wet": a NO_WEATHER lap
+    -- (rainfall_flag NULL) is FALSE here, exactly as before. That is deliberate:
+    -- NO_WEATHER laps stay trainable (owner decision), and every reader that
+    -- filters is_rain_lap = FALSE (fct_cliff_prediction_features,
+    -- fct_driver_skill_features, clean_lap_filter) would drop them if this went
+    -- NULL. is_rain_lap = FALSE therefore does NOT mean DRY. Read rain_state
+    -- (below) for the three-valued truth; it changes no eligibility.
     COALESCE(rainfall_flag, FALSE) AS is_rain_lap,
+    rain_state,
 
     -- Composite anomaly class (spec values: clean_cliff, mistake, event_driven,
     -- conditions, normal)

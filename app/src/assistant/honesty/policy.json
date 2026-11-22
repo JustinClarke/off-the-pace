@@ -1940,7 +1940,7 @@
       "sources": [
         {
           "file": "transform/models/intermediate/schema.yml",
-          "line": 1579,
+          "line": 1650,
           "quote": "Convention, not an estimate: 0.15 × the tax. Zero on clean-air laps. Not propagated from θ's interval. Do not quote as a standard error."
         },
         {
@@ -2979,7 +2979,7 @@
       "sources": [
         {
           "file": "transform/models/marts/schema.yml",
-          "line": 2952,
+          "line": 3077,
           "quote": "How far to trust rating_s, from paired_lap_count: 'suppressed' when n < 6 (too few"
         }
       ],
@@ -3158,7 +3158,7 @@
       "sources": [
         {
           "file": "transform/models/marts/schema.yml",
-          "line": 2633,
+          "line": 2731,
           "quote": "so quote a rank only with the CI; rank_separated_from_next says when it"
         }
       ],

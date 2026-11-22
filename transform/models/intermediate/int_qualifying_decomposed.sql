@@ -100,7 +100,7 @@ race_driver_race_avg AS (
         AVG(driver_skill_residual_s)
         FILTER (
             WHERE correction_weight = 1.0
-            AND COALESCE(rainfall_flag, FALSE) = FALSE
+            AND rainfall_flag = FALSE
         ) AS race_skill_race_avg_s
     FROM {{ ref('int_lap_residual_decomposed') }}
     GROUP BY race_year, race_id, driver_id

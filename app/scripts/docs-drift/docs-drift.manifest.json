@@ -43,6 +43,16 @@
         "sha256": "b331728ceac7b3581492d93abb5985c8f114747c494f312ddc852873d7260e9e"
       }
     },
+    "constructors": {
+      "docs": {
+        "path": "docs/app/constructors.mdx",
+        "sha256": "bb0b3acbe3b7c41f5bd1a3b50ebe4c2c0eba2e5c4bf0a40b1e1854cebc85331e"
+      },
+      "aiCopy": {
+        "path": "app/src/nav/pageSummaries.generated.json#pages/constructors",
+        "sha256": "6a8d0ae35a17e2c252d525e48d937275edb6350306f5959780c7b72d7a09a587"
+      }
+    },
     "corner-phase-skill": {
       "docs": {
         "path": "docs/app/corner-phase-skill.mdx",
@@ -76,11 +86,11 @@
     "degradation-simulator": {
       "docs": {
         "path": "docs/app/degradation-simulator.mdx",
-        "sha256": "7ece81e218582cb7841945045f863c42d006d0ccc3195d26baabc022830f6f7a"
+        "sha256": "77d8ef5c5982663572a855da5e8683a23758a11544fc3f2d683536406bfa39f3"
       },
       "aiCopy": {
         "path": "app/src/nav/pageSummaries.generated.json#pages/degradation-simulator",
-        "sha256": "a8f20f424e33120378a9d266d778cf36707574e34c9a3e9ec913a27002cbb03b"
+        "sha256": "d5740c7d72550fc7a9b8970d32a5d475c894dce3e117bcb9084fde89f8cc6dfa"
       }
     },
     "dirty-air-cost": {
@@ -156,11 +166,11 @@
     "families/aero-conditions": {
       "docs": {
         "path": "docs/app/families/aero-conditions.mdx",
-        "sha256": "2ea12e8913df83ba9485b582f81161bfed65be912bf0f0b534b8254bf82d29e0"
+        "sha256": "af634ad7b23ef531446467bc6b5094ef8dd6b888e1d438967bb636187b249bbf"
       },
       "aiCopy": {
         "path": "app/src/nav/pageSummaries.generated.json#pages/families/aero-conditions",
-        "sha256": "6e786810d988e4fbd718ee6387344f936c226c9e350399e9db60966b7b2341be"
+        "sha256": "8bd87236ac5b552fd27fcdb3bfd2d1c658a1f30562f76f3e5f086f44b809cc21"
       }
     },
     "families/constructors": {
@@ -296,7 +306,7 @@
     "overview": {
       "docs": {
         "path": "docs/app/overview.mdx",
-        "sha256": "8498652a9d514278635f44077822007d2dde811dfec27cc0412369bce08bc5d0"
+        "sha256": "63cb58cc9a0174b8e9d19ec93712bf4d367e485227ee0f2c38442ec875a10adb"
       },
       "aiCopy": {
         "path": "app/src/nav/pageSummaries.generated.json#pages/overview",
@@ -400,11 +410,11 @@
     "track-evolution": {
       "docs": {
         "path": "docs/app/track-evolution.mdx",
-        "sha256": "782ad61930c776e97f8b3aaca1356c0976a9212a42eff8bc6a5599af7b7ed3eb"
+        "sha256": "4b5a0d7b2a0291971f5a1bdaa9eff26078a991097d843236d9c65655eaef4c78"
       },
       "aiCopy": {
         "path": "app/src/nav/pageSummaries.generated.json#pages/track-evolution",
-        "sha256": "7d55a4c38f65da5ab17977e5af8c42a8b9712dc62c3339b8d107d044986384ff"
+        "sha256": "dd329238c1cf0914ec052f776a1a0923824a422f671900530b243c0346d28b51"
       }
     },
     "tyre-cliff-survival": {
@@ -436,6 +446,107 @@
         "path": "app/src/nav/pageSummaries.generated.json#pages/wet-race-specialist",
         "sha256": "f1448cf49f7d99dbc3adeda8542a5a37369167960233932d64d2936278ee9661"
       }
+    }
+  },
+  "claimPages": {
+    "docs/app/blind-test-scoreboard.mdx": {
+      "sha256": "e3f612e531445626d3e410ca2181ec1b1511271c6c34c7ae50ac5527d717a7fa"
+    },
+    "docs/app/constructor-circuit-interaction.mdx": {
+      "sha256": "48791432dc68fb055a3acdc23c3cba4487b3139d05cb00b6d6b7894513e96511"
+    },
+    "docs/app/constructor-structural-pace.mdx": {
+      "sha256": "4904a3686091f2575ee1836bcd7bc932eb1596ab751daa5a1b707d9ad27ad46d"
+    },
+    "docs/app/corner-phase-skill.mdx": {
+      "sha256": "9f520f554106409006d9fb243bbe5e0faf87c7bdc25d9d5eb13418d38746fe8c"
+    },
+    "docs/app/counterfactual-championship.mdx": {
+      "sha256": "27783105d58124604206691632bde0134764c287bd56a75167e890492f50bd3d"
+    },
+    "docs/app/data-quality-audit.mdx": {
+      "sha256": "b7e5c707ce49207c325c2e4e1e0310e1e79a737fe812e3f5a541125470ce0572"
+    },
+    "docs/app/degradation-simulator.mdx": {
+      "sha256": "77d8ef5c5982663572a855da5e8683a23758a11544fc3f2d683536406bfa39f3"
+    },
+    "docs/app/dirty-air-cost.mdx": {
+      "sha256": "83cdbff1734127a09b5a0c238ee5cb2d9efb621d605b65577d9eb9801d44c1b6"
+    },
+    "docs/app/dirty-air-lap-map.mdx": {
+      "sha256": "c69af9cad1da395340934374dacc3b24c1e00ac1b2950d24a44f4eae6ca2186d"
+    },
+    "docs/app/driver-circuit-affinity.mdx": {
+      "sha256": "19e60005dce641a5327a5c328774f51fbaa43459b6ea5de1664edd5665ddce59"
+    },
+    "docs/app/driver-workload.mdx": {
+      "sha256": "317a912b431aec21a50c07a9118c01edd042b660fc78a818fdd566875c2ac246"
+    },
+    "docs/app/era-ratings-timeline.mdx": {
+      "sha256": "2807aaf988cfe4d9d6fbc12dad14c959a045e86b76bcd4e2df6b509a2431ab7f"
+    },
+    "docs/app/era-translator.mdx": {
+      "sha256": "f070141191a31de0f0993ecf45385e5dcf81ce8af1a71f7c50ac9c8baf3ecbea"
+    },
+    "docs/app/ghost-race-standings.mdx": {
+      "sha256": "ddfc36170c28f58b49f094ed672dfed4275696881ad2b1451c2a8e87c2e13f38"
+    },
+    "docs/app/model-metrics.mdx": {
+      "sha256": "baa9591312005e69d7c09b07dcb1bbcb1830452d76f4c85a313422d56e572a38"
+    },
+    "docs/app/party-mode.mdx": {
+      "sha256": "849ae44479d8994cb0717e5fa19ebfa6bbbf72fab15bf4c29f9af474b0a75732"
+    },
+    "docs/app/quali-vs-race-skill.mdx": {
+      "sha256": "7fc929625fd9fa3dc411f9c7cf0ee5961291860e3442ebb5297422975dead391"
+    },
+    "docs/app/query-lab.mdx": {
+      "sha256": "dbdad3676e782f4448bd90c3e093e5ddaeeeee4bfbe172bbd20abefdd6fa891b"
+    },
+    "docs/app/race-lost.mdx": {
+      "sha256": "b7d3ec8075c620fe9835fbc9190570bcea84211c1a45c18960b2409aed88239c"
+    },
+    "docs/app/sector-decomposition.mdx": {
+      "sha256": "02a2925b6dadcd7a153e9432fc9d138979bc85f04e2be5d6947a1ad89bf60300"
+    },
+    "docs/app/stint-degradation-timeline.mdx": {
+      "sha256": "4d65c222ce8c74b9bddef787732f62f4c0a093f171412b2f6b211d66d0015510"
+    },
+    "docs/app/synthetic-teammate.mdx": {
+      "sha256": "ac002be2ee83a10808f2556b0d3c8956766f7c343784645037ae0ce1c9810aa7"
+    },
+    "docs/app/track-evolution.mdx": {
+      "sha256": "4b5a0d7b2a0291971f5a1bdaa9eff26078a991097d843236d9c65655eaef4c78"
+    },
+    "docs/app/tyre-cliff-survival.mdx": {
+      "sha256": "5f74a036c2c11e50626d7caa209ca0408d3b6626a1d25035fbd23cbaefaf718b"
+    },
+    "docs/app/tyre-recovery-forecast.mdx": {
+      "sha256": "025d2e5c6129e272bae4c3af34ae92bc27e70e836d016ff97b6f6abff308ad81"
+    },
+    "docs/app/wet-race-specialist.mdx": {
+      "sha256": "ea1c7890f931c8ec2962283e8fee048d99c72f253af677e3139b30d04fdef8dc"
+    },
+    "docs/decomposition/driver-isolation.mdx": {
+      "sha256": "358f08c1dbbb593f4c0a58b4768eb6ed7d3ace85321fe38ec5fb4b77973959d2"
+    },
+    "docs/decomposition/tyre-cliff.mdx": {
+      "sha256": "a9896de48b88885737a96a2a5a970760c953a4f7ecfe7db445d28475ae861fbc"
+    },
+    "docs/ml/feature-contract.mdx": {
+      "sha256": "7c289c0661100e4163a59cddcbe08de5cdd7177c2ad82b8aa606a840f6a61c57"
+    },
+    "docs/ml/overview.mdx": {
+      "sha256": "5c077b69a346253f54547d3ad4cf41e7a9bef360bf6e1c07549aa62c33e9706b"
+    },
+    "docs/reference/models/dim/dim_compounds_season.mdx": {
+      "sha256": "35fc2782f338c4ef785d0f03ff5834e479a13a3a5153ac10d92e176780ec17f9"
+    },
+    "docs/snippets/app-page-template.mdx": {
+      "sha256": "df3008350b0908e253f2760ab63d4b0039437fad638f693e1db163bf26f7e164"
+    },
+    "docs/snippets/ml-inventory.mdx": {
+      "sha256": "a998636cd255906aecfb5604f894feb3b8c2205d5f94b6e943d71f110ea058f3"
     }
   }
 }

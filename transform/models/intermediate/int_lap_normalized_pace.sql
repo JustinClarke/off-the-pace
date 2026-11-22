@@ -109,7 +109,7 @@ evolution AS (
         race_id,
         lap_number,
         rainfall_flag
-    FROM {{ ref('int_track_evolution') }}
+    FROM {{ ref('int_lap_rain_state') }}
 ),
 
 -- Calibration panel: clean, dry, valid laps. Same exclusions as
@@ -144,7 +144,7 @@ calibration_panel AS (
         l.is_valid_lap = TRUE
         AND l.lap_time_s IS NOT NULL
         AND COALESCE(c.correction_weight, 1.0) = 1.0
-        AND COALESCE(e.rainfall_flag, FALSE) = FALSE
+        AND e.rainfall_flag = FALSE
 ),
 
 -- theta_time: seconds of lap time per second spent within 1.5s of the car

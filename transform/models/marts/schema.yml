@@ -714,6 +714,15 @@ models:
           in (mistake, conditions, event_driven), and not the lap after an SC/red-flag restart
           lap (int_event_corrections.is_lap_after_restart). The last two are FD2's ruling
           (WI-01): exclude, not weight.
+          Also requires base_pace_status = MEASURED (int_lap_residual_decomposed): THIN_CELL and
+          NO_CELL laps have no field base pace, so their driver_skill_residual_s is NULL and they
+          are never training rows. They keep their rows and numeric total_explained_s in every
+          analytical output; only this flag excludes them. base_pace_status is not a column of
+          this mart (enforced contract) and is not an ML feature.
+          Rain contract: WET laps (rain_state WET) are anomaly_class conditions, so they are
+          excluded from this dry-condition training population but stay in the warehouse
+          with their WET classification. NO_WEATHER laps (no weather reading) are NOT
+          excluded and remain trainable. DRY means a reading exists and rainfall_flag is FALSE.
         data_type: boolean
         constraints:
           - type: not_null
@@ -1584,10 +1593,18 @@ models:
           (TX-30 step e; was 0.0).
         data_type: double
       - name: constructor_component_s
-        description: Constructor structural pace component.
+        description: Constructor structural pace component. 0.0 where constructor_pace_is_filled.
         data_type: double
         tests:
           - not_null
+      - name: constructor_pace_is_filled
+        description: TRUE where constructor_component_s is the 0.0 fill (no measured structural pace for the race and constructor). Aggregates of the car term leave these laps out. Does not enter ml_eligible.
+        data_type: boolean
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [true, false]
       - name: dirty_air_tax_s
         description: >
           Per-lap dirty-air slowdown component. NULL on a lap with a measured base whose
@@ -1623,6 +1640,19 @@ models:
         description: >
           lap_time_s - base_track_pace_s. NULL when base_track_pace_s is NULL (F1).
         data_type: double
+      - name: base_pace_status
+        description: >
+          Why base_track_pace_s is or is not there, from int_lap_residual_decomposed: MEASURED
+          (a pace cell on 5 or more cars), THIN_CELL (a cell on fewer than 5 cars, no base) or
+          NO_CELL (no pace cell for the lap). base_track_pace_s and pace_delta_s are NULL exactly
+          when this is not MEASURED. total_explained_s is numeric regardless, so it is not a
+          measured decomposition on non-MEASURED rows.
+        data_type: varchar
+      - name: base_eligible_lap_count
+        description: >
+          Count (laps, unitless) of eligible laps behind the lap's pace cell. NULL only when
+          base_pace_status is NO_CELL.
+        data_type: integer
       - name: ml_eligible
         description: TRUE when the lap is training-quality for ML inputs.
         data_type: boolean
@@ -2776,13 +2806,24 @@ models:
                 to: ref('dim_constructors')
                 field: constructor_id
       - name: constructor_rank
-        description: Season rank of the constructor's mean constructor_component_s; 1 = fastest car.
+        description: Season rank (RANK, ties share a number) of the constructor's mean constructor_component_s over measured laps only; 1 = fastest car. NULL when the constructor has none (constructor_rank_status = NO_MEASURED_LAPS).
+      - name: constructor_measured_laps_n
+        description: ml_eligible laps with a measured car term (constructor_pace_is_filled = FALSE) for the constructor in the season. 0 when none.
+      - name: constructor_filled_share
+        description: Filled share of the constructor's ml_eligible laps in the season (filled / total). 1.0 when none is measured; NULL when the constructor has no ml_eligible laps.
+      - name: constructor_rank_status
+        description: "OK when constructor_rank is set; NO_MEASURED_LAPS when the constructor has no measured car-term laps (rank NULL)."
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['OK', 'NO_MEASURED_LAPS']
       - name: mean_fuel_component_s
         description: Mean fuel component over ml_eligible laps, seconds.
       - name: mean_compound_component_s
         description: Mean compound component over ml_eligible laps, seconds.
       - name: mean_constructor_component_s
-        description: Mean constructor component over ml_eligible laps, seconds.
+        description: Mean constructor component over ml_eligible laps with a measured car term only (constructor_pace_is_filled = FALSE), seconds. NULL when none.
       - name: mean_dirty_air_tax_s
         description: >
           Mean dirty-air tax over the season's ml_eligible laps with a measured air state (a row
@@ -2855,7 +2896,9 @@ models:
       dirty_air_tax_s and lap_time_s. Null values are dropped before aggregation. The
       dirty_air_tax_s row excludes unmeasured laps: only laps with a row in
       int_dirty_air_tax_component and a non-NULL tax count (fct_lap_residuals writes 0.0 on
-      the rest, which is not clean air).
+      the rest, which is not clean air). The constructor_component_s row excludes
+      prior-filled laps (constructor_pace_is_filled = TRUE), so its mean, quantiles and
+      sample_size are over measured laps only.
     tags: [marts]
     meta:
       family: marts
@@ -2894,7 +2937,9 @@ models:
           Non-null lap count behind the row. Recounted from fct_lap_residuals by
           assert_ai_mart_counts_consistent (and, for dirty_air_tax_s, by
           assert_dirty_air_mean_excludes_unmeasured); the old range test (>= 1, against a
-          minimum of 13,501) could not fail and was removed by TX-08.
+          minimum of 13,501) could not fail and was removed by TX-08. For
+          constructor_component_s, sample_size counts measured (not prior-filled) laps;
+          other metrics are unchanged.
         tests:
           - not_null
     tests:
@@ -2997,13 +3042,24 @@ models:
                 to: ref('dim_constructors')
                 field: constructor_id
       - name: constructor_rank
-        description: Race rank of the constructor's mean constructor_component_s; 1 = fastest car.
+        description: Race rank (RANK, ties share a number) of the constructor's mean constructor_component_s over measured laps only; 1 = fastest car. NULL when the constructor has none (constructor_rank_status = NO_MEASURED_LAPS).
+      - name: constructor_measured_laps_n
+        description: ml_eligible laps with a measured car term (constructor_pace_is_filled = FALSE) for the constructor in the race. 0 when none.
+      - name: constructor_filled_share
+        description: Filled share of the constructor's ml_eligible laps in the race (filled / total). 1.0 when none is measured; NULL when the constructor has no ml_eligible laps.
+      - name: constructor_rank_status
+        description: "OK when constructor_rank is set; NO_MEASURED_LAPS when the constructor has no measured car-term laps (rank NULL)."
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['OK', 'NO_MEASURED_LAPS']
       - name: mean_fuel_component_s
         description: Mean fuel component over ml_eligible laps, seconds.
       - name: mean_compound_component_s
         description: Mean compound component over ml_eligible laps, seconds.
       - name: mean_constructor_component_s
-        description: Mean constructor component over ml_eligible laps, seconds.
+        description: Mean constructor component over ml_eligible laps with a measured car term only (constructor_pace_is_filled = FALSE), seconds. NULL when none.
       - name: mean_dirty_air_tax_s
         description: >
           Mean dirty-air tax over the driver's ml_eligible laps in the race with a measured air

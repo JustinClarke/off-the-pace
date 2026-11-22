@@ -91,7 +91,7 @@ evolution AS (
         race_id,
         lap_number,
         rainfall_flag
-    FROM {{ ref('int_track_evolution') }}
+    FROM {{ ref('int_lap_rain_state') }}
 ),
 
 clean_panel AS (
@@ -117,7 +117,7 @@ clean_panel AS (
     WHERE
         f.lap_time_s IS NOT NULL
         AND COALESCE(cor.correction_weight, 1.0) = 1.0
-        AND COALESCE(e.rainfall_flag, FALSE) = FALSE
+        AND e.rainfall_flag = FALSE
 )
 
 SELECT

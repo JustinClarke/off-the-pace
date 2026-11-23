@@ -1,5 +1,5 @@
 {
-  "version": "e5b324bf3e6d07a6",
+  "version": "f8399bc270fa752f",
   "generatedAt": "2026-11-08T19:12:33.205445+00:00",
   "stats": {
     "total_laps": 161040,
@@ -1087,8 +1087,8 @@
       "name": "int_sc_hazard_history",
       "path": "/data/intermediates/int_sc_hazard_history.parquet",
       "partitioned": false,
-      "rows": 173,
-      "hash": "5cf1ee43bc61b0fea75a5ef5ea19237b"
+      "rows": 191,
+      "hash": "9e10a7c086071dd49796e49bd591e5ac"
     },
     {
       "name": "int_corner_metrics",

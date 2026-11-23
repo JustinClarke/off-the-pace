@@ -20,7 +20,7 @@ WITH races_in_scope AS (
     SELECT DISTINCT
         race_year,
         race_id,
-        race_slug AS circuit_slug
+        {{ hazard_circuit_key('race_year', 'race_slug') }} AS circuit_slug
     FROM {{ ref('stg_track_status') }}
 ),
 

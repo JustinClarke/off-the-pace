@@ -31,8 +31,11 @@
 -- data/dev.duckdb, that is 148 of 148 races, 100% of every season 2018-2024 --
 -- the "incomplete for some seasons" caveat the old header carried was stale.
 -- Onset and exposure are taken over the SAME race set so the rate is well
--- defined. The venue key is the race name slug (e.g. monaco_grand_prix), which
--- recurs across seasons; stg_laps.race_id is the numeric per-season id, so we
+-- defined. The venue key is a venue key: the race name slug (e.g.
+-- monaco_grand_prix), which recurs across seasons, except 2026 Spanish, which is
+-- split by physical circuit (Madrid 2026 = madring_grand_prix; Barcelona 2026
+-- keeps spanish_grand_prix and inherits its 2018-2025 history); see macro
+-- hazard_circuit_key. stg_laps.race_id is the numeric per-season id, so we
 -- map it to the slug via the track_status scope.
 {{ config(materialized='table') }}
 
@@ -41,7 +44,7 @@ WITH races_in_scope AS (
     SELECT DISTINCT
         race_year,
         race_id,
-        race_slug AS circuit_slug
+        {{ hazard_circuit_key('race_year', 'race_slug') }} AS circuit_slug
     FROM {{ ref('stg_track_status') }}
 ),
 
@@ -58,9 +61,12 @@ onsets AS (
     GROUP BY ts.race_year, ts.race_id
 ),
 
--- Racing-lap exposure per race: the leader's lap count ≈ race distance, i.e.
--- the
+-- Lap exposure per race: the leader's lap count ≈ race distance, i.e. the
 -- number of per-lap hazard opportunities. Use the max lap_number observed.
+-- This is MAX(lap_number) from stg_laps per race, NOT a count of green or
+-- racing laps. It includes SC, VSC and red-flag laps and is NOT filtered by
+-- is_valid_lap. The resulting metric is historical SC/VSC onsets per FULL race
+-- lap, not a green-flag-conditional hazard rate.
 exposure AS (
     SELECT
         race_year,

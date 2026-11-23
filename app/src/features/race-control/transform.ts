@@ -127,6 +127,16 @@ export interface HazardContext {
   ownDataWeight: number
 }
 
+/** Below this own-data weight the shrunk estimate is mostly the pooled rate. */
+export const OWN_DATA_LOW_WEIGHT = 0.2
+
+/** Short plain phrase describing how much this circuit's own history moves the estimate. */
+export function ownDataWeightPhrase(weight: number): string {
+  return weight < OWN_DATA_LOW_WEIGHT
+    ? 'so it is mostly the all-circuits pooled rate'
+    : "so this circuit's own history carries a substantial share"
+}
+
 export function hazardContext(rows: HazardRow[]): HazardContext {
   const row = rows[0] ?? null
   if (!row) return { row: null, unmeasurable: true, ownDataWeight: 0 }

@@ -13,6 +13,7 @@ import {
   hazardContext,
   toCsvRows,
   EB_PRIOR_LAPS,
+  ownDataWeightPhrase,
 } from './transform'
 import './queries'
 import type { CautionLapRow, HazardRow, PooledRateRow } from './queries'
@@ -228,11 +229,10 @@ export default function RaceControlPage() {
                 </div>
               </div>
               <p className="mt-2 max-w-2xl text-xs leading-relaxed text-muted">
-                This is the shrunk estimate, and only{' '}
-                <span className="font-mono">{pct(hazard.ownDataWeight)}</span> of it is this
-                circuit&apos;s own history — the rest is the all-circuits pooled rate, because{' '}
-                {hazard.row.prior_racing_laps.toLocaleString()} prior laps against a{' '}
-                {EB_PRIOR_LAPS}-lap prior is not enough to move it. Read it as context, not as a
+                This is the shrunk estimate: <span className="font-mono">{pct(hazard.ownDataWeight)}</span>{' '}
+                of it is this circuit&apos;s own history and the rest is the all-circuits pooled
+                rate. With {hazard.row.prior_racing_laps.toLocaleString()} prior laps against a{' '}
+                {EB_PRIOR_LAPS}-lap prior, {ownDataWeightPhrase(hazard.ownDataWeight)}. Read it as context, not as a
                 forecast for this weekend. The raw per-circuit rate, which spans zero to ten
                 onsets per hundred laps on the same data, is not shown anywhere in this app.
               </p>

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { transform, wilson, summarisePooled, hazardContext } from './transform'
+import { transform, wilson, summarisePooled, hazardContext, ownDataWeightPhrase } from './transform'
 import type { CautionLapRow, HazardRow, PooledRateRow } from './queries'
 
 function lap(n: number, status: CautionLapRow['caution_status'], raceLaps = 10): CautionLapRow {
@@ -110,6 +110,16 @@ describe('hazardContext', () => {
     expect(c.unmeasurable).toBe(false)
     expect(c.ownDataWeight).toBeCloseTo(78 / 678, 4)
     expect(c.ownDataWeight).toBeLessThan(0.15)
+  })
+
+  it('does not claim the prior dominates when own data is about 45%', () => {
+    const c = hazardContext([{ ...base, prior_racing_laps: 494 }])
+    expect(c.ownDataWeight).toBeCloseTo(494 / 1094, 4)
+    const phrase = ownDataWeightPhrase(c.ownDataWeight)
+    expect(phrase).toBe("so this circuit's own history carries a substantial share")
+    expect(phrase).not.toMatch(/not enough to move/)
+    expect(phrase).not.toMatch(/mostly the all-circuits/)
+    expect(ownDataWeightPhrase(78 / 678)).toBe('so it is mostly the all-circuits pooled rate')
   })
 
   it('handles a venue with no row at all', () => {

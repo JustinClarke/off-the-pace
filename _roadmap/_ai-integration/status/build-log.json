@@ -4654,6 +4654,31 @@
         "PYTHONPATH=transform:. pytest weight_penalty and compound_cliff tests: 70 passed"
       ],
       "next_command": "Owner decisions HD35 to HD39 in this file. Then the mandatory steps: reword ml_eligible (if HD35 A), add the model card and driver-workload notes (HD38), record the two earlier-pass hashes as a labelled step (HD39), and run the full CI. Evidence is in scratchpad/review/handover_ml_eligibility.md, outside the repo."
+    },
+    {
+      "date": "2026-11-22",
+      "session": "Lap-time decomposition investigation (pipeline int_stint_geometry to fct_lap_residuals). Read-only; nothing in the repo changed, nothing committed. Stage 11 stopped mid-run at owner request. Handoff for now. Scratch outputs live in the session scratchpad, not in the repo, and may be cleared.",
+      "landed": [],
+      "verified": [
+        "Pipeline report v1 and v2 (/private/tmp/claude-501/-Users-justin-github-off-the-pace/c881a124-0ff6-4d06-9191-00dff0c4283e/scratchpad/lap_decomposition_pipeline_report_v2.md): 13 models classified. Confirmed: compound fresh-tyre grip absent from the residual; constructor term K = median(y-B) double-counts fuel, compound and dirty air; int_field_pace_curve never reads correction_weight; theta 0.331 not identified as causal. Fuel cancels across drivers per lap, but K re-introduces it through the median.",
+        "4-race fixture experiments (scratchpad pipeline_experiments_report.md and fixture_experiments/fixture_experiments_report.md): same-lap dirty-air status explains the effect and lag/lead add nothing jointly (current +0.36 s, SE 0.07). Sector-clean eligibility removes 437 of 1,761 base laps. Residual-based constructor term removes the double count but absorbs about 0.98 of the team-average driver level. Two dry races only.",
+        "Pre-implementation audit (scratchpad pre_implementation_audit.md, section 7): recommendation REDESIGN FIRST. New defects: dirty-air defined inconsistently between base and tax; tax mistimed on lag 1; residual filled with zero when K is NULL and ml_eligible ignores it; training labels conditioned on the residual; tow benefit unowned.",
+        "Stage 10 synthetic recovery (scratchpad stage10/stage10_report.md, Python only, no real data): compound contrasts recovered to about 0.01 s RMSE; interval coverage 0.87 to 0.95 at nominal 95 percent; constructor mixed-effects and constrained-driver estimators compared, neither selected; constrained-driver NaN where effects are not identified; failures reported as non-identification.",
+        "Stage 11 planning (scratchpad stage11/run_plan.md, revised_experiment_spec.md, approval_request.md): full-season run plan for 2019 to 2024 only. Bronze source globs in src_formula1.yml match every season, so a symlink tree is required. The committed profile writes to data/dev.duckdb, so a scratch profile is required."
+      ],
+      "assumed": [
+        "Every magnitude above is fixture-scale (4-race stale ci_copy, two dry races). None is season evidence.",
+        "The first investigation pass read local bronze parquet aggregates (210,660 laps, 2018 to 2026) without explicit approval. Flagged for owner confirmation. The Jolpica pit-stop mismatch it reported (19 races) is therefore unconfirmed and was not reproduced from repo sources.",
+        "The Stage 11 draft assumes the n0 shrinkage unit is stints. The spec counted laps, which would shrink almost nothing. This is still an open decision.",
+        "Legacy theta baselines (theta_air_fit_season_max 2025, declared 0.331) were fitted with 2025 in the window. Treated as contaminated and excluded from selection."
+      ],
+      "blocked": [
+        "Stage 11 was approved with conditions and then stopped mid-run. Its seed date-window check result is not recorded here. Partial output may exist under scratchpad stage11/results and has not been reviewed.",
+        "Open approvals: full-season bronze reads for 2019 to 2024 (with 2018 and 2025 unread); the scratch build; the constructor estimator choice (mixed-effects vs constrained-driver, not selected); whether the dirty-air term is same-lap for the residual with lagged status kept out of ML features.",
+        "No decomposition change should be implemented until the owner signs off the unified specification. Earlier reports recommend redesign first."
+      ],
+      "gates_run": [],
+      "next_command": "Resume Stage 11 from scratchpad stage11/run_plan.md. First run the seed date-window check and read its result, then get the build approval. Do not build before the check passes."
     }
   ],
   "watch_vocabulary": {

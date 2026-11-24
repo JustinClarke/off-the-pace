@@ -149,7 +149,8 @@ models:
         data_type: varchar
       - name: fit_source
         description: >
-          Cell-level fit tier (cox_km_survival, cross_season_fallback, pooled_compound_fallback, compound_class_default,
+          Cell-level fit tier (cox_km_survival -- a Kaplan-Meier fit, no Cox model exists; the
+          name is kept for consumers -- cross_season_fallback, pooled_compound_fallback, compound_class_default,
           carried_forward_<season>). Says which tier was attempted, not where each number came
           from -- use the three *_source columns for that.
         data_type: varchar
@@ -189,13 +190,26 @@ models:
         data_type: varchar
       - name: is_measured
         description: >
-          TRUE only when onset_source, gradient_source and severity_source are all one of fitted,
-          cross_season_fallback, pooled_compound_fallback or carried_forward, i.e. no parameter is
-          a compound-class default. Derived here, not in the seed. pooled_compound_fallback is
-          measured but not venue-specific. Filter or flag on this instead of re-deriving it from
-          the three *_source columns.
+          TRUE only when onset_source, gradient_source and severity_source are all 'fitted', i.e.
+          every parameter is an own-history fit for this event. FALSE when any parameter is
+          cross_season_fallback, pooled_compound_fallback, carried_forward or class_default (the
+          first three are borrowed measurements, not this cell's own). Derived here, not in the
+          seed. Filter or flag on this instead of re-deriving it from the three *_source columns.
         data_type: boolean
         tests: [not_null]
+      - name: provenance_class
+        description: >
+          One label per cell: own_history_fitted (all three fitted); else the shared source when
+          all three parameters agree (cross_season_fallback, pooled_compound_fallback,
+          class_default, carried_forward); else mixed (per-parameter sources differ, read the
+          *_source columns). A (venue, season, compound) with no row is 'missing' in
+          fct_cliff_prediction_features.
+        data_type: varchar
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['own_history_fitted', 'cross_season_fallback', 'pooled_compound_fallback', 'class_default', 'carried_forward', 'mixed']
     tests:
       - dbt_utils.unique_combination_of_columns:
           arguments:

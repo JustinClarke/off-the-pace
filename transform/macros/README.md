@@ -285,6 +285,12 @@ copied into six models and had diverged; every site now calls these.
 
 ---
 
+### `compound_is_measured(onset_source, gradient_source, severity_source)` and `compound_provenance_class(...)`
+
+The one definition of how the three per-parameter source tags collapse into `dim_compounds_season.is_measured` (TRUE only when all three are `fitted`, i.e. own-history fits) and `provenance_class`. **Used by:** `dim_compounds_season`, `assert_compound_provenance_semantics`.
+
+---
+
 ### `fuel_regulatory_max_kg(season_column)`
 
 The FIA race-fuel limit in kg for a season, read from `var('fuel_regulatory_max_kg_by_season')`.

@@ -342,7 +342,12 @@ compound_params AS (
         compound_optimal_temp_low,
         compound_optimal_temp_high,
         compound_cliff_onset_laps,
-        compound_cliff_severity
+        compound_cliff_severity,
+        onset_source,
+        gradient_source,
+        severity_source,
+        is_measured,
+        provenance_class
     FROM {{ ref('dim_compounds_season') }}
 ),
 
@@ -534,6 +539,14 @@ base AS (
         cp.compound_optimal_temp_high,
         cp.compound_cliff_onset_laps,
         cp.compound_cliff_severity,
+
+        -- Compound parameter provenance (descriptive only; not model features).
+        -- No dim cell -> sources NULL, class 'missing', never measured.
+        cp.onset_source AS compound_onset_source,
+        cp.gradient_source AS compound_gradient_source,
+        cp.severity_source AS compound_severity_source,
+        COALESCE(cp.is_measured, FALSE) AS compound_params_is_measured,
+        COALESCE(cp.provenance_class, 'missing') AS compound_params_provenance_class,
 
         -- Track context
         dc.track_energy_index,
@@ -842,6 +855,11 @@ SELECT
     compound_optimal_temp_high,
     compound_cliff_onset_laps,
     compound_cliff_severity,
+    compound_onset_source,
+    compound_gradient_source,
+    compound_severity_source,
+    compound_params_is_measured,
+    compound_params_provenance_class,
 
     -- Thermal predictors (C3 added surface_bulk_ratio; it survived the feature
     -- prune)

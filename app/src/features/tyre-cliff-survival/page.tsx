@@ -10,7 +10,7 @@ import { useRaceOptions } from '../shared/useRaceOptions'
 import { transform, toCsvRows, findProfile } from './transform'
 
 import { TechTooltip } from '../../ui/TechTooltip'
-import { CLIFF_ESTIMATE_LABEL, cliffOnsetDisplay, formatOnsetRange, isClassDefault } from '../shared/cliffEstimate'
+import { BORROWED_ESTIMATE_LABEL, CLIFF_ESTIMATE_LABEL, UNKNOWN_SOURCE_LABEL, cliffOnsetDisplay, formatOnsetRange, paramNoteLabel, paramSourceNote } from '../shared/cliffEstimate'
 import './queries'
 import type { RaceCompoundRow, CompoundProfileRow, StintSummaryRow } from './queries'
 
@@ -187,13 +187,13 @@ export default function TyreCliffSurvivalPage() {
               : 'The lap when degradation begins accelerating rapidly (Kaplan-Meier survival baseline)'}>
               <span className="cursor-help">Model onset: {onsetDisplay?.kind === 'estimate'
                 ? <>{onsetDisplay.range && <span className="font-mono text-[rgb(var(--color-text))]">{formatOnsetRange(onsetDisplay.range)} </span>}<span className="italic">({CLIFF_ESTIMATE_LABEL})</span></>
-                : <span className="font-mono text-[rgb(var(--color-text))]">lap {profile.compound_cliff_onset_laps}</span>}</span>
+                : <><span className="font-mono text-[rgb(var(--color-text))]">lap {profile.compound_cliff_onset_laps}</span>{onsetDisplay?.kind === 'measured' && onsetDisplay.borrowed && <span className="italic"> ({BORROWED_ESTIMATE_LABEL})</span>}{onsetDisplay?.kind === 'measured' && onsetDisplay.unknown && <span className="italic"> ({UNKNOWN_SOURCE_LABEL})</span>}</>}</span>
             </TechTooltip>
             <TechTooltip content="The sudden jump in lap time (seconds) when the cliff hits">
-              <span className="cursor-help">Severity: <span className="font-mono text-[rgb(var(--color-text))]">+{profile.compound_cliff_severity?.toFixed(2)}s</span>{isClassDefault(profile.severity_source) && <span className="italic"> ({CLIFF_ESTIMATE_LABEL})</span>}</span>
+              <span className="cursor-help">Severity: <span className="font-mono text-[rgb(var(--color-text))]">+{profile.compound_cliff_severity?.toFixed(2)}s</span>{paramNoteLabel(paramSourceNote(profile.severity_source)) && <span className="italic"> ({paramNoteLabel(paramSourceNote(profile.severity_source))})</span>}</span>
             </TechTooltip>
             <TechTooltip content="The steady pace loss per lap (seconds/lap) before the cliff">
-              <span className="cursor-help">Wear rate: <span className="font-mono text-[rgb(var(--color-text))]">{profile.compound_wear_gradient?.toFixed(4)}s/lap</span>{isClassDefault(profile.gradient_source) && <span className="italic"> ({CLIFF_ESTIMATE_LABEL})</span>}</span>
+              <span className="cursor-help">Wear rate: <span className="font-mono text-[rgb(var(--color-text))]">{profile.compound_wear_gradient?.toFixed(4)}s/lap</span>{paramNoteLabel(paramSourceNote(profile.gradient_source)) && <span className="italic"> ({paramNoteLabel(paramSourceNote(profile.gradient_source))})</span>}</span>
             </TechTooltip>
           </div>
         )}

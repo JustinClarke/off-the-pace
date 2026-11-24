@@ -8,7 +8,7 @@ import { useQuery } from '../../data/hooks/useQuery'
 import { useFilters } from '../../state/FilterContext'
 import { useRaceOptions } from '../shared/useRaceOptions'
 import { transform, toCsvRows } from './transform'
-import { CLIFF_ESTIMATE_LABEL, formatOnsetRange } from '../shared/cliffEstimate'
+import { BORROWED_ESTIMATE_LABEL, CLIFF_ESTIMATE_LABEL, UNKNOWN_SOURCE_LABEL, formatOnsetRange } from '../shared/cliffEstimate'
 import './queries'
 import type { DegradationProfileRow } from './queries'
 
@@ -115,6 +115,8 @@ export default function StintDegradationTimelinePage() {
                 {profile.cliffOnsetDisplay?.kind === 'measured' && (
                   <span className="text-xs text-muted/70">
                     · cliff onset ~{profile.cliffOnsetDisplay.lap} laps
+                    {profile.cliffOnsetDisplay.borrowed && <span className="italic"> ({BORROWED_ESTIMATE_LABEL})</span>}
+                    {profile.cliffOnsetDisplay.unknown && <span className="italic"> ({UNKNOWN_SOURCE_LABEL})</span>}
                   </span>
                 )}
                 {profile.cliffOnsetDisplay?.kind === 'estimate' && (

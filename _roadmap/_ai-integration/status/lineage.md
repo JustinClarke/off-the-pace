@@ -2,6 +2,21 @@
 
 Snapshot taken 2026-11-24 of the transform pipeline: lineage, bronze storage, schemas and robustness signals. Built by reading the model, schema, test, app and ML code. No dbt run, no data queried, no tests executed in sections A to E. Section F (Race Control and Safety Car hazard) was checked against the built exports, the CI fixture and the test suites on the same day.
 
+**Change status (added 2026-11-24).** Sections A to F describe the main baseline `ac3fdd9`. Work that is deferred, or implemented but not merged, is tracked in section G (Task 2A deferred, Task 2B reviewed and not merged). Nothing in G changes a finding above.
+
+## Repo status snapshot (2026-11-24)
+
+- **Main.** Branch `main` at `ac3fdd9`. Tracked files are clean; the only working-tree changes are documentation (this file and the `_roadmap/_archive/compound-cliff-2a/` folder).
+- **Task 2A.** Deferred and reverted to base `ac3fdd9`. The patch and tests are archived in [`_roadmap/_archive/compound-cliff-2a/`](../../_archive/compound-cliff-2a/ARCHIVED.md). No 2A functional change is active.
+- **Task 2B.** Implemented in worktree branch `task2b-compound-provenance`, uncommitted, reviewed and ready to merge. Not merged.
+- **Warehouses.** `data/dev.duckdb` is near-empty (under 1 MB) and is not a trusted build. `data/ci.duckdb` is the CI fixture. Neither is a canonical full build.
+- **Pipeline in brief.**
+  1. Raw bronze parquet (FastF1, Jolpica) is declared as sources in `transform/models/staging/src_*.yml`.
+  2. Staging (`stg_*`) cleans one raw table each.
+  3. Intermediate (`int_*`) holds the logic. The compound path is `dim_compounds_season` (reference, fitted coefficients) feeding `int_compound_cliff_predicted`.
+  4. Marts include `fct_cliff_prediction_features`, which reads `int_compound_cliff_predicted`.
+  5. Readers: ML (`ml/src`) reads the marts from the warehouse, and `scripts/export_app_data.py` exports tables to parquet for the app.
+
 **Top findings**
 
 1. Almost every number the app and the ML model show passes through [int_stint_geometry](../../../transform/models/intermediate/int_stint_geometry.sql), [int_lap_fuel_state](../../../transform/models/intermediate/int_lap_fuel_state.sql) and [int_lap_residual_decomposed](../../../transform/models/intermediate/int_lap_residual_decomposed.sql). A mistake in any of these spreads to 30 to 60 other models.
@@ -1051,3 +1066,36 @@ Re-run commands (these write to the warehouse or `target/`; use a scratch copy, 
 - `cd app && npx tsc --noEmit -p tsconfig.app.json`
 - `cd transform && ../.venv/bin/dbt build --select int_sc_hazard_history`
 - `cd transform && ../.venv/bin/dbt test --select 'assert_sc_hazard_*'`
+
+---
+
+## G. Change status (updated 2026-11-24)
+
+Status taxonomy. Sections A to F stay as written. Provenance becoming visible is not a fix: no upstream model below is marked fixed by Task 2B.
+
+### G1. Completed and verified changes
+
+The hazard work in section F (verified there on 2026-11-24). Per-model status and risk entries in sections C and D are unchanged.
+
+### G2. Implemented, not yet merged: Task 2B (compound provenance)
+
+- **Where.** Isolated worktree branch `task2b-compound-provenance`, based on `ac3fdd9`. Uncommitted at the time of writing.
+- **Meaning.** `is_measured` now means all three parameters (onset, gradient, severity) are fitted. Cross-season, pooled, carried-forward and class-default values are not measured.
+- **Propagation.** Per-parameter source and an aggregate `provenance_class` flow to `dim_compounds_season`, `fct_cliff_prediction_features` (five new columns) and the app. App messaging separates fitted, borrowed, default (estimate) and unknown values.
+- **Verified.** Scratch rebuild on real data, base against post: row grain unchanged (dim 499 rows, mart 161,406 laps). Zero differing values in 39 feature and 7 target columns. Provenance invariants hold. The 3,130 'missing' laps are all NULL-compound laps. The provenance singular test and three other singular/unit tests pass. TypeScript passes. cliffEstimate tests pass 31/31.
+- **Known limits.** `pooled_compound_fallback` and `carried_forward` have zero real rows (fixture-only). The real-compound 'missing' path is not exercised by real data. The simulator cell counts are returned but not consumed by any UI. 2B does NOT fix the underlying default parameter values.
+- **Status.** REVIEWED, READY TO MERGE, NOT MERGED, NOT committed. Not part of the production baseline. Not deployed.
+
+### G3. Deferred: Task 2A (cell-less laps priced as unknown)
+
+- **DEFERRED.** All functional changes were reverted to baseline `ac3fdd9`. No active production change.
+- The patch and supporting tests are archived at [`_roadmap/_archive/compound-cliff-2a/`](../../_archive/compound-cliff-2a/README.md).
+- Future work needs a feature and target impact analysis and an explicit retraining decision before any change to ML input values. The deferred fix is not implemented, so the "free tyre" pricing in `int_compound_cliff_predicted` (sections C and D) is still current behaviour.
+
+### G4. Known pre-existing failures and unresolved risks (on main, not caused by 2B)
+
+- `assert_prior_season_labels_frozen` fails (7 rows): the frozen `label_stability_baseline` seed is stale against current data.
+- Three citation tests in `sources.node.test.ts` fail.
+- Two `TestFuelCorrectedSeries` loader tests in `test_seed_param_provenance.py` fail.
+- `profileLookup.test.ts` depends on a gitignored parquet that is present only in main.
+- All risks in sections C, D and F5 remain open, including `int_lap_fuel_state`, `int_lap_residual_decomposed`, `int_compound_cliff_predicted`, `dim_compounds_season` default cells, `int_constructor_deg_sensitivity`, `int_qualifying_decomposed`, `int_stint_geometry` and `race_to_track`. Partial fixes are not full resolutions.

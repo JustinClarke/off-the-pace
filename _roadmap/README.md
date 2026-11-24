@@ -14,6 +14,7 @@ code describes what it does in place; this tree records why it changed and what 
 | [`_status/`](_status/) | Project status snapshots, open issues and the maintenance / pipeline-sync checklist | `_status/STATUS.md` |
 | [`_wip/`](_wip/) | Forward plans not yet started: in-product AI, streaming watch-along, a Spark rebuild | `_wip/PROJECT_PLAN.md` |
 | [`_archive/`](_archive/) | Closed plans and notes kept for reference, including the docs-tab plans the Mintlify site was built from | — |
+| [`_archive/compound-cliff-2a/`](_archive/compound-cliff-2a/ARCHIVED.md) | Task 2A (price a cell-less lap as unknown, not zero): deferred, not applied. Patch and tests kept for reference | [`README.md`](_archive/compound-cliff-2a/README.md) |
 
 Each board reads its own `status/build-log.json`, which is the only authoritative state for that
 tree. The boards only render and validate; they never write to the log.

@@ -7,10 +7,18 @@
 -- Provenance is per parameter. fit_source is the tier the cell's fit was
 -- attempted at; onset_source / gradient_source / severity_source say where
 -- each number came from (fitted, cross_season_fallback,
--- pooled_compound_fallback, class_default, carried_forward), because a tier that ran can still leave one parameter on
--- the compound-class default. is_measured is TRUE only when all three parameters
--- came from data (no class_default). compound_grip_peak and the optimal-temperature
--- window are never fitted: they are compound-class constants in every row.
+-- pooled_compound_fallback, class_default, carried_forward), because a tier that
+-- ran can still leave one parameter on the compound-class default.
+-- 'fitted' = estimated from this event's own history window (earlier seasons of
+-- the same event slug; 2018 its own season). The fallbacks and carried_forward
+-- are borrowed numbers, not this event's own fit.
+-- is_measured is TRUE only when all three parameters are 'fitted'.
+-- provenance_class names the cell: own_history_fitted (all three fitted), the
+-- shared source when all three agree (cross_season_fallback,
+-- pooled_compound_fallback, class_default, carried_forward), else mixed.
+-- compound_grip_peak and the optimal-temperature window are never fitted: they
+-- are compound-class constants in every row. A (venue, season, compound) with no
+-- row here is 'missing' downstream (see fct_cliff_prediction_features).
 {{ config(materialized='table') }}
 
 SELECT
@@ -30,12 +38,9 @@ SELECT
     CAST(gradient_source AS VARCHAR) AS gradient_source,
     CAST(severity_source AS VARCHAR) AS severity_source,
     CAST(notes AS VARCHAR) AS notes,
-    -- TRUE only when every fitted parameter came from data, not a class default.
+    -- TRUE only when every parameter is an own-history fit. Pooled, cross-season,
+    -- carried-forward and class-default parameters are not measured for this cell.
     -- NULL source (not expected; not_null tested) yields FALSE, never TRUE.
-    COALESCE(
-        onset_source IN ('fitted', 'cross_season_fallback', 'pooled_compound_fallback', 'carried_forward')
-        AND gradient_source IN ('fitted', 'cross_season_fallback', 'pooled_compound_fallback', 'carried_forward')
-        AND severity_source IN ('fitted', 'cross_season_fallback', 'pooled_compound_fallback', 'carried_forward'),
-        FALSE
-    ) AS is_measured
+    {{ compound_is_measured('onset_source', 'gradient_source', 'severity_source') }} AS is_measured,
+    {{ compound_provenance_class('onset_source', 'gradient_source', 'severity_source') }} AS provenance_class
 FROM {{ ref('compound_cliff_params') }}

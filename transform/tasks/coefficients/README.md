@@ -82,8 +82,24 @@ A fit tier can run and still return no usable number for one parameter (KM never
 0.5, no positive slope, no cliff with two laps each side, or a value out of range); that
 parameter then takes the class default. `fit_source` records the tier, and
 `onset_source` / `gradient_source` / `severity_source` record where each number came from
-(`fitted`, `cross_season_fallback`, `class_default`, `carried_forward`). Notes never read
-"fitted from" on a cell holding a default.
+(`fitted`, `cross_season_fallback`, `pooled_compound_fallback`, `class_default`,
+`carried_forward`). Notes never read "fitted from" on a cell holding a default.
+
+| Class (`provenance_class`) | Fitter path | Parameter source(s) | `is_measured` | App label |
+|---|---|---|---|---|
+| `own_history_fitted` | `fit_source = cox_km_survival`: this event slug's history window (earlier seasons; 2018 its own season) had >= MIN_STINTS | all three `fitted` | TRUE | shown as one lap, no note |
+| `cross_season_fallback` | the physical venue's stints (all event slugs of the venue) in the window | all three `cross_season_fallback` | FALSE | one lap, "from other seasons or tracks" |
+| `pooled_compound_fallback` | the same compound pooled across all venues in the window | all three `pooled_compound_fallback` | FALSE | same note |
+| `carried_forward` | `--fill-gaps`: earlier season's cell copied | all three `carried_forward` | FALSE | same note |
+| `class_default` | no tier had enough stints (`compound_class_default`) or `--fill-gaps` found no earlier cell | all three `class_default` | FALSE | "estimate, no data for this track" |
+| `mixed` | a tier ran but one estimator failed or was out of range (e.g. fitted onset, default gradient), or a carried cell held a default | differ per parameter | FALSE | per parameter: `class_default` labelled, others as above |
+| `missing` (mart only) | no `dim_compounds_season` row for the lap's venue/season/compound | NULL | FALSE | n/a |
+
+`is_measured` (dim and `compound_params_is_measured` in `fct_cliff_prediction_features`) is TRUE
+only when all three parameters are `fitted`. Naming caveat: `fit_source = cox_km_survival` is
+the Kaplan-Meier tier; no Cox model is fitted. The label is kept because consumers filter on it.
+The seed currently holds only `fitted`, `cross_season_fallback` and `class_default`; the
+other values are producible but absent at the 2026-10-15 fit.
 
 ### A season with no fit yet
 

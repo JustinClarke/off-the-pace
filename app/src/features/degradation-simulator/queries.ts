@@ -90,6 +90,13 @@ export interface CircuitCompoundConstants {
   compound_optimal_temp_high: number | null
   compound_cliff_onset_laps: number | null
   compound_cliff_severity: number | null
+  /** dim cells averaged into the constants above, and how many are own-history fits (is_measured).
+   *  The averages mix class defaults and borrowed values with fitted ones whenever
+   *  cells_measured < cells_total.
+   *  NOT YET CONSUMED: returned by the query but read by no app UI today (the simulator page and
+   *  transform ignore them). Surfacing a "constants partly borrowed" note is a later change. */
+  cells_total: number
+  cells_measured: number
   weight_penalty_factor: number | null
   fuel_consumption_rate_kg_per_lap: number | null
   track_energy_index: number | null
@@ -189,7 +196,9 @@ export const queryCircuitCompoundConstants = registerQuery<
           avg(cs.compound_optimal_temp_low) AS compound_optimal_temp_low,
           avg(cs.compound_optimal_temp_high) AS compound_optimal_temp_high,
           avg(cs.compound_cliff_onset_laps) AS compound_cliff_onset_laps,
-          avg(cs.compound_cliff_severity)   AS compound_cliff_severity
+          avg(cs.compound_cliff_severity)   AS compound_cliff_severity,
+          count(*)                          AS cells_total,
+          count(*) FILTER (WHERE cs.is_measured) AS cells_measured
         FROM dim_compounds_season cs
         JOIN keys k ON cs.circuit_key = k.circuit_key
         WHERE cs.compound_code = ? AND ${seasonPredicate}
@@ -199,6 +208,8 @@ export const queryCircuitCompoundConstants = registerQuery<
         cmp.compound_grip_peak, cmp.compound_wear_gradient,
         cmp.compound_optimal_temp_low, cmp.compound_optimal_temp_high,
         cmp.compound_cliff_onset_laps, cmp.compound_cliff_severity,
+        CAST(cmp.cells_total AS INTEGER) AS cells_total,
+        CAST(cmp.cells_measured AS INTEGER) AS cells_measured,
         circ.weight_penalty_factor, circ.fuel_consumption_rate_kg_per_lap,
         circ.track_energy_index, circ.abrasiveness_index
       FROM circ, cmp

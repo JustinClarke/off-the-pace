@@ -273,6 +273,32 @@ models:
       - name: compound_cliff_severity
         description: Fitted cliff severity (the cliff step in seconds, wear excluded) for this compound × circuit × season
         data_type: double
+      - name: compound_onset_source
+        description: >
+          Provenance of compound_cliff_onset_laps from dim_compounds_season (fitted,
+          cross_season_fallback, pooled_compound_fallback, class_default, carried_forward). NULL
+          when the lap has no dim cell. Descriptive only; not an ML feature.
+        data_type: varchar
+      - name: compound_gradient_source
+        description: Provenance of compound_wear_gradient; same vocabulary as compound_onset_source.
+        data_type: varchar
+      - name: compound_severity_source
+        description: Provenance of compound_cliff_severity; same vocabulary as compound_onset_source.
+        data_type: varchar
+      - name: compound_params_is_measured
+        description: >
+          dim_compounds_season.is_measured: TRUE only when onset, gradient and severity are all
+          own-history fits. FALSE for pooled, cross-season, carried-forward or class-default
+          parameters and for a lap with no dim cell.
+        data_type: boolean
+        tests: [not_null]
+      - name: compound_params_provenance_class
+        description: >
+          dim_compounds_season.provenance_class (own_history_fitted, cross_season_fallback,
+          pooled_compound_fallback, class_default, carried_forward, mixed), or 'missing' when the
+          lap has no dim cell.
+        data_type: varchar
+        tests: [not_null]
       - name: push_residual
         description: >
           Lap pace against the stint's point-in-time baseline, from

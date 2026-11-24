@@ -417,3 +417,71 @@ class TestFillCoverageGaps:
     def test_covered_cells_are_left_alone(self, seed_df):
         needed = seed_df[["circuit_key", "compound_code", "season"]]
         assert F.fill_coverage_gaps(seed_df, needed).empty
+
+
+# ---------------------------------------------------------------------------
+# Task 2B: is_measured means "own-history fit". The warehouse flag
+# (dim_compounds_season.is_measured, macros/compound_param_provenance.sql) is TRUE only
+# when all three source tags are 'fitted'; these tests pin which fitter outputs can
+# carry that tag. The SQL side is tests/assert_compound_provenance_semantics.sql.
+# ---------------------------------------------------------------------------
+
+def _all_fitted(r):
+    return all(r[c] == "fitted" for c in PARAMS)
+
+
+class TestOnlyOwnHistoryFitsCanBeMeasured:
+    def test_own_history_cell_is_all_fitted(self, pool, monkeypatch):
+        r = _fit(pool, monkeypatch)
+        assert r["fit_source"] == "cox_km_survival"   # label kept for consumers; the fit is Kaplan-Meier
+        assert _all_fitted(r)
+
+    def test_cross_season_cell_is_never_fitted(self, monkeypatch):
+        thin = make_stint_pool(n_stints=3, cliff_at_lap=20)
+        r = _fit(thin, monkeypatch, fallback_df=make_stint_pool(n_stints=30, cliff_at_lap=20))
+        assert r["fit_source"] == "cross_season_fallback"
+        assert not any(r[c] == "fitted" for c in PARAMS)
+        assert not _all_fitted(r)
+
+    def test_pooled_compound_cell_is_never_fitted(self, monkeypatch):
+        thin = make_stint_pool(n_stints=3, cliff_at_lap=20)
+        monkeypatch.setattr(F, "fit_cliff_onset_median", lambda *a, **k: 18.0)
+        monkeypatch.setattr(F, "estimate_cliff_severity", lambda *a, **k: 0.8)
+        monkeypatch.setattr(F, "estimate_wear_gradient", lambda *a, **k: 0.06)
+        r = F.fit_group(thin, "bahrain_grand_prix", "SOFT", 2024,
+                        pooled_df=make_stint_pool(n_stints=30, cliff_at_lap=20))
+        assert r["fit_source"] == "pooled_compound_fallback"
+        assert {r[c] for c in PARAMS} == {"pooled_compound_fallback"}
+
+    def test_class_default_cell_is_never_fitted(self, monkeypatch):
+        r = _fit(make_stint_pool(n_stints=3, cliff_at_lap=20), monkeypatch)
+        assert not any(r[c] == "fitted" for c in PARAMS)
+
+    def test_mixed_cell_has_distinct_per_parameter_sources(self, pool, monkeypatch):
+        r = _fit(pool, monkeypatch, gradient=None)        # fitted onset/severity, default gradient
+        assert (r["onset_source"], r["gradient_source"], r["severity_source"]) == (
+            "fitted", "class_default", "fitted")
+        assert not _all_fitted(r)
+
+    def test_carried_forward_cell_is_never_fitted(self):
+        seed_df = pd.DataFrame([_seed_row("bahrain_grand_prix", "MEDIUM", 2023, 21.0, 0.05, 0.7,
+                                          ("fitted",) * 3)])
+        needed = pd.DataFrame({"circuit_key": ["bahrain_grand_prix"], "compound_code": ["MEDIUM"],
+                               "season": [2024]})
+        r = F.fill_coverage_gaps(seed_df, needed).iloc[0]
+        assert {r[c] for c in PARAMS} == {"carried_forward"}
+        assert not _all_fitted(r)
+
+    def test_missing_cell_has_no_seed_row(self, seed):
+        # A (venue, season, compound) absent from the seed has no dim row; the mart reports
+        # it as 'missing' and not measured. Here: the seed key is unique, so absence is real.
+        assert not seed.duplicated(["circuit_key", "compound_code", "season"]).any()
+        absent = seed[(seed["circuit_key"] == "no_such_grand_prix")]
+        assert absent.empty
+
+
+class TestLiveSeedMeasuredCells:
+    def test_all_fitted_rows_come_only_from_the_own_history_tier(self, seed):
+        all_fitted = (seed[list(PARAMS)] == "fitted").all(axis=1)
+        assert (seed.loc[all_fitted, "fit_source"] == "cox_km_survival").all()
+        assert not (seed.loc[seed["fit_source"] != "cox_km_survival", list(PARAMS)] == "fitted").any().any()

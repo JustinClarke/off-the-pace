@@ -88,7 +88,8 @@ def load_known_gaps(path: Path = KNOWN_GAPS) -> list[str]:
     if not path.exists():
         return []
     lines = (ln.strip() for ln in path.read_text().splitlines())
-    return [ln for ln in lines if ln and not ln.startswith("#")]
+    # Entries are "YEAR TYPE SLUG | round=N | status=S | reason"; the dashboard shows only the session key.
+    return [ln.split("|", 1)[0].strip() for ln in lines if ln and not ln.startswith("#")]
 
 
 def _fmt(seconds: float) -> str:

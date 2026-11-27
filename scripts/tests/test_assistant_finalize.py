@@ -100,6 +100,8 @@ def test_run_export_runs_from_transform_and_restores_cwd(tmp_path, monkeypatch):
     seen = {}
     db = tmp_path / "w.duckdb"; db.write_bytes(b"")
     monkeypatch.setattr(ead, "_run_export_dispatch", lambda *a: seen.setdefault("cwd", Path(os.getcwd()).resolve()))
+    # Dispatch/cwd test only: freshness enforcement is covered in test_build_freshness.py.
+    monkeypatch.setattr(ead.build_freshness, "validate", lambda *a: ead.build_freshness.Validation([], {}))
     for start in (ead.ROOT, ead.ROOT / "transform"):
         monkeypatch.chdir(start)
         seen.clear()

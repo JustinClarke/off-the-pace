@@ -159,13 +159,19 @@ deg-iso-fit:  ## Fit isotonic tyre-deg curves + modulation coefs → data/fits/d
 
 ##   Build targets
 dbt-dev:  ## Build all dbt models + run their tests → data/dev.duckdb
+	$(PYTHON) scripts/build_freshness.py invalidate --db data/dev.duckdb
 	cd transform && ../.venv/bin/dbt build --profiles-dir profiles --target dev
+	$(PYTHON) scripts/build_freshness.py write --db data/dev.duckdb --target dev
 
 dbt-dev-full: coefficients-check  ## Seed check → full dbt build (models + tests)
+	$(PYTHON) scripts/build_freshness.py invalidate --db data/dev.duckdb
 	cd transform && ../.venv/bin/dbt build --profiles-dir profiles --target dev
+	$(PYTHON) scripts/build_freshness.py write --db data/dev.duckdb --target dev
 
 dbt-prod:  ## Prod build (Fabric deferred runs against dev for now)
+	$(PYTHON) scripts/build_freshness.py invalidate --db data/dev.duckdb
 	cd transform && ../.venv/bin/dbt build --profiles-dir profiles --target dev
+	$(PYTHON) scripts/build_freshness.py write --db data/dev.duckdb --target dev
 
 dbt-docs:  ## Generate + serve the dbt docs site (port 8080)
 	cd transform && ../.venv/bin/dbt docs generate --profiles-dir profiles && ../.venv/bin/dbt docs serve

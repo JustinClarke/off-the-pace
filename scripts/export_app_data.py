@@ -18,6 +18,9 @@ Usage:
   python scripts/export_app_data.py --finalize [--out DIR] [--check]   # AX-08, no warehouse (see assistant_finalize.py)
 
   --db PATH   warehouse to read (default data/dev.duckdb)
+  --bronze-dir DIR   bronze root whose manifests/run_*.parquet the freshness gate reads
+              (default data/bronze). The warehouse must carry a valid full-build
+              marker (<db>.build.json, written by `make dbt-dev-full`), also for --db.
   --out DIR   output root (default app/public/data); --check compares against
               DIR/_manifest.json. A non-default --db without --out (and without
               --check) is refused, so a scratch warehouse never overwrites
@@ -45,6 +48,8 @@ import time
 from datetime import datetime, timezone
 from pathlib import Path
 
+import build_freshness
+
 ROOT = Path(__file__).parent.parent
 DB_PATH = ROOT / "data" / "dev.duckdb"
 APP_DATA = ROOT / "app" / "public" / "data"
@@ -52,6 +57,8 @@ OUT_ROOT_GLOBAL = APP_DATA
 MART_PREDS = ROOT / "data" / "marts" / "mart_degradation_predictions.parquet"
 DRIVER_NETWORK_RATING = ROOT / "data" / "marts" / "driver_network_rating.parquet"
 MODEL_CARD = ROOT / "ml" / "models" / "model_card.json"
+
+BRONZE_DIR = ROOT / "data" / "bronze"
 
 MAX_FILE_BYTES = 5 * 1024 * 1024  # 5 MB gate
 
@@ -276,6 +283,48 @@ def add_freshness(entries: list[dict], out_root: Path) -> None:
         entry["rows"] = rows
         entry["hash"] = digest
     conn.close()
+
+
+def verify_manifest(manifest: dict, out_root: Path, latest_bronze: str | None,
+                    marker_build_id: str | None) -> list[str]:
+    """Offline checks of a written manifest: bronze run, build id, and every table's rows/hash on disk.
+
+    Uses add_freshness, the same rows/hash code the export wrote the manifest with.
+    """
+    problems: list[str] = []
+    prov = manifest.get("provenance")
+    m_run = prov.get("bronze_run_id") if isinstance(prov, dict) else None
+    if not m_run:
+        problems.append("STALE EXPORT: manifest provenance.bronze_run_id is missing (hand-edited or exported "
+                        "before the freshness gate). Run: make app-data")
+    elif latest_bronze is None or m_run != latest_bronze:
+        if latest_bronze is None or str(m_run) < latest_bronze:
+            problems.append(f"STALE EXPORT: manifest bronze_run_id {m_run} is older than latest bronze run "
+                            f"{latest_bronze}. Run: make dbt-dev-full app-data")
+        else:
+            problems.append(f"STALE EXPORT: manifest bronze_run_id {m_run} does not match latest bronze run "
+                            f"{latest_bronze}. Run: make dbt-dev-full app-data")
+    m_build = prov.get("build_id") if isinstance(prov, dict) else None
+    if m_build != marker_build_id:
+        problems.append(f"STALE EXPORT: manifest build_id {m_build} does not match the warehouse build marker "
+                        f"{marker_build_id}. Run: make app-data")
+
+    for entry in manifest.get("tables", []):
+        name = entry.get("name", "<unnamed>")
+        try:
+            files = _entry_files(entry, out_root)
+            if not files or not all(f.exists() for f in files):
+                problems.append(f"MANIFEST/FILE MISMATCH: {name} files are missing on disk. Run: make app-data")
+                continue
+            actual = {"path": entry["path"]}
+            add_freshness([actual], out_root)
+        except Exception as e:  # noqa: BLE001 — unreadable files are a mismatch, never a pass
+            problems.append(f"MANIFEST/FILE MISMATCH: {name} cannot be read from disk ({e}). Run: make app-data")
+            continue
+        for key, label in (("rows", "rows"), ("hash", "hash")):
+            if entry.get(key) != actual[key]:
+                problems.append(f"MANIFEST/FILE MISMATCH: {name} {label} differs from files on disk. Run: make app-data")
+    return problems
 
 
 # ─── Core export functions ────────────────────────────────────────────────────
@@ -597,8 +646,11 @@ def _git(*args: str) -> str | None:
         return None
 
 
-def build_provenance_block(conn) -> dict | None:
+def build_provenance_block(conn, freshness: dict | None = None) -> dict | None:
     """The one mart_build_provenance row, plus git_sha / git_dirty (dbt cannot read git).
+
+    `freshness` (the validated build marker) adds bronze_run_id, build_id, build_is_full, dbt_node_count,
+    source_coverage and acknowledged_gaps (sessions accepted as known gaps; not complete coverage).
 
     None (published as null, with a warning) when the warehouse has no such table.
     """
@@ -624,6 +676,13 @@ def build_provenance_block(conn) -> dict | None:
     block = {c: _jsonable(v) for c, v in zip(cols, rows[0])}
     sha = _git("rev-parse", "HEAD")
     status = _git("status", "--porcelain")
+    if freshness is not None:
+        block["bronze_run_id"] = freshness["bronze_run_id"]
+        block["build_id"] = freshness["build_id"]
+        block["build_is_full"] = freshness["is_full"]
+        block["dbt_node_count"] = freshness["dbt_node_count"]
+        block["source_coverage"] = freshness["source_coverage"]
+        block["acknowledged_gaps"] = freshness["acknowledged_gaps"]
     block["git_sha"] = sha.strip() if sha is not None else None
     block["git_dirty"] = bool(status.strip()) if status is not None else None
     return block
@@ -699,14 +758,23 @@ def run_export(
     check_mode: bool = False,
     db_path: Path | None = None,
     out_root: Path | None = None,
+    bronze_dir: Path | None = None,
 ) -> None:
     import duckdb
 
     db_path = Path(db_path).resolve() if db_path is not None else DB_PATH
     out_root = Path(out_root).resolve() if out_root is not None else APP_DATA
+    bronze_dir = Path(bronze_dir).resolve() if bronze_dir is not None else BRONZE_DIR
 
     if not db_path.exists():
         print(f"ERROR: warehouse not found at {db_path}")
+        sys.exit(1)
+
+    # Freshness gate: every warehouse, scratch ones included, needs a valid full-build marker.
+    result = build_freshness.validate(db_path, bronze_dir)
+    if result.problems:
+        for problem in result.problems:
+            print(problem)
         sys.exit(1)
 
     # AX-08: the stg_* views resolve their bronze parquet path relative to transform/, so the export
@@ -715,21 +783,24 @@ def run_export(
     prev_cwd = os.getcwd()
     os.chdir(ROOT / "transform")
     try:
-        _run_export_dispatch(canary_only, target_table, check_mode, db_path, out_root)
+        _run_export_dispatch(canary_only, target_table, check_mode, db_path, out_root,
+                             result.marker, bronze_dir)
     finally:
         os.chdir(prev_cwd)
 
 
-def _run_export_dispatch(canary_only, target_table, check_mode, db_path, out_root) -> None:
+def _run_export_dispatch(canary_only, target_table, check_mode, db_path, out_root,
+                         freshness=None, bronze_dir=None) -> None:
     if check_mode:
         # Write to a temp dir, then diff against <out_root>/_manifest.json
         with tempfile.TemporaryDirectory() as tmp:
             _run_export_to(Path(tmp), canary_only, target_table, check_mode=True,
-                           db_path=db_path, compare_root=out_root)
+                           db_path=db_path, compare_root=out_root,
+                           freshness=freshness, bronze_dir=bronze_dir)
         return
 
     _run_export_to(out_root, canary_only, target_table, check_mode=False,
-                   db_path=db_path)
+                   db_path=db_path, freshness=freshness, bronze_dir=bronze_dir)
 
 
 def _run_export_to(
@@ -739,6 +810,8 @@ def _run_export_to(
     check_mode: bool,
     db_path: Path | None = None,
     compare_root: Path | None = None,
+    freshness: dict | None = None,
+    bronze_dir: Path | None = None,
 ) -> None:
     global OUT_ROOT_GLOBAL
     OUT_ROOT_GLOBAL = out_root
@@ -824,7 +897,7 @@ def _run_export_to(
 
     # Stats block
     stats = build_stats_block(conn)
-    provenance = build_provenance_block(conn)
+    provenance = build_provenance_block(conn, freshness)
     conn.close()
 
     add_freshness(manifest_entries, out_root)
@@ -862,11 +935,22 @@ def _run_export_to(
                         if k not in ("git_sha", "git_dirty")
                     }
                 return m
+            failed = False
             if _strip(current) != _strip(manifest):
                 print("\n  ⚠️  DRIFT DETECTED: manifest is out of date. Run: make app-data")
-                sys.exit(1)
+                failed = True
             else:
                 print("  ✅  No drift manifest is current.")
+            # Freshness: offline check of the committed manifest against bronze, the build marker and the files.
+            for pr in verify_manifest(
+                current, compare_root,
+                build_freshness.latest_bronze_run(bronze_dir if bronze_dir is not None else BRONZE_DIR),
+                freshness["build_id"] if freshness else None,
+            ):
+                print(f"  ⚠️  {pr}")
+                failed = True
+            if failed:
+                sys.exit(1)
             # AX-08: every file the assistant block names must still hash to the manifest value.
             if current.get("assistant"):
                 from assistant_finalize import verify_assistant
@@ -934,6 +1018,13 @@ def build_parser() -> argparse.ArgumentParser:
         help="Output root (default: app/public/data). --check compares against DIR/_manifest.json.",
     )
     parser.add_argument(
+        "--bronze-dir",
+        metavar="DIR",
+        type=Path,
+        default=BRONZE_DIR,
+        help="Bronze root for the freshness gate (default: data/bronze).",
+    )
+    parser.add_argument(
         "--finalize",
         action="store_true",
         help="AX-08: no warehouse. Convert assistant/_staging (build-cards --stage) to card parquet, write the "
@@ -965,6 +1056,7 @@ def main(argv: list[str] | None = None) -> None:
         check_mode=args.check,
         db_path=args.db,
         out_root=args.out,
+        bronze_dir=args.bronze_dir,
     )
 
 

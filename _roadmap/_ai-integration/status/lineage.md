@@ -2,13 +2,13 @@
 
 Snapshot taken 2026-11-24 of the transform pipeline: lineage, bronze storage, schemas and robustness signals. Built by reading the model, schema, test, app and ML code. No dbt run, no data queried, no tests executed in sections A to E. Section F (Race Control and Safety Car hazard) was checked against the built exports, the CI fixture and the test suites on the same day.
 
-**Change status (added 2026-11-24).** Sections A to F describe the main baseline `ac3fdd9`. Work that is deferred, or implemented but not merged, is tracked in section G (Task 2A deferred, Task 2B reviewed and not merged). Nothing in G changes a finding above.
+**Current status.** Sections A to F describe the findings as checked on their dates. Current work status is in the snapshot below and in section G. Nothing in G changes a finding above.
 
 ## Repo status snapshot (2026-11-24)
 
-- **Main.** Branch `main` at `ac3fdd9`. Tracked files are clean; the only working-tree changes are documentation (this file and the `_roadmap/_archive/compound-cliff-2a/` folder).
-- **Task 2A.** Deferred and reverted to base `ac3fdd9`. The patch and tests are archived in [`_roadmap/_archive/compound-cliff-2a/`](../../_archive/compound-cliff-2a/ARCHIVED.md). No 2A functional change is active.
-- **Task 2B.** Implemented in worktree branch `task2b-compound-provenance`, uncommitted, reviewed and ready to merge. Not merged.
+- **Main.** Branch `main`, HEAD `baa0c82` (Task 2B merge). Not pushed; `origin/main` is at `9def077`.
+- **Task 2A.** Deferred. Functional changes are reverted and not active. The patch and tests are archived in [`_roadmap/_archive/compound-cliff-2a/`](../../_archive/compound-cliff-2a/ARCHIVED.md).
+- **Task 2B.** Merged into main (`6a891a5` on the branch, merged as `baa0c82`). Not pushed or deployed.
 - **Warehouses.** `data/dev.duckdb` is near-empty (under 1 MB) and is not a trusted build. `data/ci.duckdb` is the CI fixture. Neither is a canonical full build.
 - **Pipeline in brief.**
   1. Raw bronze parquet (FastF1, Jolpica) is declared as sources in `transform/models/staging/src_*.yml`.
@@ -1069,7 +1069,7 @@ Re-run commands (these write to the warehouse or `target/`; use a scratch copy, 
 
 ---
 
-## G. Change status (updated 2026-11-24)
+## G. Current change status
 
 Status taxonomy. Sections A to F stay as written. Provenance becoming visible is not a fix: no upstream model below is marked fixed by Task 2B.
 
@@ -1077,14 +1077,14 @@ Status taxonomy. Sections A to F stay as written. Provenance becoming visible is
 
 The hazard work in section F (verified there on 2026-11-24). Per-model status and risk entries in sections C and D are unchanged.
 
-### G2. Implemented, not yet merged: Task 2B (compound provenance)
+### G2. Merged: Task 2B (compound provenance)
 
-- **Where.** Isolated worktree branch `task2b-compound-provenance`, based on `ac3fdd9`. Uncommitted at the time of writing.
+- **Where.** Branch `task2b-compound-provenance` (commit `6a891a5`), merged into `main` as `baa0c82`.
 - **Meaning.** `is_measured` now means all three parameters (onset, gradient, severity) are fitted. Cross-season, pooled, carried-forward and class-default values are not measured.
 - **Propagation.** Per-parameter source and an aggregate `provenance_class` flow to `dim_compounds_season`, `fct_cliff_prediction_features` (five new columns) and the app. App messaging separates fitted, borrowed, default (estimate) and unknown values.
 - **Verified.** Scratch rebuild on real data, base against post: row grain unchanged (dim 499 rows, mart 161,406 laps). Zero differing values in 39 feature and 7 target columns. Provenance invariants hold. The 3,130 'missing' laps are all NULL-compound laps. The provenance singular test and three other singular/unit tests pass. TypeScript passes. cliffEstimate tests pass 31/31.
 - **Known limits.** `pooled_compound_fallback` and `carried_forward` have zero real rows (fixture-only). The real-compound 'missing' path is not exercised by real data. The simulator cell counts are returned but not consumed by any UI. 2B does NOT fix the underlying default parameter values.
-- **Status.** REVIEWED, READY TO MERGE, NOT MERGED, NOT committed. Not part of the production baseline. Not deployed.
+- **Status.** Merged to local `main`. Not pushed. Not deployed. Its provenance labels are visible in the app only after the pipeline export is re-run.
 
 ### G3. Deferred: Task 2A (cell-less laps priced as unknown)
 

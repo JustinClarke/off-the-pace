@@ -65,6 +65,8 @@ data/intermediates/*
 !data/intermediates/.gitkeep
 *.duckdb
 *.duckdb.wal
+# Build-freshness marker written next to a warehouse by scripts/build_freshness.py
+data/*.build.json
 
 # ML artifacts ignore large/regenerable binaries + transient dirs;
 # TRACK small published metadata (encoders.json, manifest.json, model_card.json)

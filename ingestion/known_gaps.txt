@@ -1,9 +1,22 @@
 # Sessions the source cannot deliver complete. The ingest still runs, and the
 # pipeline locks Bronze with these listed as known gaps instead of blocking.
 #
-# Format: YEAR TYPE SLUG   (TYPE is R for race or Q for qualifying)
-# A session listed here is accepted when it fails or comes back thin. Anything
-# NOT listed still stops the pipeline, so new problems are never hidden.
+# Format, one session per line:
+#   YEAR TYPE SLUG | round=N | status=STATUS | reason
+# TYPE is R for race or Q for qualifying. round is the manifest round_number.
+# status is the manifest status the session is expected to have (ok, thin, skip or
+# error). The reason is required and must not be empty. The first three fields stay
+# YEAR TYPE SLUG, which is all that verify_bronze.py and pipeline_lib.sh read; the
+# build freshness gate (scripts/build_freshness.py) parses every field strictly and
+# refuses a malformed line.
+# A session listed here is accepted by ingest and verify_bronze when it fails or comes
+# back thin. Anything NOT listed still stops the pipeline, so new problems are never
+# hidden. Listing a session here does NOT approve it for the build freshness gate:
+# only the allow-list in scripts/build_freshness.py (APPROVED_GAPS) does. That list
+# covers only the exceptional statuses (error, thin): a listed error or thin session
+# that appears in the latest Bronze run and is not on it blocks the build. A session
+# whose latest status is ok or a verified skip passes the gate on its own checks,
+# listed here or not.
 #
 # Recorded for information (not blocking, not listed below): position and car data
 # the source returns empty. 2018 R australian_grand_prix (pos data); 2018 R
@@ -28,6 +41,6 @@
 # 2026 R monaco_grand_prix: merged telemetry covers 8.8% of laps. FastF1 raises a
 #   KeyError ('Date') on 1,324 laps from the source. Written as is; coverage is low.
 
-2018 R italian_grand_prix
-2026 R bahrain_grand_prix
-2026 R monaco_grand_prix
+2018 R italian_grand_prix | round=14 | status=error | FastF1 IndexError in __fix_tyre_info (stint_brackets out of range); the race does not load, nothing is written for it, qualifying is fine; retried 2026-11-16 with a fresh fetch into a new cache and failed again with the same error; driver 3's tyre messages carry 4 stints bunched at one timestamp but timing shows only 1 pit-in; accepted as a gap
+2026 R bahrain_grand_prix | round=16 | status=thin | laps.TyreLife is 87% non-null, below the 90% bar; the race is held back rather than written as is
+2026 R monaco_grand_prix | round=6 | status=skip | merged telemetry covers 8.8% of laps; FastF1 raises a KeyError ('Date') on 1,324 laps from the source; written as is, coverage is low (first ingested ok, later runs record skip); documented only; it passes the freshness gate as a verified skip, not through APPROVED_GAPS
